@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: church_pos_web
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      # Монтируем папку ./db_store на сервере в папку /app/db_volume внутри контейнера
+      - ./db_store:/app/db_volume  
+    environment:
+      - TZ=Asia/Novokuznetsk
+    # Автоматически накатываем миграции перед стартом
+    command: >
+      sh -c "python manage.py migrate && 
+             python manage.py runserver 0.0.0.0:8000"
+
+volumes:
+  db_data:

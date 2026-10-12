@@ -1,0 +1,48 @@
+# === База данных ===
+db_store/
+*.sqlite3
+
+# === Виртуальное окружение Python ===
+venv/
+.venv/
+env/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# === Кэш Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+
+# === Настройки VS Code и редакторов кода ===
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+*.swo
+
+# === Docker и системные файлы ===
+.docker/
+.DS_Store
+Thumbs.db
+
+# === Секреты и переменные окружения ===
+.env
+.env.[a-zA-Oq-z]*
