@@ -83,6 +83,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_display_links = ('id', 'created_at')
     list_filter = (DeletedFilter,'is_cashless', 'is_verified', TransactionDateFilter, 'cashier')
     search_fields = ('item__name', 'cashier__username')
+    date_hierarchy = 'created_at'
     readonly_fields = ('created_at', 'get_total_cost', 'verified_by', 'cashier', 'is_deleted')
     actions = (make_verified,)
 
