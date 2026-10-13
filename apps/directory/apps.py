@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class DirectoryConfig(AppConfig):
     name = 'directory'
-    verbose_name = 'Справочник церковной лавки'
+    verbose_name = 'Каталог церковной лавки'
