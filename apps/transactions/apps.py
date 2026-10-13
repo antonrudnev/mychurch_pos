@@ -3,4 +3,4 @@ from django.apps import AppConfig
 
 class TransactionsConfig(AppConfig):
     name = 'transactions'
-    verbose_name = 'Журнал операций'
+    verbose_name = 'Журнал учета'

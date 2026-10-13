@@ -28,7 +28,7 @@ class ItemAdmin(admin.ModelAdmin):
     list_filter = ('item_type', 'is_active', 'created_at')
     
     # Строка поиска теперь ищет только по названию товара/услуги
-    search_fields = ('name',)
+    search_fields = ('name__icontains',)
     
     # Группировка полей внутри карточки товара/услуги
     fieldsets = (

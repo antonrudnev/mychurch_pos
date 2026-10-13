@@ -1,9 +1,8 @@
-from decimal import Decimal
-
 from directory.models import Item
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.utils import timezone
 
 User = get_user_model()
 
@@ -40,11 +39,12 @@ class Transaction(models.Model):
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
-        validators=[MinValueValidator(Decimal('0.00'))],
+        validators=[MinValueValidator(0)],
         verbose_name="Цена за единицу"
     )
     quantity = models.PositiveIntegerField(
         default=1, 
+        validators=[MinValueValidator(1)],
         verbose_name="Количество"
     )
     is_cashless = models.BooleanField(
@@ -53,7 +53,7 @@ class Transaction(models.Model):
         help_text="Отметьте, если оплата прошла по карте, терминалу или QR-коду"
     )
     created_at = models.DateTimeField(
-        auto_now_add=True, 
+        default=timezone.now, 
         verbose_name="Дата и время"
     )
     is_verified = models.BooleanField(

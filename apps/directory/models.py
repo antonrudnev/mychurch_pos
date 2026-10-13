@@ -14,7 +14,7 @@ class ItemType(models.Model):
     slug = models.SlugField(
         max_length=100, 
         unique=True, 
-        verbose_name="Идентификатор для кода"
+        verbose_name="Дескриптор"
     )
 
     class Meta:

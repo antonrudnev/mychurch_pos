@@ -13,7 +13,15 @@ class TransactionDateFilter(admin.SimpleListFilter):
     title = 'Дата и время'
     parameter_name = 'date_range'
 
+    
+
     def lookups(self, request, model_admin):
+        # Если в URL уже есть параметры точного дня/месяца/года от date_hierarchy,
+        # мы скрываем быстрые периоды, так как пользователь уже выбрал конкретную дату
+        if any(key.startswith('created_at__') for key in request.GET.keys()):
+            return (
+                ('custom', 'Выбран календарь 📅'),
+            )
         return (
             ('today', 'Сегодня'),
             ('yesterday', 'Вчера'),
@@ -22,7 +30,12 @@ class TransactionDateFilter(admin.SimpleListFilter):
         )
 
     def queryset(self, request, queryset):
-        # Получаем текущее локальное время Новокузнецка
+        # 1. Если пользователь выбрал дату через date_hierarchy, в URL появятся параметры 'created_at__...'
+        # В этом случае кастомный фильтр не должен перебивать выбор календаря — отдаем queryset как есть
+        if any(key.startswith('created_at__') for key in request.GET.keys()):
+            return queryset
+        # 2. Иначе обрабатываем стандартные клики по нашей правой панели
+        # Получаем текущее локальное время
         now = timezone.localtime(timezone.now())
         # Начало сегодняшнего дня (00:00:00)
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -82,9 +95,9 @@ class TransactionAdmin(admin.ModelAdmin):
     )
     list_display_links = ('id', 'created_at')
     list_filter = (DeletedFilter,'is_cashless', 'is_verified', TransactionDateFilter, 'cashier')
-    search_fields = ('item__name', 'cashier__username')
+    search_fields = ('item__name__icontains', 'cashier__username__icontains')
     date_hierarchy = 'created_at'
-    readonly_fields = ('created_at', 'get_total_cost', 'verified_by', 'cashier', 'is_deleted')
+    readonly_fields = ('get_total_cost', 'verified_by', 'cashier', 'is_deleted')
     actions = (make_verified,)
 
     @admin.display(description='Итоговая стоимость (руб.)')
