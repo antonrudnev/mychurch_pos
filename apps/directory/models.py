@@ -1,14 +1,20 @@
+from decimal import Decimal
+
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
 class ItemType(models.Model):
     """Таблица типов номенклатуры (например: Товар, Таинство, Записка, Пожертвование)"""
-    name = models.CharField(max_length=100, unique=True, verbose_name="Название типа")
-    slug = models.SlugField(max_length=100, unique=True, verbose_name="Идентификатор для кода")
-    has_stock = models.BooleanField(
-        default=False, 
-        verbose_name="Учитывать остатки на складе",
-        help_text="Включите для физических товаров, выключите для услуг и треб"
+    name = models.CharField(
+        max_length=100, 
+        unique=True, 
+        verbose_name="Название типа"
+    )
+    slug = models.SlugField(
+        max_length=100, 
+        unique=True, 
+        verbose_name="Идентификатор для кода"
     )
 
     class Meta:
@@ -32,15 +38,19 @@ class Item(models.Model):
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name="Цена / Рекомендуемый взнос"
     )
-    stock = models.PositiveIntegerField(
-        default=0, 
-        verbose_name="Остаток на складе",
-        help_text="Используется, если у типа включен учёт остатков"
+    is_active = models.BooleanField(
+        default=True, 
+        verbose_name="Активен"
     )
-    is_active = models.BooleanField(default=True, verbose_name="Активен")
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата добавления")
+    created_at = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Дата добавления"
+    )
 
     class Meta:
         verbose_name = "Позиция реестра"
@@ -48,4 +58,5 @@ class Item(models.Model):
         ordering = ('item_type__name', 'name')
 
     def __str__(self):
-        return f"[{self.item_type.name}] {self.name} ({self.price} руб.)"
+        price = f"{self.price} руб." if self.price is not None else "Цена не указана"
+        return f"[{self.item_type.name}] {self.name} ({price})"

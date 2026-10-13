@@ -1,5 +1,8 @@
+from decimal import Decimal
+
 from directory.models import Item
 from django.contrib.auth import get_user_model
+from django.core.validators import MinValueValidator
 from django.db import models
 
 User = get_user_model()
@@ -37,6 +40,7 @@ class Transaction(models.Model):
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
+        validators=[MinValueValidator(Decimal('0.00'))],
         verbose_name="Цена за единицу"
     )
     quantity = models.PositiveIntegerField(
@@ -75,7 +79,7 @@ class Transaction(models.Model):
 
     class Meta:
         verbose_name = "Транзакция"
-        verbose_name_plural = "Журнал транзакций"
+        verbose_name_plural = "Список транзакций"
         ordering = ('-created_at',)
 
     @property

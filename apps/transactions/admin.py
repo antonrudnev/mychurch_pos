@@ -83,7 +83,7 @@ class TransactionAdmin(admin.ModelAdmin):
         """Передаем словарь 'ID товара: Цена' в контекст страницы добавления транзакции"""
         items = Item.objects.filter(is_active=True)
         # Формируем JSON-словарь, например: {1: 150.00, 2: 50.00}
-        item_prices = {item.id: float(item.price) for item in items}
+        item_prices = {item.id: float(item.price if item.price is not None else 0) for item in items}
         
         context['item_prices_json'] = json.dumps(item_prices)
         return super().render_change_form(request, context, add, change, form_url, obj)
