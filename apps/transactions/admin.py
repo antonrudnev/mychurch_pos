@@ -1,12 +1,50 @@
 import json
+from datetime import timedelta
 
 from directory.models import Item
 from django.contrib import admin
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from .models import Transaction
 
 
+class TransactionDateFilter(admin.SimpleListFilter):
+    title = 'Дата и время'
+    parameter_name = 'date_range'
+
+    def lookups(self, request, model_admin):
+        return (
+            ('today', 'Сегодня'),
+            ('yesterday', 'Вчера'),
+            ('this_week', 'Эта неделя'),
+            ('this_month', 'Этот месяц'),
+        )
+
+    def queryset(self, request, queryset):
+        # Получаем текущее локальное время Новокузнецка
+        now = timezone.localtime(timezone.now())
+        # Начало сегодняшнего дня (00:00:00)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if self.value() == 'today':
+            return queryset.filter(created_at__gte=today_start)
+            
+        if self.value() == 'yesterday':
+            yesterday_start = today_start - timedelta(days=1)
+            yesterday_end = today_start
+            return queryset.filter(created_at__gte=yesterday_start, created_at__lt=yesterday_end)
+            
+        if self.value() == 'this_week':
+            # Вычисляем номер текущей недели в году и текущий год
+            current_week = now.isocalendar()[1]
+            return queryset.filter(created_at__year=now.year, created_at__week=current_week)
+            
+        if self.value() == 'this_month':
+            return queryset.filter(created_at__year=now.year, created_at__month=now.month)
+            
+        return queryset
+    
 class DeletedFilter(admin.SimpleListFilter):
     """Кастомный фильтр для отображения удаленных записей"""
     title = 'Статус удаления'
@@ -39,11 +77,11 @@ class TransactionAdmin(admin.ModelAdmin):
     """Настройка отображения Журнала транзакций в админке"""
 
     list_display = (
-        'id', 'created_at', 'item', 'price', 'quantity',
+        'id', 'created_at', 'get_item_clean_name', 'price', 'quantity',
         'get_total_cost', 'is_cashless', 'is_verified', 'cashier', 'get_status'
     )
     list_display_links = ('id', 'created_at')
-    list_filter = (DeletedFilter,'is_cashless', 'is_verified', 'created_at', 'cashier')
+    list_filter = (DeletedFilter,'is_cashless', 'is_verified', TransactionDateFilter, 'cashier')
     search_fields = ('item__name', 'cashier__username')
     readonly_fields = ('created_at', 'get_total_cost', 'verified_by', 'cashier', 'is_deleted')
     actions = (make_verified,)
@@ -52,6 +90,13 @@ class TransactionAdmin(admin.ModelAdmin):
     def get_total_cost(self, obj):
         """Вывод динамического свойства total_cost в таблицу админки"""
         return obj.total_cost
+
+    @admin.display(ordering='item__name', description='Товар / Услуга')
+    def get_item_clean_name(self, obj):
+        """Выводит тип и название позиции без цены и лишней информации"""
+        if obj.item:
+            return f"[{obj.item.item_type.name}] {obj.item.name}"
+        return "—"
 
     @admin.display(description='Статус')
     def get_status(self, obj):
