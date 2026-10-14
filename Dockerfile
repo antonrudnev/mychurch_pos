@@ -19,8 +19,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копирование исходного кода проекта
 COPY . .
 
+# Сборка статических файлов (включая стили админки) внутрь контейнера
+RUN python manage.py collectstatic --noinput
+
 # Открываем порт для Django
 EXPOSE 8000
 
-# Команда для запуска встроенного сервера (для продакшна обычно используют gunicorn)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Запуск через WSGI-сервер Gunicorn (замените "myproject" на имя папки с вашим settings.py)
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
