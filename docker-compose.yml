@@ -18,7 +18,7 @@ services:
     # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate && 
-             gunicorn --bind 0.0.0.0:8000 church_pos.wsgi:application"
+             gunicorn --bind 0.0.0.0:8000 config.wsgi:application"
 
 volumes:
   db_data:
