@@ -9,7 +9,7 @@ class ItemType(models.Model):
     name = models.CharField(
         max_length=100, 
         unique=True, 
-        verbose_name="Название типа"
+        verbose_name="Название категории"
     )
     slug = models.SlugField(
         max_length=100, 
@@ -18,8 +18,8 @@ class ItemType(models.Model):
     )
 
     class Meta:
-        verbose_name = "Тип номенклатуры"
-        verbose_name_plural = "Типы номенклатуры"
+        verbose_name = "Категория номенклатуры"
+        verbose_name_plural = "Категории номенклатуры"
         ordering = ('name',)
 
     def __str__(self):
@@ -32,7 +32,7 @@ class Item(models.Model):
         ItemType, 
         on_delete=models.PROTECT, 
         related_name='items', 
-        verbose_name="Тип"
+        verbose_name="Категория"
     )
     name = models.CharField(max_length=255, verbose_name="Название")
     price = models.DecimalField(

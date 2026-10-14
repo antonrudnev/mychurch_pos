@@ -40,7 +40,7 @@ class ItemAdmin(admin.ModelAdmin):
         }),
     )
 
-    @admin.display(description='ID')
+    @admin.display(description='ID', ordering='id')
     def get_id_with_meta(self, obj):
         """Передаем на страницу списка флаг: заполнена ли цена у товара"""
         has_price = "true" if obj.price is not None else "false"

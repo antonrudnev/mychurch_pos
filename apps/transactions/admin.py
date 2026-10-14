@@ -59,25 +59,35 @@ class TransactionDateFilter(admin.SimpleListFilter):
         return queryset
     
 class DeletedFilter(admin.SimpleListFilter):
-    """Кастомный фильтр для отображения удаленных записей"""
+    """Кастомный фильтр для отображения удаленных записей с корректным дефолтным значением"""
     title = 'Статус удаления'
     parameter_name = 'deleted_status'
 
     def lookups(self, request, model_admin):
         return (
-            ('active', 'Активные (по умолчанию)'),
-            ('deleted', 'Только удаленные (Корзина)'),
-            ('all', 'Все записи (включая удаленные)'),
+            ('active', 'Активные'),
+            ('deleted', 'Корзина'),
+            ('all', 'Все записи'),
         )
 
     def queryset(self, request, queryset):
-        # По умолчанию (если фильтр не выбран) показываем только активные
+        # Если выбрано 'active' или фильтр еще не трогали (None), показываем только живые
         if self.value() == 'active' or self.value() is None:
             return queryset.filter(is_deleted=False)
         if self.value() == 'deleted':
             return queryset.filter(is_deleted=True)
         if self.value() == 'all':
-            return queryset  # Возвращаем весь список без фильтрации по is_deleted
+            return queryset # Возвращаем всё без фильтрации по удалению
+
+    def choices(self, changelist):
+        """Переопределяем отображение, чтобы скрыть стандартную ссылку 'Все' от Django 
+        и правильно подсвечивать выбранные пункты."""
+        for lookup, title in self.lookup_choices:
+            yield {
+                'selected': self.value() == lookup or (self.value() is None and lookup == 'active'),
+                'query_string': changelist.get_query_string({self.parameter_name: lookup}, []),
+                'display': title,
+            }
 
 
 @admin.action(description='Утвердить выбранные транзакции (верификация)')
@@ -90,11 +100,11 @@ class TransactionAdmin(admin.ModelAdmin):
     """Настройка отображения Журнала транзакций в админке"""
 
     list_display = (
-        'id', 'created_at', 'get_item_clean_name', 'price', 'quantity',
+        'id', 'created_at', 'get_item_type_name', 'get_item_clean_name', 'price', 'quantity',
         'get_total_cost', 'is_cashless', 'is_verified', 'cashier', 'get_status'
     )
     list_display_links = ('id', 'created_at')
-    list_filter = (DeletedFilter,'is_cashless', 'is_verified', TransactionDateFilter, 'cashier')
+    list_filter = (TransactionDateFilter, 'item__item_type__name', 'is_verified', 'cashier', DeletedFilter)
     search_fields = ('item__name__icontains', 'cashier__username__icontains')
     date_hierarchy = 'created_at'
     readonly_fields = ('get_total_cost', 'verified_by', 'cashier', 'is_deleted')
@@ -105,14 +115,19 @@ class TransactionAdmin(admin.ModelAdmin):
         """Вывод динамического свойства total_cost в таблицу админки"""
         return obj.total_cost
 
-    @admin.display(ordering='item__name', description='Товар / Услуга')
+    @admin.display(description='Товар / Услуга', ordering='item__name')
     def get_item_clean_name(self, obj):
-        """Выводит тип и название позиции без цены и лишней информации"""
+        """Выводит название позиции без цены и лишней информации"""
         if obj.item:
-            return f"[{obj.item.item_type.name}] {obj.item.name}"
+            return obj.item.name
         return "—"
 
-    @admin.display(description='Статус')
+    @admin.display(description='Категория', ordering='item__item_type__name')
+    def get_item_type_name(self, obj):
+        # Безопасно получаем имя связанного объекта
+        return obj.item.item_type.name if obj.item else "—"
+
+    @admin.display(description='Статус', ordering='is_deleted')
     def get_status(self, obj):
         if obj.is_deleted:
             # Вариант с mark_safe для статической HTML-строки:
@@ -134,10 +149,6 @@ class TransactionAdmin(admin.ModelAdmin):
             obj.verified_by = None
         super().save_model(request, obj, form, change)
 
-    def get_queryset(self, request):
-        """Позволяем администраторам видеть удаленные записи в корзине."""
-        return Transaction.objects.all_with_deleted()
-
     def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
         """Передаем словарь 'ID товара: Цена' в контекст страницы добавления транзакции"""
         items = Item.objects.filter(is_active=True)
@@ -146,6 +157,10 @@ class TransactionAdmin(admin.ModelAdmin):
         
         context['item_prices_json'] = json.dumps(item_prices)
         return super().render_change_form(request, context, add, change, form_url, obj)
+
+    def get_queryset(self, request):
+            """Позволяем администраторам видеть удаленные записи в корзине."""
+            return Transaction.objects.all_with_deleted()
 
     class Media:
         # Подключаем кастомный JS-файл, который будет отвечать за подстановку на стороне клиента
