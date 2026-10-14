@@ -12,12 +12,15 @@
     <!-- Скрипт против мерцания: выполняется до отрисовки body -->
     <script>
         (function () {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
+            const savedTheme = localStorage.getItem('theme') || 'auto';
+            let actualTheme = savedTheme;
+            
+            if (savedTheme === 'auto') {
+                actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
+            
+            // Напрямую задаем тему для Bootstrap 5 на корневом элементе
+            document.documentElement.setAttribute('data-bs-theme', actualTheme);
         })();
     </script>
 
