@@ -4,21 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Церковная лавка{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">       
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+    
     <style>
-        /* Базовые глобальные стили */
-        body {
-            min-vh-100: 100vh;
-        }
-        /* Блок для кастомных стилей конкретных страниц */
         {% block extra_css %}{% endblock %}
     </style>
 </head>
 <body class="{% block body_class %}{% endblock %}">
 
-<!-- Единый адаптивный Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-secondary">
+<!-- Единый адаптивный Navigation Bar с поддержкой динамических стилей тем Bootstrap 5 -->
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
     <div class="container-fluid px-3">
         <!-- Логотип / Ссылка на главную -->
         <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Церковная лавка</a>
@@ -45,10 +43,16 @@
                 {% endif %}
             </ul>
             
-            <!-- Правая часть: Блок пользователя / Вход -->
+            <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
             <div class="d-flex align-items-center">
+                
+                <!-- Адаптивная интерактивная кнопка переключателя темы -->
+                <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
+                    <i class="bi bi-sun-fill fs-5" id="theme-icon"></i>
+                </button>
+
                 {% if user.is_authenticated %}
-                    <span class="navbar-text text-light me-3 small">
+                    <span class="navbar-text me-3 small">
                         Вы вошли как: <strong>{{ user.first_name|default:user.username }}</strong>
                     </span>
                     <form method="post" action="{% url 'logout' %}" class="m-0">
@@ -57,7 +61,7 @@
                     </form>
                 {% else %}
                     <a href="{% url 'login' %}" class="btn btn-sm btn-primary me-2">Войти</a>
-                    <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light">Регистрация</a>
+                    <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light" id="reg-btn">Регистрация</a>
                 {% endif %}
             </div>
         </div>
@@ -65,7 +69,68 @@
 </nav>
 
 <!-- Основной контент страницы -->
-{% block content %}
-{% endblock %}
+<div class="container mt-4">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<!-- Скрипт управления состоянием интерфейса и переключения стилей классов -->
+<script>
+    (() => {
+        'use strict'
+
+        const getStoredTheme = () => localStorage.getItem('theme')
+        const setStoredTheme = theme => localStorage.setItem('theme', theme)
+
+        const getPreferredTheme = () => {
+            const storedTheme = getStoredTheme()
+            if (storedTheme) {
+                return storedTheme
+            }
+            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        }
+
+        const setTheme = theme => {
+            document.documentElement.setAttribute('data-bs-theme', theme)
+            
+            const icon = document.getElementById('theme-icon')
+            const regBtn = document.getElementById('reg-btn')
+            
+            if (icon) {
+                if (theme === 'dark') {
+                    icon.className = 'bi bi-moon-stars-fill fs-5 text-body'
+                } else {
+                    icon.className = 'bi bi-sun-fill fs-5 text-body'
+                }
+            }
+
+            // Адаптируем кнопку регистрации под светлую тему, чтобы она оставалась видимой
+            if (regBtn) {
+                if (theme === 'dark') {
+                    regBtn.className = 'btn btn-sm btn-outline-light'
+                } else {
+                    regBtn.className = 'btn btn-sm btn-outline-dark'
+                }
+            }
+        }
+
+        // Синхронизируем иконку при начальной загрузке
+        setTheme(getPreferredTheme())
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('bd-theme')
+            
+            if (themeToggle) {
+                themeToggle.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.getAttribute('data-bs-theme')
+                    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark'
+                    
+                    setStoredTheme(nextTheme)
+                    setTheme(nextTheme)
+                })
+            }
+        })
+    })()
+</script>
 </body>
 </html>

@@ -3,31 +3,24 @@
 {% block title %}Главная | Церковная лавка{% endblock %}
 
 {% block extra_css %}
-    body {
-        background-color: #000000;
-        color: #ffffff;
-    }
     .landing-card {
         max-width: 600px;
         width: 100%;
     }
     .prayer-text {
-        color: #adb5bd;
         font-style: italic;
         line-height: 1.8;
         white-space: pre-line;
     }
-    .divider {
-        border-top: 1px solid #343a40;
-    }
 {% endblock %}
 
 {% block content %}
-<div class="container d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 56px);">
+<!-- Контейнер автоматически занимает оставшуюся высоту экрана и центрирует контент -->
+<div class="d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 120px);">
     <div class="landing-card py-4">
         
-        <!-- Заголовок с вашим динамическим именем -->
-        <h1 class="fw-normal h3 mb-4">
+        <!-- Заголовок с динамическим именем, использующий системный цвет темы -->
+        <h1 class="fw-normal h3 mb-4 text-body">
             {% if user.is_authenticated %}
                 Добро пожаловать, {{ user.first_name|default:user.username }}
             {% else %}
@@ -35,23 +28,30 @@
             {% endif %}
         </h1>
         
-        <div class="divider my-4"></div>
+        <!-- Тонкий адаптивный разделитель Bootstrap -->
+        <div class="border-top border-subtle my-4"></div>
         
         <!-- Молитва -->
         <div class="my-4 px-2">
-            <h5 class="fw-light text-uppercase small mb-3" style="color: #6c757d;">Молитва перед началом всякого дела</h5>
-            <p class="prayer-text fs-5">
+            <!-- Класс text-muted подстраивает цвет заголовка под любую тему -->
+            <h5 class="fw-light text-uppercase small mb-3 text-muted">Молитва перед началом всякого дела</h5>
+            <!-- Класс text-secondary делает текст молитвы мягким и читаемым -->
+            <p class="prayer-text fs-5 text-secondary">
                 Царю Небесный, Утешителю, Душе истины, Иже везде сый и вся исполняяй, Сокровище благих и жизни Подателю, прииди и вселися в ны, и очисти ны от всякия скверны, и спаси, Блаже, души наша.
             </p>
         </div>
         
-        <div class="divider my-4"></div>
+        <!-- Тонкий адаптивный разделитель Bootstrap -->
+        <div class="border-top border-subtle my-4"></div>
         
-        <!-- Кнопки быстрого действия (дублируют навигацию для удобства) -->
+        <!-- Кнопки быстрого действия (динамически меняют акценты) -->
         <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
             {% if user.is_authenticated %}
-                <a href="/directory/" class="btn btn-success w-100 py-2">Открыть панель каталога POS</a>
+                <p class="text-muted small fst-normal mb-0">
+                    Бог в помощь на благие труды!
+                </p>
             {% else %}
+                <!-- Стандартная кнопка авторизации -->
                 <a href="{% url 'login' %}" class="btn btn-primary w-100 py-2">Авторизоваться в системе</a>
             {% endif %}
         </div>

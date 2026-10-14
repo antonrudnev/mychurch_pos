@@ -1,68 +1,65 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в систему | Церковная лавка</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-B/GM4XqrwHnWXNOWMbloTmrYXZg10cakYGmpfsR/bbzQ6JAJI4ihuyADKLnBgrCe" crossorigin="anonymous">
-    <script type="module" src="https://cdn.jsdelivr.net/npm/bootstrap@6.0.0-alpha.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-1a/pXj49ZQ1aHEmrJ+gMw1otqoVsYwlEnlD8mIfY2TV03r20Y0CN7uqx1tQogjPL" crossorigin="anonymous"></script>
-    <style>
-        body {
-            /* Чистый белый фон по умолчанию */
-            background-color: #000000; 
-        }
-        .login-container {
-            max-width: 400px;
-            width: 100%;
-        }
-    </style>
-</head>
-<body class="d-flex align-items-center justify-content-center min-vh-100">
+{% extends 'base.html' %}
 
-<div class="container d-flex justify-content-center px-3">
-    <!-- Классическая карточка Bootstrap по умолчанию -->
-    <div class="card login-container shadow-sm">
+{% block title %}Вход в систему | Церковная лавка{% endblock %}
+
+{% block extra_css %}
+    /* Ограничиваем максимальную ширину карточки входа */
+    .login-container {
+        max-width: 400px;
+        width: 100%;
+    }
+{% endblock %}
+
+{% block content %}
+<!-- Центрируем карточку по вертикали и горизонтали с учетом высоты навигационной панели -->
+<div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 120px);">
+    
+    <!-- Карточка использует border-subtle для красивых границ в любой теме -->
+    <div class="card login-container border-subtle shadow-sm">
         <div class="card-body p-4">
             
-            <!-- Заголовок -->
-            <div class="text-center">
-                <h2 class="fw-normal text-dark h4 mb-1">Церковная лавка</h2>
-                <p class="text-muted small">Пожалуйста, авторизуйтесь</p>
+            <!-- Заголовок формы (класс text-body автоматически адаптирует цвет текста) -->
+            <div class="text-center mb-4">
+                <i class="bi bi-shield-lock fs-1 text-secondary mb-2"></i>
+                <h2 class="fw-normal text-body h4 mb-1">Церковная лавка</h2>
+                <p class="text-muted small mb-0">Пожалуйста, авторизуйтесь</p>
             </div>
 
-            <!-- Ошибки -->
+            <!-- Блок вывода ошибок Django -->
             {% if form.errors %}
-                <div class="alert alert-danger p-2 small" role="alert">
-                    Неверное имя пользователя или пароль.
+                <div class="alert alert-danger p-2 small mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i> Неверное имя пользователя или пароль.
                 </div>
             {% endif %}
 
-            <!-- Форма -->
-            <form method="post">
+            <!-- Форма авторизации -->
+            <form method="post" autocomplete="off">
                 {% csrf_token %}
                 
                 <!-- Поле ввода имени пользователя -->
                 <div class="mb-3">
-                    <label for="id_username" class="form-label small">Имя пользователя</label>
+                    <label for="id_username" class="form-label small text-secondary fw-medium">Имя пользователя</label>
                     <input type="text" name="username" autofocus class="form-control" id="id_username" required placeholder="Логин">
                 </div>
 
                 <!-- Поле ввода пароля -->
                 <div class="mb-4">
-                    <label for="id_password" class="form-label small">Пароль</label>
+                    <label for="id_password" class="form-label small text-secondary fw-medium">Пароль</label>
                     <input type="password" name="password" class="form-control" id="id_password" required placeholder="Пароль">
                 </div>
 
-                <!-- Классическая синяя кнопка Bootstrap -->
-                <button type="submit" class="btn btn-primary w-100 ">Войти</button>
-                <div class="text-center mt-3">
-                    <a href="{% url 'register' %}" class="small text-decoration-none">Еще нет аккаунта? Зарегистрироваться</a>
+                <!-- Кнопка отправки -->
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-medium">Войти</button>
+                
+                <!-- Ссылка на регистрацию нового персонала -->
+                <div class="text-center mt-4 border-top border-subtle pt-3">
+                    <a href="{% url 'register' %}" class="small text-decoration-none">
+                        Еще нет аккаунта? Зарегистрироваться
+                    </a>
                 </div>
             </form>
 
         </div>
     </div>
 </div>
-
-</body>
-</html>
+{% endblock %}
