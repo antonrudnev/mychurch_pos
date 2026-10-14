@@ -19,8 +19,8 @@
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
     <div class="container-fluid px-3">
         <!-- Логотип / Ссылка на главную -->
-        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Церковная лавка</a>
-        
+        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Церковная лавка</a>        
+
         <!-- Кнопка-гамбургер для mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -39,12 +39,23 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/reports/">Отчеты</a>
                     </li>
+                    {% if user.is_staff %}
+                        <li class="nav-item d-inline-block d-lg-none">
+                            <a class="nav-link text-warning" href="/admin/">Администрирование</a>
+                        </li>
+                    {% endif %}
                 {% endif %}
             </ul>
             
             <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
             <div class="d-flex align-items-center">
                 
+                {% if user.is_authenticated and user.is_staff %}
+                    <a href="/admin/" class="btn btn-sm btn-outline-warning d-none d-lg-inline-block me-3" title="Вход в панель администрирования">
+                        <i class="bi bi-shield-lock-fill fs-5"></i>
+                    </a>
+                {% endif %}
+
                 <!-- Одна интерактивная кнопка циклического переключения тем -->
                 <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
                     <i class="bi bi-circle-half fs-5" id="theme-icon"></i>
@@ -59,8 +70,10 @@
                         <button type="submit" class="btn btn-sm btn-outline-danger">Выйти</button>
                     </form>
                 {% else %}
-                    <a href="{% url 'login' %}" class="btn btn-sm btn-primary me-2">Войти</a>
-                    <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light" id="reg-btn">Регистрация</a>
+                    <div class="d-flex d-none d-lg-inline-block">
+                        <a href="{% url 'login' %}" class="btn btn-sm btn-primary me-2">Войти</a>
+                        <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light" id="reg-btn">Регистрация</a>
+                    </div>
                 {% endif %}
             </div>
         </div>
