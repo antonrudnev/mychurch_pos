@@ -9,14 +9,16 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      # Изолируем папку статики, чтобы локальный код из .:/app не затирал собранную админку
+      - /app/staticfiles  
       # Монтируем папку ./db_store на сервере в папку /app/db_volume внутри контейнера
       - ./db_store:/app/db_volume  
     environment:
       - TZ=Asia/Novokuznetsk
-    # Автоматически накатываем миграции перед стартом
+    # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate && 
-             python manage.py runserver 0.0.0.0:8000"
+             gunicorn --bind 0.0.0.0:8000 church_pos.wsgi:application"
 
 volumes:
   db_data:
