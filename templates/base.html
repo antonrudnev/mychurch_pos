@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Церковная лавка{% endblock %}</title>
     
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">       
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">       
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
     
@@ -21,7 +21,7 @@
         <!-- Логотип / Ссылка на главную -->
         <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Церковная лавка</a>
         
-        <!-- Кнопка-гамбургер для мобильных устройств -->
+        <!-- Кнопка-гамбургер для mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -30,7 +30,6 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 {% if user.is_authenticated %}
-                    <!-- Ссылки видны только авторизованным сотрудникам -->
                     <li class="nav-item">
                         <a class="nav-link" href="/directory/">Каталог</a>
                     </li>
@@ -46,9 +45,9 @@
             <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
             <div class="d-flex align-items-center">
                 
-                <!-- Адаптивная интерактивная кнопка переключателя темы -->
+                <!-- Одна интерактивная кнопка циклического переключения тем -->
                 <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
-                    <i class="bi bi-sun-fill fs-5" id="theme-icon"></i>
+                    <i class="bi bi-circle-half fs-5" id="theme-icon"></i>
                 </button>
 
                 {% if user.is_authenticated %}
@@ -74,7 +73,7 @@
     {% endblock %}
 </div>
 
-<!-- Скрипт управления состоянием интерфейса и переключения стилей классов -->
+<!-- Скрипт циклического управления темами: Auto -> Light -> Dark -> Auto -->
 <script>
     (() => {
         'use strict'
@@ -82,31 +81,37 @@
         const getStoredTheme = () => localStorage.getItem('theme')
         const setStoredTheme = theme => localStorage.setItem('theme', theme)
 
+        // По умолчанию выставляем режим 'auto'
         const getPreferredTheme = () => {
             const storedTheme = getStoredTheme()
-            if (storedTheme) {
-                return storedTheme
-            }
-            return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+            return storedTheme ? storedTheme : 'auto'
         }
 
         const setTheme = theme => {
-            document.documentElement.setAttribute('data-bs-theme', theme)
-            
+            // Применяем тему к data-атрибуту Bootstrap 5
+            if (theme === 'auto') {
+                document.documentElement.setAttribute('data-bs-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', theme)
+            }
+
+            // Обновляем иконку кнопки в зависимости от текущего РЕЖИМА ХРАНИЛИЩА (не фактического цвета)
             const icon = document.getElementById('theme-icon')
-            const regBtn = document.getElementById('reg-btn')
-            
             if (icon) {
-                if (theme === 'dark') {
-                    icon.className = 'bi bi-moon-stars-fill fs-5 text-body'
-                } else {
-                    icon.className = 'bi bi-sun-fill fs-5 text-body'
+                if (theme === 'auto') {
+                    icon.className = 'bi bi-circle-half fs-5 text-body' // Иконка авто (разделенный круг)
+                } else if (theme === 'light') {
+                    icon.className = 'bi bi-sun-fill fs-5 text-body'    // Иконка солнца
+                } else if (theme === 'dark') {
+                    icon.className = 'bi bi-moon-stars-fill fs-5 text-body' // Иконка луны
                 }
             }
 
-            // Адаптируем кнопку регистрации под светлую тему, чтобы она оставалась видимой
+            // Адаптируем кнопку регистрации под текущую фактическую тему
+            const actualTheme = document.documentElement.getAttribute('data-bs-theme')
+            const regBtn = document.getElementById('reg-btn')
             if (regBtn) {
-                if (theme === 'dark') {
+                if (actualTheme === 'dark') {
                     regBtn.className = 'btn btn-sm btn-outline-light'
                 } else {
                     regBtn.className = 'btn btn-sm btn-outline-dark'
@@ -114,16 +119,32 @@
             }
         }
 
-        // Синхронизируем иконку при начальной загрузке
+        // Инициализация темы при первой загрузке страницы
         setTheme(getPreferredTheme())
+
+        // Динамическое отслеживание изменений ОС "на лету" (работает только в режиме auto)
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (getStoredTheme() === 'auto' || !getStoredTheme()) {
+                setTheme('auto')
+            }
+        })
 
         window.addEventListener('DOMContentLoaded', () => {
             const themeToggle = document.getElementById('bd-theme')
             
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
-                    const currentTheme = document.documentElement.getAttribute('data-bs-theme')
-                    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark'
+                    const currentTheme = getPreferredTheme()
+                    let nextTheme = 'auto'
+
+                    // Массив циклического переключения тем
+                    if (currentTheme === 'auto') {
+                        nextTheme = 'light'
+                    } else if (currentTheme === 'light') {
+                        nextTheme = 'dark'
+                    } else if (currentTheme === 'dark') {
+                        nextTheme = 'auto'
+                    }
                     
                     setStoredTheme(nextTheme)
                     setTheme(nextTheme)
