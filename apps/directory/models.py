@@ -11,7 +11,7 @@ class ItemType(models.Model):
         unique=True, 
         verbose_name="Название категории"
     )
-    slug = models.SlugField(
+    handle = models.SlugField(
         max_length=100, 
         unique=True, 
         verbose_name="Дескриптор"
@@ -35,6 +35,11 @@ class Item(models.Model):
         verbose_name="Категория"
     )
     name = models.CharField(max_length=255, verbose_name="Название")
+    handle = models.SlugField(
+            max_length=100, 
+            unique=True, 
+            verbose_name="Дескриптор"
+    )
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 

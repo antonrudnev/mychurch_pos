@@ -7,17 +7,17 @@ from .models import Item, ItemType
 @admin.register(ItemType)
 class ItemTypeAdmin(admin.ModelAdmin):
     """Настройка отображения типов номенклатуры в админке"""
-    list_display = ('name', 'slug')
-    prepopulated_fields = {'slug': ('name',)}  # Автоматически генерирует slug из названия
-    search_fields = ('name',)
+    list_display = ('id', 'name')
+    prepopulated_fields = {'handle': ('name',)}
+    list_display_links = ('id', 'name')
 
 
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     """Настройка отображения реестра товаров и услуг в админке"""
-    # Столбцы, которые будут видны в общем списке
     list_display = ('get_id_with_meta', 'name', 'item_type', 'price', 'is_active', 'created_at')
-    
+    prepopulated_fields = {'handle': ('name',)}
+
     # Теперь клик по названию или ID открывает карточку редактирования
     list_display_links = ('get_id_with_meta', 'name')
     
@@ -33,7 +33,7 @@ class ItemAdmin(admin.ModelAdmin):
     # Группировка полей внутри карточки товара/услуги
     fieldsets = (
         ('Основная информация', {
-            'fields': ('item_type', 'name', 'price')
+            'fields': ('item_type', 'name', 'handle', 'price')
         }),
         ('Статус', {
             'fields': ('is_active',)
