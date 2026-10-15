@@ -23,13 +23,7 @@ class TransactionManager(models.Manager):
 
 
 class Transaction(models.Model):
-    """Единый журнал транзакций """
-    cashier = models.ForeignKey(
-        User, 
-        on_delete=models.PROTECT, 
-        related_name='transactions',
-        verbose_name="Кассир"
-    )
+    """Единый журнал транзакций """    
     item = models.ForeignKey(
         Item, 
         on_delete=models.PROTECT, 
@@ -47,10 +41,11 @@ class Transaction(models.Model):
         validators=[MinValueValidator(1)],
         verbose_name="Количество"
     )
-    is_cashless = models.BooleanField(
-        default=False,
-        verbose_name="Безналичный расчет",
-        help_text="Отметьте, если оплата прошла по карте, терминалу или QR-коду"
+    cashier = models.ForeignKey(
+            User, 
+            on_delete=models.PROTECT, 
+            related_name='transactions',
+            verbose_name="Кассир"
     )
     created_at = models.DateTimeField(
         default=timezone.now, 
@@ -58,8 +53,8 @@ class Transaction(models.Model):
     )
     is_verified = models.BooleanField(
         default=False, 
-        verbose_name="Проверено аудитором",
-        help_text="Флаг подтверждения корректности операции"
+        verbose_name="Проверено",
+        help_text="Флаг подтверждения корректности операции аудитором"
     )
     verified_by = models.ForeignKey(
         User,
@@ -93,11 +88,10 @@ class Transaction(models.Model):
         self.save()
 
     def save(self, *args, **kwargs):
-        if not self.price and self.item:
+        if self.price is None and self.item:
             self.price = self.item.price
         super().save(*args, **kwargs)
 
     def __str__(self):
         status = " [Удалено]" if self.is_deleted else ""
-        payment = " (Безнал)" if self.is_cashless else "(Наличные)"
-        return f"{self.created_at.strftime('%d.%m.%Y %H:%M')} — {self.item.name} ({self.quantity} шт.){payment}{status}"
+        return f"{self.created_at.strftime('%d.%m.%Y %H:%M')} — {self.item.name} ({self.quantity} шт.){status}"

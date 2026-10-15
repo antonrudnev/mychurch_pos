@@ -1,7 +1,5 @@
-import json
 from datetime import timedelta
 
-from directory.models import Item
 from django.contrib import admin
 from django.utils import timezone
 from django.utils.safestring import mark_safe
@@ -100,12 +98,12 @@ class TransactionAdmin(admin.ModelAdmin):
     """Настройка отображения Журнала транзакций в админке"""
 
     list_display = (
-        'id', 'created_at', 'get_item_type_name', 'get_item_clean_name', 'price', 'quantity',
-        'get_total_cost', 'is_cashless', 'is_verified', 'cashier', 'get_status'
+        'id', 'created_at', 'get_item_clean_name', 'price', 'quantity',
+        'get_total_cost', 'is_verified', 'cashier', 'get_status'
     )
     list_display_links = ('id', 'created_at')
     list_filter = (TransactionDateFilter, 'item__item_type__name', 'is_verified', 'cashier', DeletedFilter)
-    search_fields = ('item__name__icontains', 'cashier__username__icontains')
+    search_fields = ('item__name__icontains', 'cashier__username__icontains', 'item__item_type__name__icontains')
     date_hierarchy = 'created_at'
     readonly_fields = ('get_total_cost', 'verified_by', 'cashier', 'is_deleted')
     actions = (make_verified,)
@@ -121,11 +119,6 @@ class TransactionAdmin(admin.ModelAdmin):
         if obj.item:
             return obj.item.name
         return "—"
-
-    @admin.display(description='Категория', ordering='item__item_type__name')
-    def get_item_type_name(self, obj):
-        # Безопасно получаем имя связанного объекта
-        return obj.item.item_type.name if obj.item else "—"
 
     @admin.display(description='Статус', ordering='is_deleted')
     def get_status(self, obj):
@@ -148,15 +141,6 @@ class TransactionAdmin(admin.ModelAdmin):
         elif not obj.is_verified:
             obj.verified_by = None
         super().save_model(request, obj, form, change)
-
-    def render_change_form(self, request, context, add=False, change=False, form_url='', obj=None):
-        """Передаем словарь 'ID товара: Цена' в контекст страницы добавления транзакции"""
-        items = Item.objects.filter(is_active=True)
-        # Формируем JSON-словарь, например: {1: 150.00, 2: 50.00}
-        item_prices = {item.id: float(item.price if item.price is not None else 0) for item in items}
-        
-        context['item_prices_json'] = json.dumps(item_prices)
-        return super().render_change_form(request, context, add, change, form_url, obj)
 
     def get_queryset(self, request):
             """Позволяем администраторам видеть удаленные записи в корзине."""

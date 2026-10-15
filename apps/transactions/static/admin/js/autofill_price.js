@@ -18,7 +18,7 @@ window.addEventListener('load', function() {
                         if (itemPriceInput && itemPriceInput.value) {
                             priceInput.value = itemPriceInput.value;
                         } else {
-                            priceInput.value = ''; 
+                            priceInput.value = '0.00'; 
                         }
                     })
                     .catch(err => console.error('Ошибка автоподстановки цены:', err));
