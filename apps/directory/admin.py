@@ -36,6 +36,6 @@ class ItemAdmin(admin.ModelAdmin):
             'fields': ('item_type', 'name', 'handle', 'price')
         }),
         ('Статус', {
-            'fields': ('is_active',)
+            'fields': ('is_active', 'order')
         }),
     )

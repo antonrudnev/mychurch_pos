@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
 from config.views import register_view, welcome_landing_view
 
@@ -25,7 +25,8 @@ urlpatterns = [
     path('welcome/', welcome_landing_view, name='welcome_landing'),
     path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
-    path('register/', register_view, name='register'), 
+    path('register/', register_view, name='register'),
+    path('reports/', include('reports.urls')),
 ]
 
 admin.site.site_header = "Администрирование церковной лавки"
