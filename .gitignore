@@ -46,3 +46,4 @@ Thumbs.db
 # === Секреты и переменные окружения ===
 .env
 .env.[a-zA-Oq-z]*
+!.env.example

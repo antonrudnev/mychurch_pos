@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
+from django.utils import timezone
 
 
 class ReportType(models.Model):
@@ -53,4 +54,5 @@ class Report(models.Model):
         ordering = ['-created_at']  # Свежие отчеты будут вверху
 
     def __str__(self):
-        return f"{self.name} от {self.created_at.strftime('%d.%m.%Y %H:%M')}"
+        created_at = timezone.localtime(self.created_at)
+        return f"{self.name} от {created_at.strftime('%d.%m.%Y %H:%M')}"

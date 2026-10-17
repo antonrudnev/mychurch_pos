@@ -70,6 +70,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.tz',
 
                 'directory.context_processors.global_data',
                 'reports.context_processors.global_data',
@@ -118,7 +119,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'ru-ru'
 
-TIME_ZONE = 'Asia/Novokuznetsk'
+TIME_ZONE = os.environ.get('TIME_ZONE', 'Asia/Novokuznetsk')
 
 USE_I18N = True
 

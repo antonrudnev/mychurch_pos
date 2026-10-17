@@ -14,7 +14,8 @@ services:
       # Монтируем папку ./db_volume на сервере в папку /app/db_volume внутри контейнера
       - ./db_volume:/app/db_volume  
     environment:
-      - TZ=Asia/Novokuznetsk
+      TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
+      TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
     # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate && 

@@ -28,7 +28,7 @@
         {% block extra_css %}{% endblock %}
     </style>
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
 
 <!-- Единый адаптивный Navigation Bar с поддержкой динамических стилей тем Bootstrap 5 -->
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
@@ -101,10 +101,45 @@
 </nav>
 
 <!-- Основной контент страницы -->
-<div class="container mt-4">
+<div class="container mt-4 flex-grow-1">
     {% block content %}
     {% endblock %}
 </div>
+
+<footer class="d-none d-lg-block border-top border-subtle text-secondary small text-end px-3 py-2 mt-auto">
+    <span id="application-timezone-city" class="me-2"></span>
+    <time id="application-clock" data-time-zone="{{ TIME_ZONE }}" datetime="{% now 'c' %}">{% now "d.m.Y H:i:s" %}</time>
+</footer>
+
+<script>
+    (() => {
+        const clock = document.getElementById('application-clock')
+        if (!clock) return
+
+        const city = clock.dataset.timeZone.split('/').pop().replace(/_/g, ' ')
+        document.getElementById('application-timezone-city').textContent = city
+
+        const formatter = new Intl.DateTimeFormat('ru-RU', {
+            timeZone: clock.dataset.timeZone,
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23'
+        })
+
+        const updateClock = () => {
+            const now = new Date()
+            clock.dateTime = now.toISOString()
+            clock.textContent = formatter.format(now)
+        }
+
+        updateClock()
+        window.setInterval(updateClock, 1000)
+    })()
+</script>
 
 <!-- Скрипт циклического управления темами: Auto -> Light -> Dark -> Auto -->
 <script>

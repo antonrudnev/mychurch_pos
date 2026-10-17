@@ -96,14 +96,14 @@
                     <tr>
                 {% endif %}
                         <td class="name-cell">{{ row.name }}</td>
-                        <td class="quantity-cell">{{ row.total_quantity|default:"—" }}</td>
+                        <td class="quantity-cell">{{ row.total_quantity|default:"." }}</td>
                 {% if position == 'right' %}
                     </tr>
                 {% endif %}
                 
                 {% if forloop.last and position == 'left' %}
-                        <td class="name-cell empty-cell">—</td>
-                        <td class="quantity-cell empty-cell">—</td>
+                        <td class="name-cell empty-cell"></td>
+                        <td class="quantity-cell empty-cell"></td>
                     </tr>
                 {% endif %}
             {% endfor %}
@@ -111,17 +111,17 @@
                 <td class="name-cell">Реализация товара</td>
                 <td class="quantity-cell">
                     {% if product_data is not None %}
-                        {{ product_data|floatformat:2 }}
+                        {{ product_data|floatformat:2 }} &#8381
                     {% else %}
-                        —
+                        .
                     {% endif %}
                 </td>
                 <td class="name-cell">Реализация свечей</td>
                 <td class="quantity-cell">
                     {% if candle_data is not None %}
-                        {{ candle_data|floatformat:2 }}
+                        {{ candle_data|floatformat:2 }} &#8381
                     {% else %}
-                        —
+                        .
                     {% endif %}
                 </td>
             </tr>

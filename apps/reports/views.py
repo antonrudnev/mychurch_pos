@@ -22,9 +22,15 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         has_date_range = 'date_from' in request.GET or 'date_to' in request.GET
         form = ReportDateRangeForm(request.GET if has_date_range else None)
         if not has_date_range:
-            return self.render_to_response({'form': form})
+            return self.render_to_response({
+                'form': form,
+                'application_today': timezone.localdate(),
+            })
         if not form.is_valid():
-            return self.render_to_response({'form': form}, status=400)
+            return self.render_to_response({
+                'form': form,
+                'application_today': timezone.localdate(),
+            }, status=400)
         self.template_name = 'reports/cash_report.html'
         return self.render_to_response(self.get_report_context(form))
 

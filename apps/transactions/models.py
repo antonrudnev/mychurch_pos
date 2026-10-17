@@ -94,4 +94,5 @@ class Transaction(models.Model):
 
     def __str__(self):
         status = " [Удалено]" if self.is_deleted else ""
-        return f"{self.created_at.strftime('%d.%m.%Y %H:%M')} — {self.item.name} ({self.quantity} шт.){status}"
+        created_at = timezone.localtime(self.created_at)
+        return f"{created_at.strftime('%d.%m.%Y %H:%M')} — {self.item.name} ({self.quantity} шт.){status}"

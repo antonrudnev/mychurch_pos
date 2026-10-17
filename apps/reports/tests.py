@@ -1,5 +1,6 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone as datetime_timezone
 from decimal import Decimal
+from unittest.mock import patch
 
 from directory.models import Item, ItemType
 from django.contrib.auth import get_user_model
@@ -94,5 +95,19 @@ class CashReportDateRangeTests(TestCase):
         report = Report.objects.get()
         self.assertIn('02.01.2025', report.name)
         self.assertIn('02.01.2025', report.dump)
+
+    def test_date_picker_uses_application_timezone_today(self):
+        utc_now = datetime(2025, 1, 1, 18, tzinfo=datetime_timezone.utc)
+        with timezone.override('Asia/Novokuznetsk'), patch(
+            'django.utils.timezone.now',
+            return_value=utc_now,
+        ):
+            response = self.client.get(self.generate_url)
+
+        self.assertEqual(
+            response.context_data['application_today'],
+            date(2025, 1, 2),
+        )
+        self.assertContains(response, 'data-application-today="2025-01-02"')
 
 # Create your tests here.

@@ -11,7 +11,7 @@
         <form method="get" class="text-start" id="date-range-form">
             <div class="mb-3">
                 <label for="date-preset" class="form-label">Готовый период</label>
-                <select id="date-preset" name="preset" class="form-select">
+                <select id="date-preset" name="preset" class="form-select" data-application-today="{{ application_today|date:'Y-m-d' }}">
                     <option value="week" {% if request.GET.preset == "week" or not request.GET.preset %}selected{% endif %}>Эта неделя</option>
                     <option value="last-week" {% if request.GET.preset == "last-week" %}selected{% endif %}>Прошлая неделя</option>
                     <option value="3" {% if request.GET.preset == "3" %}selected{% endif %}>Последние 3 дня</option>
@@ -56,7 +56,23 @@
     const dateTo = document.getElementById('id_date_to');
     // Находим общий контейнер строки вместо поиска отдельных групп
     const customDateContainer = document.getElementById('custom-date-container');
-    const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
+    const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', {
+        weekday: 'long',
+        timeZone: 'UTC'
+    });
+
+    function parseDate(value) {
+        const [year, month, day] = value.split('-').map(Number);
+        return new Date(Date.UTC(year, month - 1, day));
+    }
+
+    function formatDate(date) {
+        return [
+            date.getUTCFullYear(),
+            String(date.getUTCMonth() + 1).padStart(2, '0'),
+            String(date.getUTCDate()).padStart(2, '0')
+        ].join('-');
+    }
 
     function updateWeekday(input) {
         const weekday = document.getElementById(`weekday-${input.name}`);
@@ -65,9 +81,7 @@
             return;
         }
 
-        const [year, month, day] = input.value.split('-').map(Number);
-        const date = new Date(year, month - 1, day);
-        const weekdayName = weekdayFormatter.format(date);
+        const weekdayName = weekdayFormatter.format(parseDate(input.value));
         weekday.textContent = `(${weekdayName})`;
     }
 
@@ -78,22 +92,17 @@
         
         if (isCustom) return;
 
-        const end = new Date();
+        const end = parseDate(preset.dataset.applicationToday);
         const start = new Date(end);
         if (preset.value === 'last-week') {
-            start.setDate(start.getDate() - (start.getDay() + 6) % 7 - 7);
+            start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7 - 7);
             end.setTime(start.getTime());
-            end.setDate(end.getDate() + 6);
+            end.setUTCDate(end.getUTCDate() + 6);
         } else if (preset.value === 'week') {
-            start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+            start.setUTCDate(start.getUTCDate() - (start.getUTCDay() + 6) % 7);
         } else {
-            start.setDate(start.getDate() - Number(preset.value) + 1);
+            start.setUTCDate(start.getUTCDate() - Number(preset.value) + 1);
         }
-        const formatDate = date => [
-            date.getFullYear(),
-            String(date.getMonth() + 1).padStart(2, '0'),
-            String(date.getDate()).padStart(2, '0')
-        ].join('-');
         dateFrom.value = formatDate(start);
         dateTo.value = formatDate(end);
         updateWeekday(dateFrom);

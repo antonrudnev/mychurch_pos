@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.contrib import admin
 from django.utils import timezone
@@ -33,26 +33,42 @@ class TransactionDateFilter(admin.SimpleListFilter):
         if any(key.startswith('created_at__') for key in request.GET.keys()):
             return queryset
         # 2. Иначе обрабатываем стандартные клики по нашей правой панели
-        # Получаем текущее локальное время
-        now = timezone.localtime(timezone.now())
-        # Начало сегодняшнего дня (00:00:00)
-        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today = timezone.localdate()
+        today_start = timezone.make_aware(datetime.combine(today, time.min))
         
         if self.value() == 'today':
             return queryset.filter(created_at__gte=today_start)
             
         if self.value() == 'yesterday':
             yesterday_start = today_start - timedelta(days=1)
-            yesterday_end = today_start
-            return queryset.filter(created_at__gte=yesterday_start, created_at__lt=yesterday_end)
+            return queryset.filter(created_at__gte=yesterday_start, created_at__lt=today_start)
             
         if self.value() == 'this_week':
-            # Вычисляем номер текущей недели в году и текущий год
-            current_week = now.isocalendar()[1]
-            return queryset.filter(created_at__year=now.year, created_at__week=current_week)
+            week_start = today_start - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=7)
+            return queryset.filter(created_at__gte=week_start, created_at__lt=week_end)
             
         if self.value() == 'this_month':
-            return queryset.filter(created_at__year=now.year, created_at__month=now.month)
+            month_start_date = today.replace(day=1)
+            if month_start_date.month == 12:
+                next_month_date = month_start_date.replace(
+                    year=month_start_date.year + 1,
+                    month=1,
+                )
+            else:
+                next_month_date = month_start_date.replace(
+                    month=month_start_date.month + 1,
+                )
+            month_start = timezone.make_aware(
+                datetime.combine(month_start_date, time.min)
+            )
+            next_month_start = timezone.make_aware(
+                datetime.combine(next_month_date, time.min)
+            )
+            return queryset.filter(
+                created_at__gte=month_start,
+                created_at__lt=next_month_start,
+            )
             
         return queryset
     
