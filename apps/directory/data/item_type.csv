@@ -3,4 +3,7 @@ name,handle,order_number,is_product_group
 Записки,treby-2,2,0
 Освящение,treby-3,3,0
 Свечи,candle,4,0
-Иконы,product-1,5,1
+Прочие требы,other-treby,5,0
+Прочие расходы,other-expense,6,0
+Деньги,money,7,0
+Иконы,product-1,8,1

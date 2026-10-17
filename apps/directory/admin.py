@@ -50,4 +50,4 @@ class ItemAdmin(admin.ModelAdmin):
     def display_price(self, obj):
         if obj.price is None:
             return ""
-        return obj.price if obj.price > 0 else "Любая сумма"
+        return obj.price if obj.price > 0 else "Сумма по запросу"

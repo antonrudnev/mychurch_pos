@@ -15,7 +15,8 @@ class ItemType(models.Model):
     handle = models.SlugField(
         max_length=100, 
         unique=True, 
-        verbose_name="Дескриптор"
+        verbose_name="Дескриптор",
+        help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
     order_number = models.PositiveIntegerField(
         default=1, 
@@ -60,7 +61,8 @@ class Item(models.Model):
     handle = models.SlugField(
             max_length=100, 
             unique=True, 
-            verbose_name="Артикул"
+            verbose_name="Артикул",
+            help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
     price = models.DecimalField(
         max_digits=10, 
@@ -96,5 +98,5 @@ class Item(models.Model):
         super().save(*args, **kwargs)
         
     def __str__(self):
-        price = f"{self.price} руб." if self.price is not None else "Цена не указана"
-        return f"[{self.item_type.name}] {self.name} ({price})"
+        price = "" if self.price is None else f"({self.price} руб.)" if self.price > 0 else "(Сумма по запросу)"
+        return f"[{self.item_type.name}] {self.name} {price}"

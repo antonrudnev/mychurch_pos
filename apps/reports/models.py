@@ -12,7 +12,7 @@ class ReportType(models.Model):
         max_length=100, 
         unique=True, 
         verbose_name="Дескриптор",
-        help_text="Используйте cash-report для кассовых отчетов, product-sales для товарных ведомостей.",
+        help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
 
     class Meta:

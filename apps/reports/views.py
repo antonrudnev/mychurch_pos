@@ -73,7 +73,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .filter(item_type__handle__istartswith=prefix)
             .values(
                 'name', 
-                'order_number'
+                'handle',
             )
             .annotate(
                 total_quantity=Sum(
@@ -84,7 +84,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
                     ),
                 )
             )
-            .order_by('item_type__order_number', 'order_number')
+            .order_by('handle')
         )
 
         prefix = "product"
@@ -109,10 +109,82 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .get('total_cost')
         )
 
+        prefix = "debt-lend"
+        debt_lend_data = (
+            Transaction.objects
+            .filter(
+                item__handle__iexact=prefix,
+                created_at__date__range=date_range,
+            )
+            .aggregate(total_cost=Sum('price'))
+            .get('total_cost')
+        )
+
+        prefix = "debt-repay"
+        debt_repay_data = (
+            Transaction.objects
+            .filter(
+                item__handle__iexact=prefix,
+                created_at__date__range=date_range,
+            )
+            .aggregate(total_cost=Sum('price'))
+            .get('total_cost')
+        )
+
+        prefix = "bank-terminal"
+        bank_terminal_data = (
+        Transaction.objects
+        .filter(
+            item__handle__iexact=prefix,
+            created_at__date__range=date_range,
+                )
+                .aggregate(total_cost=Sum('price'))
+                .get('total_cost')
+            )
+
+        prefix = "bank-receipt"
+        bank_receipt_data = (
+            Transaction.objects
+            .filter(
+                item__handle__iexact=prefix,
+                created_at__date__range=date_range,
+            )
+            .aggregate(total_cost=Sum('price'))
+            .get('total_cost')
+        )
+
+        prefix = "cash-register"
+        cash_register_data = (
+            Transaction.objects
+            .filter(
+                item__handle__iexact=prefix,
+                created_at__date__range=date_range,
+            )
+            .order_by('-created_at')
+            .first()
+        )
+
+        prefix = "cash-deposit"
+        cash_deposit_data = (
+            Transaction.objects
+            .filter(
+                item__handle__iexact=prefix,
+                created_at__date__range=date_range,
+            )
+            .order_by('-created_at')
+            .first()
+        )
+
         context = {
             'treby_data': treby_data,
             'product_data': product_data,
             'candle_data': candle_data,
+            'debt_lend_data': debt_lend_data,
+            'debt_repay_data': debt_repay_data,
+            'bank_terminal_data': bank_terminal_data,
+            'bank_receipt_data': bank_receipt_data,
+            'cash_register_data': cash_register_data,
+            'cash_deposit_data': cash_deposit_data,
             'current_time': timezone.now(),
             'current_user': self.request.user,
             'date_from': date_from,

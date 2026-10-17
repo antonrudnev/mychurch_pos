@@ -131,15 +131,39 @@
             </tr>
             <tr>
                 <td class="name-cell-center">Дано в долг</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if debt_lend_data is not None %}
+                        {{ debt_lend_data|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
                 <td class="name-cell-center">Возврат долга</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if debt_repay_data is not None %}
+                        {{ debt_repay_data|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Банк</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if bank_terminal_data is not None %}
+                        {{ bank_terminal_data|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
                 <td class="name-cell-center">Чековая проверка</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if bank_receipt_data is not None %}
+                        {{ bank_receipt_data|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Содержание причта</td>
@@ -151,9 +175,21 @@
             </tr>
             <tr>
                 <td class="name-cell-right">Касса (остаток):</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if cash_register_data is not None %}
+                        {{ cash_register_data.price|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
                 <td class="name-cell-right">Сейф (размен):</td>
-                <td class="quantity-cell"></td>
+                <td class="quantity-cell">
+                    {% if cash_deposit_data is not None %}
+                        {{ cash_deposit_data.price|floatformat:2 }} &#8381
+                    {% else %}
+                        .
+                    {% endif %}
+                </td>
             </tr>
         </tbody>
     </table>

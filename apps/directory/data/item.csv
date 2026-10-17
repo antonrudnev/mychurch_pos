@@ -21,11 +21,18 @@ treby-2,Панихида,treby-2-13,None,13,True
 treby-2,Панихида в родительский день,treby-2-14,None,14,True
 treby-2,Сорокоуст - о здравии,treby-2-15,None,15,True
 treby-2,Сорокоуст - о упокоении,treby-2-16,None,16,True
-treby-2,Молебен,treby-2-17,None,17,True
-treby-2,Ектиния сугубая,treby-2-18,None,18,True
+treby-2,Ектиния сугубая,treby-2-17,None,17,True
+treby-2,Молебен,treby-2-18,None,18,True
 treby-2,Молебен водосвятный,treby-2-19,None,19,True
-treby-3,Освящение предметов,treby-3-1,None,1,True
+treby-3,Освящение предметов,treby-2-18-treby-3-1,None,1,True
 treby-3,Освящение офиса или магазина,treby-3-2,None,2,True
 treby-3,Освящение дома или дачи,treby-3-3,None,3,True
 treby-3,Освящение квартиры,treby-3-4,None,4,True
 treby-3,Освящение автомобиля,treby-3-5,None,5,True
+
+money,Банк,bank-terminal,0,101,True
+money,Чековая проверка,bank-receipt,0,102,True
+money,Дано в долг,debt-lend,0,103,True
+money,Возврат долга,debt-repay,0,104,True
+money,Касса (остаток),cash-register,0,105,True
+money,Сейф (размен),cash-deposit,0,106,True
