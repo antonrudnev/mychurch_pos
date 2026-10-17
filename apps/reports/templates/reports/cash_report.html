@@ -168,7 +168,7 @@
     {% if not is_saving %}
     <div class="report-actions">
         <!-- Кнопка Назад (ведет в архив отчетов) -->
-        <a href="{% url 'reports:report_list' %}" class="btn-back">⬅ Вернуться назад</a>
+        <a href="{% url 'reports:generate_report' 'cash-report' %}" class="btn-back">⬅ Вернуться назад</a>
 
         <!-- Форма сохранения -->
         <form method="post" style="margin: 0;">
