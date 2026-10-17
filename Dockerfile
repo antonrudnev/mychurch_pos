@@ -26,4 +26,4 @@ RUN python manage.py collectstatic --noinput
 EXPOSE 8000
 
 # Запуск через WSGI-сервер Gunicorn (замените "myproject" на имя папки с вашим settings.py)
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
+CMD ["gunicorn", "--workers", "5", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
