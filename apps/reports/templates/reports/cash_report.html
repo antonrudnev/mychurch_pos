@@ -15,7 +15,7 @@
         .name-cell { width: 35%; }
         .name-cell-center { width: 35%; text-align: center; }
         .name-cell-right { width: 35%; text-align: right; }
-        .name-cell-tall { width: 35%; height: 60px; vertical-align: middle; text-align: center;}
+        .name-cell-tall { width: 35%; height: 120px; vertical-align: middle; text-align: center;}
         .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; }
         
         tr:nth-child(even) { background-color: #fdfdfe; }
@@ -66,16 +66,25 @@
         }
         
         /* Настройки для вывода на печать / PDF */
+        @page { margin: 10mm; }
+
         @media print {
             .report-actions, .alert-success { display: none !important; }
-            body { margin: 10mm; }
-            /* При печати футер фиксируется строго внизу бланка */
-            .report-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding-top: 5px; }
+            html, body { height: 100%; }
+            body { height: 100vh; margin: 0; }
+            .report-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+            h2 { flex: none; margin: 0 0 6mm; font-size: 16pt; }
+            table { flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none; }
+            tbody { height: 100%; }
+            tr { break-inside: avoid; }
+            td { padding: 4mm; }
+            .report-footer { position: static; flex: none; margin: 0; padding: 0; }
         }
     </style>
 </head>
 <body>
 
+    <main class="report-page">
     <h2>Отчет кассовый за период с <strong>{{ date_from|date:"d.m.Y" }} по {{ date_to|date:"d.m.Y" }}</strong></h2>
     
     <table>
@@ -162,6 +171,7 @@
             {% endif %}
         </p>
     </footer>
+    </main>
 
     <!-- Блок действий перенесен НАПРАВЛЯЮЩУЮ НИЖЕ ФУТЕРА -->
     {% if not is_saving %}
