@@ -11,8 +11,11 @@
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
         
-        .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; }
+        .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; text-align: center;}
         .name-cell { width: 35%; }
+        .name-cell-center { width: 35%; text-align: center; }
+        .name-cell-right { width: 35%; text-align: right; }
+        .name-cell-tall { width: 35%; height: 60px; vertical-align: middle; text-align: center;}
         .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; }
         
         tr:nth-child(even) { background-color: #fdfdfe; }
@@ -77,16 +80,15 @@
     
     <table>
         <tbody>
-            {% for row in report_data %}
+            {% for row in treby_data %}
                 {% cycle 'left' 'right' as position silent %}
                 
                 {% if position == 'left' %}
                     <tr>
-                        <td class="name-cell">{{ row.item__name }}</td>
-                        <td class="quantity-cell">{{ row.total_quantity }}</td>
-                {% else %}
-                        <td class="name-cell">{{ row.item__name }}</td>
-                        <td class="quantity-cell">{{ row.total_quantity }}</td>
+                {% endif %}
+                        <td class="name-cell">{{ row.name }}</td>
+                        <td class="quantity-cell">{{ row.total_quantity|default:"—" }}</td>
+                {% if position == 'right' %}
                     </tr>
                 {% endif %}
                 
@@ -95,12 +97,55 @@
                         <td class="quantity-cell empty-cell">—</td>
                     </tr>
                 {% endif %}
-                
-            {% empty %}
-                <tr>
-                    <td colspan="4" style="text-align: center; color: #95a5a6; font-style: italic;">Данные о продажах отсутствуют</td>
-                </tr>
             {% endfor %}
+            <tr>
+                <td class="name-cell">Реализация товара</td>
+                <td class="quantity-cell">
+                    {% if product_data is not None %}
+                        {{ product_data|floatformat:2 }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="name-cell">Реализация свечей</td>
+                <td class="quantity-cell">
+                    {% if candle_data is not None %}
+                        {{ candle_data|floatformat:2 }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td class="name-cell-tall">Прочие требы:</td>
+                <td class="quantity-cell" colspan="3"></td>
+            </tr>
+            <tr>
+                <td class="name-cell-center">Дано в долг</td>
+                <td class="quantity-cell"></td>
+                <td class="name-cell-center">Возврат долга</td>
+                <td class="quantity-cell"></td>
+            </tr>
+            <tr>
+                <td class="name-cell-center">Банк</td>
+                <td class="quantity-cell"></td>
+                <td class="name-cell-center">Чековая проверка</td>
+                <td class="quantity-cell"></td>
+            </tr>
+            <tr>
+                <td class="name-cell-center">Содержание причта</td>
+                <td class="quantity-cell" colspan="3"></td>
+            </tr>
+            <tr>
+                <td class="name-cell-tall">Прочие расходы:</td>
+                <td class="quantity-cell" colspan="3"></td>
+            </tr>
+            <tr>
+                <td class="name-cell-right">Касса (остаток):</td>
+                <td class="quantity-cell"></td>
+                <td class="name-cell-right">Сейф (размен):</td>
+                <td class="quantity-cell"></td>
+            </tr>
         </tbody>
     </table>
 

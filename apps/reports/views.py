@@ -1,6 +1,7 @@
+from directory.models import Item
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import Sum
+from django.db.models import F, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.template.loader import render_to_string
@@ -11,19 +12,6 @@ from transactions.models import Transaction
 from .models import Report, ReportType
 
 
-class ReportListView(PermissionRequiredMixin, ListView):
-    model = Report
-    template_name = 'reports/report_list.html'
-    context_object_name = 'reports'
-    permission_required = 'reports.view_report'
-    raise_exception = False
-
-    paginate_by = 5
-
-    def get_queryset(self):
-        return Report.objects.select_related('report_type', 'created_by').order_by('-created_at')
-
-
 class CashReportView(PermissionRequiredMixin, TemplateView):
     template_name = 'reports/cash_report.html'
     permission_required = 'reports.add_report'
@@ -32,16 +20,37 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
     def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        report_data = (
-            Transaction.objects.values(
-                'item__name', 
-                'item__order'
+        prefix = "treby"
+        treby_data = (
+            Item.objects
+            .filter(item_type__handle__istartswith=prefix)
+            .values(
+                'name', 
+                'order'
             )
-            .annotate(total_quantity=Sum('quantity'))
-            .order_by('item__order')
+            .annotate(total_quantity=Sum('transactions__quantity'))
+            .order_by('order')
+        )
+
+        prefix = "product"
+        product_data = (
+            Transaction.objects
+            .filter(item__item_type__handle__istartswith=prefix)
+            .aggregate(total_cost=Sum(F('quantity') * F('price')))
+            .get('total_cost')
         )
         
-        context['report_data'] = report_data
+        prefix = "candle"
+        candle_data = (
+            Transaction.objects
+            .filter(item__item_type__handle__istartswith=prefix)
+            .aggregate(total_cost=Sum(F('quantity') * F('price')))
+            .get('total_cost')
+        )
+
+        context['treby_data'] = treby_data
+        context['product_data'] = product_data
+        context['candle_data'] = candle_data
         context['current_time'] = timezone.now()
         context['current_user'] = self.request.user
         # По умолчанию мы НЕ сохраняем, кнопки должна быть видна на живой странице
@@ -131,3 +140,16 @@ class ReportTypeSelectView(PermissionRequiredMixin, ListView):
         
         context['active_handles'] = active_handles
         return context
+
+
+class ReportListView(PermissionRequiredMixin, ListView):
+    model = Report
+    template_name = 'reports/report_list.html'
+    context_object_name = 'reports'
+    permission_required = 'reports.view_report'
+    raise_exception = False
+
+    paginate_by = 5
+
+    def get_queryset(self):
+        return Report.objects.select_related('report_type', 'created_by').order_by('-created_at')
