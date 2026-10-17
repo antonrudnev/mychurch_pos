@@ -34,7 +34,7 @@
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
     <div class="container-fluid px-3">
         <!-- Логотип / Ссылка на главную -->
-        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Церковная лавка</a>        
+        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Ксения Петербургская</a>        
 
         <!-- Кнопка-гамбургер для mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,17 +46,20 @@
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="/directory/">Каталог</a>
+                        <a class="nav-link" href="/directory/">
+                            {{ directory_app_verbose_name|default:"Каталог" }}
+                        </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/transactions/">Транзакции</a>
+                        <a class="nav-link" href="/transactions/">
+                            {{ transactions_app_verbose_name|default:"Транзакции" }}
+                        </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/reports/">Отчеты</a>
-                    </li>
-                    {% if user.is_staff %}
-                        <li class="nav-item d-inline-block d-lg-none">
-                            <a class="nav-link text-warning" href="/admin/">Администрирование</a>
+                    {% if perms.reports.view_report %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="/reports/">
+                                {{ reports_app_verbose_name|default:"Отчеты" }}
+                            </a>
                         </li>
                     {% endif %}
                 {% endif %}
@@ -64,13 +67,6 @@
             
             <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
             <div class="d-flex align-items-center">
-                
-                {% if user.is_authenticated and user.is_staff %}
-                    <a href="/admin/" class="btn btn-sm btn-outline-warning d-none d-lg-inline-block me-3" title="Вход в панель администрирования">
-                        <i class="bi bi-shield-fill-exclamation fs-5"></i>
-                    </a>
-                {% endif %}
-
                 <!-- Одна интерактивная кнопка циклического переключения тем -->
                 <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
                     <i class="bi bi-circle-half fs-5" id="theme-icon"></i>
@@ -80,6 +76,11 @@
                     <span class="navbar-text me-3 small">
                         Вы вошли как: <strong>{{ user.first_name|default:user.username }}</strong>
                     </span>
+                    {% if user.is_staff %}
+                        <a href="/admin/" class="btn btn-sm btn-outline-warning me-3" title="Вход в панель администрирования">
+                            <i class="bi bi-shield-fill-exclamation fs-5"></i>
+                        </a>
+                    {% endif %}
                     <form method="post" action="{% url 'logout' %}" class="m-0">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-sm btn-outline-danger">Выйти</button>

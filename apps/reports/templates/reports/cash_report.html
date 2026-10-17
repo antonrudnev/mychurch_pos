@@ -4,65 +4,82 @@
     <meta charset="UTF-8">
     <title>Отчет кассовый</title>
     <style>
+        /* ОРИГИНАЛЬНЫЙ СТРОГИЙ ДИЗАЙН (Идет на печать) */
         body { font-family: Arial, sans-serif; margin: 30px; color: #333; }
         h1 { color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+        
+        table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
+        
         .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; }
         .name-cell { width: 35%; }
         .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; }
+        
         tr:nth-child(even) { background-color: #fdfdfe; }
         tr:hover { background-color: #f5f6fa; }
-        /* Стили для панели управления (кнопка и сообщения) */
-        .report-actions { margin-bottom: 25px; display: flex; gap: 15px; align-items: center; }
-        .btn-save { background-color: #27ae60; color: white; border: none; padding: 10px 20px; font-size: 14px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        .btn-save:hover { background-color: #219653; }
-        .alert-success { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; padding: 10px 15px; border-radius: 4px; font-size: 14px; }
-        * Новые стили для футера */
-        .report-footer {
-            margin-top: 40px;
-            font-size: 12px;
-            color: #7f8c8d;
+        
+        .report-footer { margin-top: 40px; font-size: 12px; color: #7f8c8d; }
+        .footer-line { border-top: 1px dashed #bdc3c7; margin-bottom: 10px; }
+
+        /* ИНТЕРФЕЙС УПРАВЛЕНИЯ (Ниже футера, не идет на печать) */
+        .report-actions { margin-top: 30px; display: flex; gap: 12px; align-items: center; }
+        
+        /* Кнопка сохранения в фирменном зеленом цвете Bootstrap 5 */
+        .btn-save { 
+            background-color: var(--bs-success, #198754); 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            font-size: 14px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: opacity 0.15s ease-in-out; 
         }
-        .footer-line {
-            border-top: 1px dashed #bdc3c7;
-            margin-bottom: 10px;
+        .btn-save:hover { opacity: 0.85; }
+        
+        /* Кнопка Назад в нейтральном сером цвете */
+        .btn-back { 
+            background-color: var(--bs-secondary, #6c757d); 
+            color: white; 
+            border: none; 
+            text-decoration: none;
+            padding: 10px 20px; 
+            font-size: 14px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            transition: opacity 0.15s ease-in-out; 
         }
-        /* Специфичные настройки для вывода на печать / PDF */
+        .btn-back:hover { opacity: 0.85; }
+        
+        .alert-success { 
+            color: var(--bs-success-text-emphasis, #155724); 
+            background-color: var(--bs-success-bg-subtle, #d4edda); 
+            border: 1px solid var(--bs-success-border-subtle, #c3e6cb); 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            font-size: 14px; 
+        }
+        
+        /* Настройки для вывода на печать / PDF */
         @media print {
             .report-actions, .alert-success { display: none !important; }
             body { margin: 10mm; }
-            /* Фиксируем футер строго внизу каждой печатной страницы */
-            .report-footer {
-                position: fixed;
-                bottom: 0;
-                left: 0;
-                width: 100%;
-                background: white;
-                padding-top: 5px;
-            }
+            /* При печати футер фиксируется строго внизу бланка */
+            .report-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: white; padding-top: 5px; }
         }
     </style>
 </head>
 <body>
+
     <h1>Отчет кассовый</h1>
-    {% if not is_saving %}
-    <div class="report-actions">
-        <form method="post">
-            {% csrf_token %}
-            <button type="submit" class="btn-save">💾 Сохранить снимок в архив</button>
-        </form>
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert-success">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    </div>
-    {% endif %}
+    
     <table>
         <tbody>
             {% for row in report_data %}
                 {% cycle 'left' 'right' as position silent %}
+                
                 {% if position == 'left' %}
                     <tr>
                         <td class="name-cell">{{ row.item__name }}</td>
@@ -72,11 +89,13 @@
                         <td class="quantity-cell">{{ row.total_quantity }}</td>
                     </tr>
                 {% endif %}
+                
                 {% if forloop.last and position == 'left' %}
                         <td class="name-cell empty-cell">—</td>
                         <td class="quantity-cell empty-cell">—</td>
                     </tr>
                 {% endif %}
+                
             {% empty %}
                 <tr>
                     <td colspan="4" style="text-align: center; color: #95a5a6; font-style: italic;">Данные о продажах отсутствуют.</td>
@@ -84,16 +103,40 @@
             {% endfor %}
         </tbody>
     </table>
+
+    <!-- Системный футер бланка -->
     <footer class="report-footer">
         <div class="footer-line"></div>
         <p>
             Документ сгенерирован: <strong>{{ current_time|date:"d.m.Y в H:i" }}</strong> 
             {% if current_user.is_authenticated %}
+
                 | Пользователь: <strong>{{ current_user.get_full_name|default:current_user.username }}</strong>
             {% else %}
                 | Пользователь: <strong>Система (Анонимно)</strong>
             {% endif %}
         </p>
     </footer>
+
+    <!-- Блок действий перенесен НАПРАВЛЯЮЩУЮ НИЖЕ ФУТЕРА -->
+    {% if not is_saving %}
+    <div class="report-actions">
+        <!-- Кнопка Назад (ведет в архив отчетов) -->
+        <a href="{% url 'reports:report_list' %}" class="btn-back">⬅ Назад</a>
+
+        <!-- Форма сохранения -->
+        <form method="post" style="margin: 0;">
+            {% csrf_token %}
+            <button type="submit" class="btn-save">Сохранить</button>
+        </form>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    </div>
+    {% endif %}
+
 </body>
 </html>

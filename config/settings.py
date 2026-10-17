@@ -70,6 +70,10 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                'directory.context_processors.global_data',
+                'reports.context_processors.global_data',
+                'transactions.context_processors.global_data',
             ],
         },
     },

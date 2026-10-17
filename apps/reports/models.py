@@ -44,7 +44,7 @@ class Report(models.Model):
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
-        verbose_name="Пользователь"
+        verbose_name="Сформировал"
     )
     
     class Meta:

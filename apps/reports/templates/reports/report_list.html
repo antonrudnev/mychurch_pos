@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Архив отчетов — Церковная лавка{% endblock %}
+
+{% block extra_css %}
+    /* Сохраняем мягкие шрифтовые пропорции, как в молитве */
+    .report-title-link {
+        color: inherit;
+        text-decoration: none;
+    }
+    .report-title-link:hover {
+        text-decoration: underline;
+    }
+    .text-secondary-soft {
+        color: var(--bs-secondary-color) !important;
+    }
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 600px;"> <!-- Сузили контейнер до 600px для точного соответствия главной странице -->
+        
+        <!-- Верхняя панель: Минималистичный заголовок -->
+        <div class="text-center border-bottom border-subtle pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0 text-body">
+                Архив отчетов
+            </h1>
+        </div>
+
+        <!-- Контейнер списка в стиле лаконичных разделителей главной страницы -->
+        <div class="my-4">
+            {% for report in reports %}
+                <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
+                    
+                    <!-- Основная информация об отчете -->
+                    <div>
+                        <!-- Название отчета  -->
+                        <h4 class="fw-normal h5 mb-1 text-body">
+                            <a href="{% url 'reports:print_report' report.id %}" target="_blank" class="report-title-link">
+                                {{ report.name }}
+                            </a>
+                        </h4>
+                        
+                        <!-- Метаданные -->
+                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                            {% if report.report_type %}
+                                <span class="fw-normal text-muted small text-uppercase me-2">[{{ report.report_type.name }}]</span>
+                            {% endif %}
+                            от {{ report.created_at|date:"d.m.Y  H:i" }} 
+                        </p>
+                    </div>
+
+                    <!-- Действие -->
+                    <div class="text-md-end pt-1">
+                        <a href="{% url 'reports:print_report' report.id %}" 
+                           target="_blank" 
+                           class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
+                            Открыть <i class="bi bi-box-arrow-up-right small"></i>
+                        </a>
+                    </div>
+                    
+                </div>
+                
+                <!-- Адаптивный разделитель между строками отчетов -->
+                {% if not forloop.last %}
+                    <div class="border-top border-subtle my-2"></div>
+                {% endif %}
+
+            {% empty %}
+                <!-- Состояние, когда архив пуст  -->
+                <div class="text-center py-5">
+                    <h5 class="fw-light text-uppercase small text-muted mb-2">Архив документов</h5>
+                    <p class="text-secondary fs-5 italic mb-0">
+                        В архиве пока нет сохраненных отчетов лавки.
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Тонкий нижний разделитель перед кнопкой действия -->
+        <div class="border-top border-subtle my-4"></div>
+        
+        <!-- Кнопка создания нового отчета-->
+         {% if perms.reports.add_report %}
+            <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
+                <a href="{% url 'reports:cash_report' %}" class="btn btn-primary w-100 py-2">
+                    Создать новый
+                </a>
+            </div>
+         {% endif %}
+        
+    </div>
+</div>
+{% endblock %}
