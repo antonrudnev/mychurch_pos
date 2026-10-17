@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Архив отчетов — Церковная лавка{% endblock %}
+{% block title %}Документы — Церковная лавка{% endblock %}
 
 {% block extra_css %}
-    /* Сохраняем мягкие шрифтовые пропорции, как в молитве */
+    /* Сохраняем мягкие шрифтовые пропорции */
     .report-title-link {
         color: inherit;
         text-decoration: none;
@@ -23,9 +23,31 @@
         <!-- Верхняя панель: Минималистичный заголовок -->
         <div class="text-center border-bottom border-subtle pb-4 mb-4">
             <h1 class="fw-normal h3 m-0 text-body">
-                Архив отчетов
+                Архив документов
             </h1>
         </div>
+
+        <!-- Вывод уведомлений -->
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} border border-{{ message.tags|default:'info' }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
+                    <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
+                        <!-- Динамически меняем иконку в зависимости от типа сообщения -->
+                        {% if message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-6 text-success"></i>
+                        {% elif message.tags == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="bi bi-exclamation-circle-fill fs-6 text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-6 text-info"></i>
+                        {% endif %}
+                        
+                        {{ message }}
+                    </span>
+                </div>
+            {% endfor %}
+        {% endif %}
 
         <!-- Контейнер списка в стиле лаконичных разделителей главной страницы -->
         <div class="my-4">
@@ -69,21 +91,69 @@
             {% empty %}
                 <!-- Состояние, когда архив пуст  -->
                 <div class="text-center py-5">
-                    <h5 class="fw-light text-uppercase small text-muted mb-2">Архив документов</h5>
+                    <h5 class="fw-light text-uppercase small text-muted mb-2">Здесь хранятся кассовые отчеты и ведомости</h5>
                     <p class="text-secondary fs-5 italic mb-0">
-                        В архиве пока нет сохраненных отчетов лавки.
+                        Создайте новый отчет, чтобы он появился здесь.
                     </p>
                 </div>
             {% endfor %}
         </div>
 
+        <!-- БЛОК ПАГИНАЦИИ (Показывается только если страниц больше одной) -->
+        {% if is_paginated %}
+            <nav aria-label="Навигация по архиву отчетов" class="my-4">
+                <ul class="pagination pagination-sm justify-content-center m-0 gap-1">
+                    
+                    <!-- Стрелка Назад -->
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-left"></i></span>
+                        </li>
+                    {% endif %}
+
+                    <!-- Номера страниц в стиле fw-light -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link btn-primary border-primary fw-normal">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link border-subtle text-secondary fw-light" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Стрелка Вперед -->
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-right"></i></span>
+                        </li>
+                    {% endif %}
+                    
+                </ul>
+            </nav>
+        {% endif %}
+
         <!-- Тонкий нижний разделитель перед кнопкой действия -->
         <div class="border-top border-subtle my-4"></div>
         
         <!-- Кнопка создания нового отчета-->
-         {% if perms.reports.add_report %}
+        {% if perms.reports.add_report %}
             <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
-                <a href="{% url 'reports:cash_report' %}" class="btn btn-primary w-100 py-2">
+                <a href="{% url 'reports:report_type_select' %}" class="btn btn-primary w-100 py-2 text-uppercase small">
                     Создать новый
                 </a>
             </div>

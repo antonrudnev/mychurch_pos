@@ -18,6 +18,8 @@ class ReportListView(PermissionRequiredMixin, ListView):
     permission_required = 'reports.view_report'
     raise_exception = False
 
+    paginate_by = 5
+
     def get_queryset(self):
         return Report.objects.select_related('report_type', 'created_by').order_by('-created_at')
 
@@ -25,9 +27,9 @@ class ReportListView(PermissionRequiredMixin, ListView):
 class CashReportView(PermissionRequiredMixin, TemplateView):
     template_name = 'reports/cash_report.html'
     permission_required = 'reports.add_report'
-    raise_exception = True
+    raise_exception = False
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, *args, **kwargs):
         context = super().get_context_data(**kwargs)
         
         report_data = (
@@ -42,7 +44,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         context['report_data'] = report_data
         context['current_time'] = timezone.now()
         context['current_user'] = self.request.user
-        # По умолчанию мы НЕ сохраняем, кнопка должна быть видна на живой странице
+        # По умолчанию мы НЕ сохраняем, кнопки должна быть видна на живой странице
         context['is_saving'] = False 
         return context
 
@@ -75,8 +77,9 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             dump=html_dump
         )
         
-        messages.success(request, f"Отчет '{report_name}' успешно сохранен в архив!")
-        return redirect(request.path)
+        messages.success(request, f"'{report_name}' успешно сохранен")
+
+        return redirect('reports:report_list')
 
 
 class PrintReportView(PermissionRequiredMixin, View):
@@ -86,3 +89,45 @@ class PrintReportView(PermissionRequiredMixin, View):
     def get(self, request, report_id, *args, **kwargs):
         report = get_object_or_404(Report, id=report_id)
         return HttpResponse(report.dump, content_type='text/html; charset=utf-8')
+
+
+REPORT_CLASSES_REGISTRY = {
+    'cash-report': CashReportView,
+}
+
+
+class DynamicReportRouterView(PermissionRequiredMixin, View):
+    """Принимает строковый ключ из БД и вызывает привязанный класс Python"""
+    permission_required = 'reports.add_report'
+    raise_exception = False
+
+    def dispatch(self, request, *args, **kwargs):
+        handle_key = kwargs.get('handle_key')
+        print(f"DynamicReportRouterView: handle_key = {handle_key}")  # Для отладки
+        # Ищем класс в нашем реестре кодов
+        target_view_class = REPORT_CLASSES_REGISTRY.get(handle_key)
+        
+        if target_view_class:
+            # Динамически вызываем метод .as_view() у найденного класса и передаем ему управление
+            return target_view_class.as_view()(request, *args, **kwargs)
+        
+        # Если класс в коде еще не написан, возвращаем пользователя в архив
+        messages.error(request, "Этот тип документа еще не поддерживается системой.")
+        return redirect('reports:report_list')
+
+
+class ReportTypeSelectView(PermissionRequiredMixin, ListView):
+    model = ReportType
+    template_name = 'reports/report_type_select.html'
+    context_object_name = 'report_types'
+    permission_required = 'reports.add_report'
+    raise_exception = False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Получаем список всех handle-ключей, под которые написан код
+        active_handles = list(REPORT_CLASSES_REGISTRY.keys())
+        
+        context['active_handles'] = active_handles
+        return context
