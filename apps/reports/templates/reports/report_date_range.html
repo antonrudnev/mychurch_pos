@@ -12,9 +12,10 @@
             <div class="mb-3">
                 <label for="date-preset" class="form-label">Готовый период</label>
                 <select id="date-preset" name="preset" class="form-select">
-                    <option value="3" {% if request.GET.preset == "3" or not request.GET.preset %}selected{% endif %}>Последние 3 дня</option>
+                    <option value="week" {% if request.GET.preset == "week" or not request.GET.preset %}selected{% endif %}>Эта неделя</option>
+                    <option value="last-week" {% if request.GET.preset == "last-week" %}selected{% endif %}>Прошлая неделя</option>
+                    <option value="3" {% if request.GET.preset == "3" %}selected{% endif %}>Последние 3 дня</option>
                     <option value="5" {% if request.GET.preset == "5" %}selected{% endif %}>Последние 5 дней</option>
-                    <option value="7" {% if request.GET.preset == "7" %}selected{% endif %}>Последняя неделя</option>
                     <option value="custom" {% if request.GET.preset == "custom" %}selected{% endif %}>Указать даты вручную</option>
                 </select>
             </div>
@@ -79,7 +80,15 @@
 
         const end = new Date();
         const start = new Date(end);
-        start.setDate(start.getDate() - Number(preset.value) + 1);
+        if (preset.value === 'last-week') {
+            start.setDate(start.getDate() - (start.getDay() + 6) % 7 - 7);
+            end.setTime(start.getTime());
+            end.setDate(end.getDate() + 6);
+        } else if (preset.value === 'week') {
+            start.setDate(start.getDate() - (start.getDay() + 6) % 7);
+        } else {
+            start.setDate(start.getDate() - Number(preset.value) + 1);
+        }
         const formatDate = date => [
             date.getFullYear(),
             String(date.getMonth() + 1).padStart(2, '0'),
