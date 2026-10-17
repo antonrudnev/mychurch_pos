@@ -1,0 +1,31 @@
+item_type,name,handle,price,order_number,is_active
+treby-1,Таинство Крещения - общее,treby-1-1,None,1,True
+treby-1,Таинство Крещения - индивидуальное,treby-1-2,None,2,True
+treby-1,Отпевание - очное,treby-1-3,None,3,True
+treby-1,Отпевание - заочное,treby-1-4,None,4,True
+treby-1,Соборование - общее,treby-1-5,None,5,True
+treby-1,Соборование - на дому,treby-1-6,None,6,True
+treby-2,Поминovение годовое - о здравии,treby-2-1,None,1,True
+treby-2,Поминовение годовое - о упокоении,treby-2-2,None,2,True
+treby-2,Поминовение полугодовое - о здравии,treby-2-3,None,3,True
+treby-2,Поминovение полугодовое - о упокоении,treby-2-4,None,4,True
+treby-2,40 литургий - о здравии,treby-2-5,None,5,True
+treby-2,40 литургий - о упокоении,treby-2-6,None,6,True
+treby-2,О здравии,treby-2-7,None,7,True
+treby-2,О упокоении,treby-2-8,None,8,True
+treby-2,О здравии - СВО,treby-2-9,None,9,True
+treby-2,О упокоении - СВО,treby-2-10,None,10,True
+treby-2,О здравии - на Великий Пост,treby-2-11,None,11,True
+treby-2,О упокоении - на Великий Пост,treby-2-12,None,12,True
+treby-2,Панихида,treby-2-13,None,13,True
+treby-2,Панихида в родительский день,treby-2-14,None,14,True
+treby-2,Сорокоуст - о здравии,treby-2-15,None,15,True
+treby-2,Сорокоуст - о упокоении,treby-2-16,None,16,True
+treby-2,Молебен,treby-2-17,None,17,True
+treby-2,Ектиния сугубая,treby-2-18,None,18,True
+treby-2,Молебен водосвятный,treby-2-19,None,19,True
+treby-3,Освящение предметов,treby-3-1,None,1,True
+treby-3,Освящение офиса или магазина,treby-3-2,None,2,True
+treby-3,Освящение дома или дачи,treby-3-3,None,3,True
+treby-3,Освящение квартиры,treby-3-4,None,4,True
+treby-3,Освящение автомобиля,treby-3-5,None,5,True

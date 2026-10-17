@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=100, unique=True, verbose_name='Название категории')),
                 ('handle', models.SlugField(max_length=100, unique=True, verbose_name='Дескриптор')),
-                ('order', models.PositiveIntegerField(default=1, validators=[django.core.validators.MinValueValidator(1)], verbose_name='Порядок сортировки')),
+                ('order_number', models.PositiveIntegerField(default=1, validators=[django.core.validators.MinValueValidator(1)], verbose_name='Порядок сортировки')),
                 ('is_product_group', models.BooleanField(default=False, help_text="Флаг, указывающий, что данная категория образует группу ''Товары''", verbose_name='Товарная группа')),
             ],
             options={
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=255, verbose_name='Название')),
                 ('handle', models.SlugField(max_length=100, unique=True, verbose_name='Артикул')),
                 ('price', models.DecimalField(blank=True, decimal_places=2, help_text='Оставьте пустым, если цена не предусмотрена', max_digits=10, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Цена / Рекомендуемый взнос')),
-                ('order', models.PositiveIntegerField(default=1, validators=[django.core.validators.MinValueValidator(1)], verbose_name='Порядок сортировки')),
+                ('order_number', models.PositiveIntegerField(default=1, validators=[django.core.validators.MinValueValidator(1)], verbose_name='Порядок сортировки')),
                 ('is_active', models.BooleanField(default=True, help_text='Флаг, указывающий, что товар/услуга доступна для продажи', verbose_name='Активен')),
                 ('item_type', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='items', to='directory.itemtype', verbose_name='Категория')),
             ],

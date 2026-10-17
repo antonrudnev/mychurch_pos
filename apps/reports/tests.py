@@ -45,12 +45,16 @@ class CashReportDateRangeTests(TestCase):
         )
         self.user.user_permissions.add(permission)
 
-        product_type = ItemType.objects.create(name='Товары', handle='product', order=1)
+        product_type = ItemType.objects.create(
+            name='Товары',
+            handle='product',
+            order_number=1,
+        )
         self.product = Item.objects.create(
             item_type=product_type,
             name='Тестовый товар',
             handle='test-product',
-            order=1,
+            order_number=1,
         )
 
         Transaction.objects.create(

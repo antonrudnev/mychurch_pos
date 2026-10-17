@@ -17,7 +17,7 @@ class ItemType(models.Model):
         unique=True, 
         verbose_name="Дескриптор"
     )
-    order = models.PositiveIntegerField(
+    order_number = models.PositiveIntegerField(
         default=1, 
         validators=[MinValueValidator(1)],
         verbose_name="Порядок сортировки"
@@ -34,10 +34,10 @@ class ItemType(models.Model):
         ordering = ('name',)
 
     def save(self, *args, **kwargs):
-        if not self.pk and self.order == 1:
-            max_order = ItemType.objects.aggregate(max_val=Max('order'))['max_val']
+        if not self.pk and self.order_number == 1:
+            max_order = ItemType.objects.aggregate(max_val=Max('order_number'))['max_val']
             if max_order is not None:
-                self.order = max_order + 1
+                self.order_number = max_order + 1
                 
         super().save(*args, **kwargs)
     
@@ -71,7 +71,7 @@ class Item(models.Model):
         verbose_name="Цена / Рекомендуемый взнос",
         help_text="Оставьте пустым, если цена не предусмотрена"
     )
-    order = models.PositiveIntegerField(
+    order_number = models.PositiveIntegerField(
         default=1, 
         validators=[MinValueValidator(1)],
         verbose_name="Порядок сортировки"
@@ -88,10 +88,10 @@ class Item(models.Model):
         ordering = ('item_type__name', 'name')
 
     def save(self, *args, **kwargs):
-        if not self.pk and self.order == 1:
-            max_order = Item.objects.aggregate(max_val=Max('order'))['max_val']
+        if not self.pk and self.order_number == 1:
+            max_order = Item.objects.aggregate(max_val=Max('order_number'))['max_val']
             if max_order is not None:
-                self.order = max_order + 1
+                self.order_number = max_order + 1
                 
         super().save(*args, **kwargs)
         

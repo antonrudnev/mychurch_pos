@@ -67,7 +67,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .filter(item_type__handle__istartswith=prefix)
             .values(
                 'name', 
-                'order'
+                'order_number'
             )
             .annotate(
                 total_quantity=Sum(
@@ -78,7 +78,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
                     ),
                 )
             )
-            .order_by('order')
+            .order_by('item_type__order_number', 'order_number')
         )
 
         prefix = "product"

@@ -22,7 +22,10 @@
             <div id="custom-date-container" class="row row-cols-1 row-cols-md-2 g-3 mb-3">
                 {% for field in form %}
                     <div class="col text-start">
-                        <label for="{{ field.id_for_label }}" class="form-label mb-1">{{ field.label }}</label>
+                        <label for="{{ field.id_for_label }}" class="form-label mb-1">
+                            {{ field.label }}
+                            <span id="weekday-{{ field.html_name }}" class="text-secondary fw-normal"></span>
+                        </label>
                         {{ field }}
                         {% for error in field.errors %}
                             <div class="invalid-feedback d-block small">{{ error }}</div>
@@ -52,6 +55,20 @@
     const dateTo = document.getElementById('id_date_to');
     // Находим общий контейнер строки вместо поиска отдельных групп
     const customDateContainer = document.getElementById('custom-date-container');
+    const weekdayFormatter = new Intl.DateTimeFormat('ru-RU', { weekday: 'long' });
+
+    function updateWeekday(input) {
+        const weekday = document.getElementById(`weekday-${input.name}`);
+        if (!input.value) {
+            weekday.textContent = '';
+            return;
+        }
+
+        const [year, month, day] = input.value.split('-').map(Number);
+        const date = new Date(year, month - 1, day);
+        const weekdayName = weekdayFormatter.format(date);
+        weekday.textContent = `(${weekdayName})`;
+    }
 
     function applyPreset() {
         const isCustom = preset.value === 'custom';
@@ -70,9 +87,15 @@
         ].join('-');
         dateFrom.value = formatDate(start);
         dateTo.value = formatDate(end);
+        updateWeekday(dateFrom);
+        updateWeekday(dateTo);
     }
 
     preset.addEventListener('change', applyPreset);
+    dateFrom.addEventListener('change', () => updateWeekday(dateFrom));
+    dateTo.addEventListener('change', () => updateWeekday(dateTo));
+    updateWeekday(dateFrom);
+    updateWeekday(dateTo);
     applyPreset();
 </script>
 {% endblock %}
