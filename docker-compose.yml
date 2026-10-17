@@ -11,8 +11,8 @@ services:
       - .:/app
       # Изолируем папку статики, чтобы локальный код из .:/app не затирал собранную админку
       - /app/staticfiles  
-      # Монтируем папку ./db_store на сервере в папку /app/db_volume внутри контейнера
-      - ./db_store:/app/db_volume  
+      # Монтируем папку ./db_volume на сервере в папку /app/db_volume внутри контейнера
+      - ./db_volume:/app/db_volume  
     environment:
       - TZ=Asia/Novokuznetsk
     # Накатываем миграции и запускаем Gunicorn
