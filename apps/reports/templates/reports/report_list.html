@@ -27,28 +27,6 @@
             </h1>
         </div>
 
-        <!-- Вывод уведомлений -->
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} border border-{{ message.tags|default:'info' }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
-                    <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
-                        <!-- Динамически меняем иконку в зависимости от типа сообщения -->
-                        {% if message.tags == 'success' %}
-                            <i class="bi bi-check-circle-fill fs-6 text-success"></i>
-                        {% elif message.tags == 'danger' %}
-                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
-                        {% elif message.tags == 'warning' %}
-                            <i class="bi bi-exclamation-circle-fill fs-6 text-warning"></i>
-                        {% else %}
-                            <i class="bi bi-info-circle-fill fs-6 text-info"></i>
-                        {% endif %}
-                        
-                        {{ message }}
-                    </span>
-                </div>
-            {% endfor %}
-        {% endif %}
-
         <!-- Контейнер списка в стиле лаконичных разделителей главной страницы -->
         <div class="my-4">
             {% for report in reports %}
@@ -58,9 +36,13 @@
                     <div>
                         <!-- Название отчета  -->
                         <h4 class="fw-normal h5 mb-1 text-body">
-                            <a href="{% url 'reports:print_report' report.id %}" target="_blank" class="report-title-link">
+                            {% if perms.reports.change_report or perms.reports.delete_report %}
+                                <a href="{% url 'reports:manage_report' report.id %}" class="report-title-link">
+                                    {{ report.name }}
+                                </a>
+                            {% else %}
                                 {{ report.name }}
-                            </a>
+                            {% endif %}
                         </h4>
                         
                         <!-- Метаданные -->

@@ -102,6 +102,35 @@
 
 <!-- Основной контент страницы -->
 <div class="container mt-4 flex-grow-1">
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.tags == 'error' %}
+                {% with alert_tag='danger' %}
+                    <div class="alert alert-{{ alert_tag }} border border-{{ alert_tag }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
+                        <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
+                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
+                            {{ message }}
+                        </span>
+                    </div>
+                {% endwith %}
+            {% else %}
+                <div class="alert alert-{{ message.tags|default:'info' }} border border-{{ message.tags|default:'info' }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
+                    <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
+                        {% if message.tags == 'success' %}
+                            <i class="bi bi-check-circle-fill fs-6 text-success"></i>
+                        {% elif message.tags == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
+                        {% elif message.tags == 'warning' %}
+                            <i class="bi bi-exclamation-circle-fill fs-6 text-warning"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill fs-6 text-info"></i>
+                        {% endif %}
+                        {{ message }}
+                    </span>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
     {% block content %}
     {% endblock %}
 </div>

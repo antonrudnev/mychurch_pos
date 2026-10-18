@@ -11,7 +11,7 @@ from django.utils import timezone
 from transactions.models import Transaction
 
 from .forms import ReportDateRangeForm
-from .models import Report
+from .models import Report, ReportType
 
 
 class ReportDateRangeFormTests(TestCase):
@@ -109,5 +109,99 @@ class CashReportDateRangeTests(TestCase):
             date(2025, 1, 2),
         )
         self.assertContains(response, 'data-application-today="2025-01-02"')
+
+
+class ReportManagementTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='manager',
+            password='test-password',
+        )
+        view_permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename='view_report',
+        )
+        self.user.user_permissions.add(view_permission)
+        self.report_type, _created = ReportType.objects.get_or_create(
+            handle='cash-report',
+            defaults={'name': 'Кассовый отчет'},
+        )
+        self.report = Report.objects.create(
+            name='Исходное название',
+            report_type=self.report_type,
+            dump='<p>Отчет</p>',
+        )
+        self.manage_url = reverse(
+            'reports:manage_report',
+            kwargs={'report_id': self.report.id},
+        )
+        self.client.force_login(self.user)
+
+    def grant_permission(self, codename):
+        permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename=codename,
+        )
+        self.user.user_permissions.add(permission)
+
+    def test_user_without_management_permissions_sees_plain_report_name(self):
+        response = self.client.get(reverse('reports:report_list'))
+
+        self.assertContains(response, 'Исходное название')
+        self.assertNotContains(response, f'href="{self.manage_url}"')
+        self.assertEqual(self.client.get(self.manage_url).status_code, 403)
+
+    def test_change_permission_allows_renaming_but_not_deleting(self):
+        self.grant_permission('change_report')
+
+        response = self.client.get(self.manage_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Сохранить название')
+        self.assertNotContains(response, 'Удалить отчет')
+
+        response = self.client.post(
+            self.manage_url,
+            {'action': 'rename', 'name': 'Новое название'},
+        )
+        self.assertRedirects(response, reverse('reports:report_list'))
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.name, 'Новое название')
+
+        response = self.client.post(self.manage_url, {'action': 'delete'})
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Report.objects.filter(pk=self.report.pk).exists())
+
+    def test_delete_permission_allows_deletion_but_not_renaming(self):
+        self.grant_permission('delete_report')
+
+        response = self.client.get(self.manage_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Сохранить название')
+        self.assertContains(response, 'Удалить отчет')
+
+        response = self.client.post(
+            self.manage_url,
+            {'action': 'rename', 'name': 'Новое название'},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Report.objects.filter(pk=self.report.pk).exists())
+
+        response = self.client.post(self.manage_url, {'action': 'delete'})
+        self.assertRedirects(response, reverse('reports:report_list'))
+        self.assertFalse(Report.objects.filter(pk=self.report.pk).exists())
+
+    def test_report_title_and_open_link_have_distinct_destinations(self):
+        self.grant_permission('change_report')
+
+        response = self.client.get(reverse('reports:report_list'))
+
+        self.assertContains(
+            response,
+            f'href="{self.manage_url}"',
+        )
+        self.assertContains(
+            response,
+            f'href="{reverse("reports:print_report", args=[self.report.id])}"',
+        )
 
 # Create your tests here.

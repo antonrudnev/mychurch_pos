@@ -2,14 +2,15 @@ from directory.models import Item
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db.models import F, Q, Sum
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
 
-from .forms import ReportDateRangeForm
+from .forms import ReportDateRangeForm, ReportNameForm
 from .models import Report, ReportType
 
 
@@ -47,7 +48,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
         report_name = (
-            f"Кассовый отчет за {date_from:%d.%m.%Y} — {date_to:%d.%m.%Y}"
+            f"Кассовый отчет за {date_from:%d.%m.%Y}{f' - {date_to:%d.%m.%Y}' if date_from != date_to else ''}"
         )
         report_type_obj, _created = ReportType.objects.get_or_create(
             handle='cash-report',
@@ -201,6 +202,60 @@ class PrintReportView(PermissionRequiredMixin, View):
     def get(self, request, report_id, *args, **kwargs):
         report = get_object_or_404(Report, id=report_id)
         return HttpResponse(report.dump, content_type='text/html; charset=utf-8')
+
+
+class ReportManageView(PermissionRequiredMixin, View):
+    permission_required = ('reports.change_report', 'reports.delete_report')
+    raise_exception = True
+    template_name = 'reports/report_manage.html'
+
+    def has_permission(self):
+        return any(
+            self.request.user.has_perm(permission)
+            for permission in self.get_permission_required()
+        )
+
+    def get_report(self, report_id):
+        return get_object_or_404(Report, id=report_id)
+
+    def get(self, request, report_id, *args, **kwargs):
+        report = self.get_report(report_id)
+        return self.render_page(request, report, ReportNameForm(initial={'name': report.name}))
+
+    def post(self, request, report_id, *args, **kwargs):
+        report = self.get_report(report_id)
+        action = request.POST.get('action')
+
+        if action == 'rename':
+            if not request.user.has_perm('reports.change_report'):
+                raise PermissionDenied
+            form = ReportNameForm(request.POST)
+            if not form.is_valid():
+                return self.render_page(request, report, form, status=400)
+            report.name = form.cleaned_data['name']
+            report.save(update_fields=['name'])
+            messages.success(request, 'Название отчета изменено.')
+            return redirect('reports:report_list')
+
+        if action == 'delete':
+            if not request.user.has_perm('reports.delete_report'):
+                raise PermissionDenied
+            report.delete()
+            messages.success(request, 'Отчет удален.')
+            return redirect('reports:report_list')
+
+        raise PermissionDenied
+
+    def render_page(self, request, report, form, status=200):
+        return render(
+            request,
+            self.template_name,
+            {
+                'report': report,
+                'form': form,
+            },
+            status=status,
+        )
 
 
 REPORT_CLASSES_REGISTRY = {

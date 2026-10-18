@@ -85,7 +85,14 @@
 <body>
 
     <main class="report-page">
-    <h2>Отчет кассовый за период с <strong>{{ date_from|date:"d.m.Y" }} по {{ date_to|date:"d.m.Y" }}</strong></h2>
+    <h2>
+        Отчет кассовый за
+        {% if date_from == date_to %}
+            <strong>{{ date_from|date:"d.m.Y" }}</strong>
+        {% else %}
+            период с <strong>{{ date_from|date:"d.m.Y" }} по {{ date_to|date:"d.m.Y" }}</strong>
+        {% endif %}
+    </h2>
     
     <table>
         <tbody>

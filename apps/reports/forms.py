@@ -29,3 +29,11 @@ class ReportDateRangeForm(forms.Form):
         if date_from and date_to and date_from > date_to:
             self.add_error("date_to", "Конечная дата не может быть раньше начальной.")
         return cleaned_data
+
+
+class ReportNameForm(forms.Form):
+    name = forms.CharField(
+        label="Новое название документа",
+        max_length=255,
+        widget=forms.TextInput(attrs={"class": "form-control"}),
+    )

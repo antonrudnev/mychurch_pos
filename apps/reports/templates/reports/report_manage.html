@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Управление отчетом — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 600px;">
+
+        <div class="text-center">
+            <h1 class="fw-normal h3 mb-4 text-body">
+                {{ report.name }}
+            </h1>
+        </div>
+
+        {% if perms.reports.change_report %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="rename">
+                <div class="mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                    {{ form.name }}
+                    {% for error in form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+                <div class="border-top border-subtle my-4"></div>
+                <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
+            </form>
+        {% endif %}
+
+        {% if perms.reports.delete_report %}
+            <form method="post" onsubmit="return confirm('Удалить этот документ?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2 text-uppercase">Удалить</button>
+            </form>
+        {% endif %}
+
+        <a href="{% url 'reports:report_list' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+{% endblock %}
