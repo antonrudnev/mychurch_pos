@@ -5,12 +5,12 @@
 {% block content %}
 <div class="d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
-        <h1 class="fw-normal h3 mb-4 text-body">Выберите период отчета</h1>
-        <p class="text-secondary">Выберите готовый период или укажите даты вручную.</p>
+        <h1 class="fw-normal h3 mb-4 text-body">Задайте период отчета</h1>
+        <p class="text-secondary">Выберите период из списка или укажите даты</p>
 
         <form method="get" class="text-start" id="date-range-form">
             <div class="mb-3">
-                <label for="date-preset" class="form-label">Готовый период</label>
+                <label for="date-preset" class="form-label">Выбрать период</label>
                 <select id="date-preset" name="preset" class="form-select" data-application-today="{{ application_today|date:'Y-m-d' }}">
                     <option value="week" {% if request.GET.preset == "week" or not request.GET.preset %}selected{% endif %}>Эта неделя</option>
                     <option value="last-week" {% if request.GET.preset == "last-week" %}selected{% endif %}>Прошлая неделя</option>
