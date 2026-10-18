@@ -93,6 +93,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__item_type__handle__istartswith=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum(F('quantity') * F('price')))
@@ -104,6 +105,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__item_type__handle__istartswith=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum(F('quantity') * F('price')))
@@ -115,6 +117,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum('price'))
@@ -126,6 +129,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum('price'))
@@ -137,6 +141,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         Transaction.objects
         .filter(
             item__handle__iexact=prefix,
+            is_deleted=False,
             created_at__date__range=date_range,
                 )
                 .aggregate(total_cost=Sum('price'))
@@ -148,6 +153,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum('price'))
@@ -159,6 +165,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .order_by('-created_at')
@@ -170,10 +177,21 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
+                is_deleted=False,
                 created_at__date__range=date_range,
             )
             .order_by('-created_at')
             .first()
+        )
+
+        not_verified_status = (
+            Transaction.objects
+            .filter(
+                is_deleted=False,
+                is_verified=False,
+                created_at__date__range=date_range,
+            )
+            .count()
         )
 
         context = {
@@ -186,6 +204,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'bank_receipt_data': bank_receipt_data,
             'cash_register_data': cash_register_data,
             'cash_deposit_data': cash_deposit_data,
+            'not_verified_status':not_verified_status,
             'current_time': timezone.now(),
             'current_user': self.request.user,
             'date_from': date_from,

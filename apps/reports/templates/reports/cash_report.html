@@ -223,11 +223,11 @@
         <a href="{% url 'reports:generate_report' 'cash-report' %}" class="btn-back">⬅ Вернуться назад</a>
 
         <!-- Форма сохранения -->
-        <form method="post" style="margin: 0;">
-            {% csrf_token %}
-            <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
-            <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
-            <button type="submit" class="btn-save">Сохранить</button>
+        <form method="post" style="margin: 0;" id="save-date-form"> 
+            {% csrf_token %} 
+            <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}"> 
+            <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}"> 
+            <button type="submit" class="btn-save">Сохранить</button> 
         </form>
         
         {% if messages %}
@@ -239,4 +239,21 @@
     {% endif %}
 
 </body>
+<script>
+    document.getElementById('save-date-form').addEventListener('submit', function(event) {
+        // Получаем значение переменной из контекста Django
+        // Фильтр |default:0 застрахует от пустых значений, если переменной нет в контексте
+        const notVerifiedStatus = parseInt("{{ not_verified_status|default:0 }}", 10);
+        
+        // Если статус больше 0, показываем окно подтверждения
+        if (notVerifiedStatus > 0) {
+            const userConfirmed = confirm("Внимание! Обнаружены неподтвержденные транзакции. Вы уверены, что хотите продолжить сохранение?");
+            
+            // Если пользователь нажал "Отмена" (Cancel), отменяем отправку формы
+            if (!userConfirmed) {
+                event.preventDefault();
+            }
+        }
+    });
+</script>
 </html>
