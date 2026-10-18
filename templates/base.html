@@ -52,9 +52,9 @@
                             </a>
                         </li>
                     {% endif %}
-                    {% if perms.reports.view_transaction %}
+                    {% if perms.transactions.view_transaction %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/transactions/">
+                            <a class="nav-link" href="{% url 'transactions:home' %}">
                                 {{ transactions_app_verbose_name|default:"Транзакции" }}
                             </a>
                         </li>

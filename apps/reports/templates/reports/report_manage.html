@@ -6,11 +6,7 @@
 <div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
 
-        <div class="text-center">
-            <h1 class="fw-normal h3 mb-4 text-body">
-                {{ report.name }}
-            </h1>
-        </div>
+        <h1 class="fw-normal h3 text-center mb-4 text-body">{{ report.name }}</h1>
 
         {% if perms.reports.change_report %}
             <form method="post" class="mb-4">

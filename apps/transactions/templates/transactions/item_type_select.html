@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Тип транзакции — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 800px;">
+        <h1 class="fw-normal h3 mb-4 text-body">Выберите тип операции</h1>
+
+        <div class="row row-cols-1 row-cols-sm-2 g-3 my-4">
+            {% for item_type in item_types %}
+                <div class="col">
+                    {% if item_type.has_items %}
+                        <a href="{% url 'transactions:transaction_create' item_type.id %}" class="btn btn-primary w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
+                            {{ item_type.name }}
+                        </a>
+                    {% else %}
+                        <button class="btn btn-outline-secondary w-100 h-100 py-3 d-flex align-items-center justify-content-center fs-5" disabled>
+                            {{ item_type.name }}
+                        </button>
+                    {% endif %}
+                </div>
+            {% empty %}
+                <p class="col-12 text-secondary fs-5 fst-italic my-4">
+                    В системе пока не настроено ни одного типа номенклатуры.
+                </p>
+            {% endfor %}
+        </div>
+
+        <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+{% endblock %}

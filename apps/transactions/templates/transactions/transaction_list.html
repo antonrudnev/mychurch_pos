@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Мои транзакции — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 800px;">
+        <div class="text-center border-bottom border-subtle pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0 text-body">
+                {% if request.user.is_superuser %}Все транзакции{% else %}Мои транзакции{% endif %}
+            </h1>
+        </div>
+
+        <div class="my-4">
+            {% for transaction in transactions %}
+                <div class="py-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                        <div>
+                            <h2 class="fw-normal h5 mb-1 text-body">{{ transaction.item.name }}</h2>
+                            <p class="text-secondary mb-0 fs-6 fw-light">
+                                <span class="fw-normal text-muted small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
+                                {{ transaction.created_at|date:"d.m.Y H:i" }}
+                            </p>
+                        </div>
+                        <div class="text-md-end">
+                            <div>{{ transaction.quantity }} × {{ transaction.price }} = {{ transaction.total_cost }} руб.</div>
+                            {% if request.user.is_superuser %}
+                                <div class="text-secondary small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
+                            {% endif %}
+                            {% if transaction.is_verified %}
+                                <div class="text-success small">Проверена</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                    <div class="border-top border-subtle my-2"></div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center py-5">
+                    <h2 class="fw-light text-uppercase small text-muted mb-2">Транзакций пока нет</h2>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+            <nav aria-label="Навигация по списку транзакций" class="my-4">
+                <ul class="pagination pagination-sm justify-content-center m-0 gap-1">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-left"></i></span>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link btn-primary border-primary fw-normal">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link border-subtle text-secondary fw-light" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-right"></i></span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+        <div class="border-top border-subtle my-4"></div>
+        <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+{% endblock %}
