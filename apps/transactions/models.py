@@ -82,8 +82,7 @@ class Transaction(models.Model):
         """Динамический расчет стоимости без сохранения в базу данных"""
         return self.price * self.quantity if self.price and self.quantity else 0
 
-    def delete(self, *args, **kwargs):
-        """Переопределение метода удаления для реализации soft-delete"""
+    def delete_soft(self, *args, **kwargs):
         self.is_deleted = True
         self.save()
 
