@@ -66,10 +66,14 @@ class TransactionForm(forms.ModelForm):
         items = Item.objects.filter(
             item_type=item_type,
             is_active=True,
-        ).order_by('name')
+        ).order_by('order_number', 'name')
         self.fields['item'].queryset = items
+        items = list(self.fields['item'].queryset)
         self.fields['item'].label_from_instance = lambda item: item.name
         self.fields['price'].required = False
+        self.single_item = items[0] if len(items) == 1 else None
+        if self.single_item is not None:
+            self.fields['item'].initial = self.single_item.pk
         self.item_prices = {
             str(item.pk): str(item.price) if item.price is not None else None
             for item in items

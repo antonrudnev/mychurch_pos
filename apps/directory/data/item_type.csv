@@ -1,9 +1,11 @@
 name,handle,order_number,is_product_group
-Таинства,treby-1,1,0
-Записки,treby-2,2,0
-Освящение,treby-3,3,0
-Свечи,candle,4,0
-Прочие требы,other-treby,5,0
-Прочие расходы,other-expense,6,0
+Таинства,treby-1,3,0
+Записки,treby-2,1,0
+Освящение,treby-3,5,0
+Свечи,candle,2,0
+Пожертвования,donate,4,0
+Люди,staff,6,0
 Деньги,money,7,0
-Иконы,product-1,8,1
+Прочие требы,other-treby,8,0
+Прочие расходы,other-expense,9,0
+Иконы,product-1,100,1

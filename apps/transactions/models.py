@@ -28,13 +28,13 @@ class Transaction(models.Model):
         Item, 
         on_delete=models.PROTECT, 
         related_name='transactions',
-        verbose_name="Товар / Услуга"
+        verbose_name="Наименование"
     )
     price = models.DecimalField(
         max_digits=10, 
         decimal_places=2, 
         validators=[MinValueValidator(0)],
-        verbose_name="Цена за единицу"
+        verbose_name="Сумма"
     )
     quantity = models.PositiveIntegerField(
         default=1, 

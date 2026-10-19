@@ -6,11 +6,14 @@
 <div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
         <h1 class="fw-normal h3 text-center mb-4 text-body">Новая транзакция</h1>
-        <p class="text-secondary text-center text-uppercase">{{ item_type.name }}</p>
+        <p class="text-secondary text-center text-uppercase">{% if form.single_item %}{{ form.single_item.name }}{% else %}{{ item_type.name }}{% endif %}</p>
 
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
+                {% if field.name == 'item' and form.single_item %}
+                    {{ field.as_hidden }}
+                {% else %}
                 <div class="mb-3" {% if field.name == 'price' %}id="price-field-container" hidden{% elif field.name == 'quantity' %}id="quantity-field-container" hidden{% endif %}>
                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                     {{ field }}
@@ -21,10 +24,12 @@
                         <div class="invalid-feedback d-block">{{ error }}</div>
                     {% endfor %}
                 </div>
+                {% endif %}
             {% endfor %}
             {% for error in form.non_field_errors %}
                 <div class="alert alert-danger">{{ error }}</div>
             {% endfor %}
+            <div class="border-top border-subtle my-4"></div>
             <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Создать транзакцию</button>
         </form>
 

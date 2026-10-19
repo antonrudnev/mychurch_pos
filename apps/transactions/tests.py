@@ -115,9 +115,28 @@ class TransactionViewsTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.item_type.name)
+        self.assertContains(response, f'>{self.item.name}</p>')
+        self.assertContains(response, f'type="hidden" name="item" value="{self.item.id}"')
+        self.assertNotContains(response, '<select name="item"')
+
+    def test_multiple_items_show_item_dropdown_and_item_type_name(self):
+        additional_item = Item.objects.create(
+            item_type=self.item_type,
+            name='Дополнительная позиция',
+            handle='additional-item',
+            price=Decimal('8.00'),
+            order_number=2,
+        )
+
+        response = self.client.get(
+            reverse('transactions:transaction_create', args=[self.item_type.id])
+        )
+
+        self.assertContains(response, f'>{self.item_type.name}</p>')
+        self.assertContains(response, '<select name="item"')
         self.assertContains(response, f'>{self.item.name}</option>')
-        self.assertNotContains(response, f'>[{self.item_type.name}] {self.item.name}')
+        self.assertContains(response, f'>{additional_item.name}</option>')
+        self.assertNotContains(response, 'type="hidden" name="item"')
 
     def test_products_button_opens_product_group_types(self):
         product_group = ItemType.objects.create(

@@ -29,9 +29,33 @@ treby-3,Освящение офиса или магазина,treby-3-02,None,2,
 treby-3,Освящение дома или дачи,treby-3-03,None,3,1
 treby-3,Освящение квартиры,treby-3-04,None,4,1
 treby-3,Освящение автомобиля,treby-3-05,None,5,1
-money,Банк,bank-terminal,0,101,1
-money,Чековая проверка,bank-receipt,0,102,1
-money,Дано в долг,debt-lend,0,103,1
-money,Возврат долга,debt-repay,0,104,1
-money,Касса (остаток),cash-register,0,105,1
-money,Сейф (размен),cash-deposit,0,106,1
+money,Банк,bank-terminal,0,1,1
+money,Чековая проверка,bank-receipt,0,2,1
+money,Касса (остаток),cash-register,0,3,1
+money,Сейф (размен),cash-deposit,0,4,1
+money,Дано в долг,debt-lend,0,5,1
+money,Возврат долга,debt-repay,0,6,1
+donate,Пожертвование,donate-1,0,1,1
+candle,Свеча 20,candle-1,20,1,1
+candle,Свеча 35,candle-2,35,2,1
+candle,Свеча 45,candle-3,45,3,1
+candle,Свеча 55,candle-4,55,4,1
+candle,Свеча 100,candle-5,100,5,1
+candle,Свеча 150,candle-6,150,6,1
+candle,Свеча 200,candle-7,200,7,1
+candle,Свеча 250,candle-8,250,8,1
+staff,Певчий - Всенощное бдение,staff-choir-cantor-1,750,1,1
+staff,Певчий - Литургия,staff-choir-cantor-2,750,2,1
+staff,Певчий - Акафист,staff-choir-cantor-3,500,3,1
+staff,Певчий - Канон в Великий Пост,staff-choir-cantor-4,500,4,1
+staff,Певчий - Венчание,staff-choir-cantor-5,500,5,1
+staff,Певчий - Отпевание с гробом,staff-choir-cantor-6,500,6,1
+staff,Певчий - Соборование,staff-choir-cantor-7,500,7,1
+staff,Чтец - Всенощное бдение,staff-choir-reader-1,300,101,1
+staff,Чтец - Литургия,staff-choir-reader-2,300,102,1
+staff,Чтец - Акафист,staff-choir-reader-3,250,103,1
+staff,Чтец - Канон в Великий Пост,staff-choir-reader-4,250,104,1
+staff,Пономарь - Всенощное бдение,staff-sexton-1,200,201,1
+staff,Пономарь - Литургия,staff-sexton-2,200,202,1
+staff,Пономарь - Акафист,staff-sexton-3,150,203,1
+staff,Пономарь - Канон в Великий Пост,staff-sexton-4,150,204,1
