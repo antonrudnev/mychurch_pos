@@ -67,7 +67,7 @@
         if (Number(itemPrice) > 0) {
             priceInput.value = itemPrice;
             priceInput.hidden = true;
-            priceDisplay.textContent = itemPrice;
+            priceDisplay.textContent = `${itemPrice} \u20bd`;
             priceDisplay.hidden = false;
             priceInput.readOnly = true;
             priceInput.required = false;
