@@ -15,9 +15,9 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Coalesce, Length, StrIndex, Substr
+from django.db.models.functions import Coalesce, StrIndex, Substr
 from django.http import HttpResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.generic import ListView, TemplateView, View
