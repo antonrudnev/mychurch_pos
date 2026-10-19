@@ -102,7 +102,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "product"
-        product_data = (
+        product_total = (
             Transaction.objects
             .filter(
                 item__item_type__handle__istartswith=prefix,
@@ -114,7 +114,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "candle"
-        candle_data = (
+        candle_total= (
             Transaction.objects
             .filter(
                 item__item_type__handle__istartswith=prefix,
@@ -126,7 +126,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "debt-lend"
-        debt_lend_data = (
+        debt_lend_total = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -138,7 +138,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "debt-repay"
-        debt_repay_data = (
+        debt_repay_total = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -150,7 +150,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "bank-terminal"
-        bank_terminal_data = (
+        bank_terminal_total = (
         Transaction.objects
         .filter(
             item__handle__iexact=prefix,
@@ -162,7 +162,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             )
 
         prefix = "bank-receipt"
-        bank_receipt_data = (
+        bank_receipt_total = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -174,7 +174,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "cash-register"
-        cash_register_data = (
+        cash_register_last = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -186,7 +186,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "cash-deposit"
-        cash_deposit_data = (
+        cash_deposit_last = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -198,6 +198,16 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         prefix = "staff"
+        staff_total = (
+            Transaction.objects
+            .filter(
+                item__handle__istartswith=prefix,
+                is_deleted=False,
+                created_at__date__range=date_range,
+            )
+            .aggregate(total_cost=Sum(F('quantity') * F('price')))
+            .get('total_cost')
+        )
         staff_data = (
             Item.objects
             .filter(item_type__handle__istartswith=prefix)
@@ -252,15 +262,16 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
 
         context = {
             'treby_data': treby_data,
-            'product_data': product_data,
-            'candle_data': candle_data,
-            'debt_lend_data': debt_lend_data,
-            'debt_repay_data': debt_repay_data,
-            'bank_terminal_data': bank_terminal_data,
-            'bank_receipt_data': bank_receipt_data,
+            'product_total': product_total,
+            'candle_total': candle_total,
+            'debt_lend_total': debt_lend_total,
+            'debt_repay_total': debt_repay_total,
+            'bank_terminal_total': bank_terminal_total,
+            'bank_receipt_total': bank_receipt_total,
+            'staff_total': staff_total,
             'staff_data': staff_data,
-            'cash_register_data': cash_register_data,
-            'cash_deposit_data': cash_deposit_data,
+            'cash_register_last': cash_register_last,
+            'cash_deposit_last': cash_deposit_last,
             'not_verified_status':not_verified_status,
             'current_time': timezone.now(),
             'current_user': self.request.user,

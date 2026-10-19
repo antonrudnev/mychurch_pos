@@ -103,7 +103,7 @@
                     <tr>
                 {% endif %}
                         <td class="name-cell">{{ row.name }}</td>
-                        <td class="quantity-cell">{{ row.total_quantity|default:"." }}</td>
+                        <td class="quantity-cell">{{ row.total_quantity|default:"" }}</td>
                 {% if position == 'right' %}
                     </tr>
                 {% endif %}
@@ -117,18 +117,14 @@
             <tr>
                 <td class="name-cell">Реализация товара</td>
                 <td class="quantity-cell">
-                    {% if product_data is not None %}
-                        {{ product_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if product_total is not None %}
+                        {{ product_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
                 <td class="name-cell">Реализация свечей</td>
                 <td class="quantity-cell">
-                    {% if candle_data is not None %}
-                        {{ candle_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if candle_total is not None %}
+                        {{ candle_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
             </tr>
@@ -139,45 +135,40 @@
             <tr>
                 <td class="name-cell-center">Дано в долг</td>
                 <td class="quantity-cell">
-                    {% if debt_lend_data is not None %}
-                        {{ debt_lend_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if debt_lend_total is not None %}
+                        {{ debt_lend_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
                 <td class="name-cell-center">Возврат долга</td>
                 <td class="quantity-cell">
-                    {% if debt_repay_data is not None %}
-                        {{ debt_repay_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if debt_repay_total is not None %}
+                        {{ debt_repay_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Банк</td>
                 <td class="quantity-cell">
-                    {% if bank_terminal_data is not None %}
-                        {{ bank_terminal_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if bank_terminal_total is not None %}
+                        {{ bank_terminal_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
                 <td class="name-cell-center">Чековая проверка</td>
                 <td class="quantity-cell">
-                    {% if bank_receipt_data is not None %}
-                        {{ bank_receipt_data|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if bank_receipt_total is not None %}
+                        {{ bank_receipt_total|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Содержание причта</td>
-                <td class="quantity-cell" style="text-align: left;" colspan="3">
-                    {% for row in staff_data %}
-                        {{ row.total_cost }}{% if not forloop.last %} / {% endif %}
-                    {% endfor %}
+                <td class="quantity-cell" colspan="3">
+                    {% if staff_total is not None %}
+                        {% for row in staff_data %}
+                            {{ row.total_cost|floatformat:2 }}  &#8381 {% if not forloop.last %} + {% endif %}
+                        {% endfor %}
+                        = {{ staff_total|floatformat:2 }} &#8381
+                    {% endif %}
                 </td>
             </tr>
             <tr>
@@ -187,18 +178,14 @@
             <tr>
                 <td class="name-cell-right">Касса (остаток):</td>
                 <td class="quantity-cell">
-                    {% if cash_register_data is not None %}
-                        {{ cash_register_data.price|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if cash_register_last is not None %}
+                        {{ cash_register_last.price|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
                 <td class="name-cell-right">Сейф (размен):</td>
                 <td class="quantity-cell">
-                    {% if cash_deposit_data is not None %}
-                        {{ cash_deposit_data.price|floatformat:2 }} &#8381
-                    {% else %}
-                        .
+                    {% if cash_deposit_last is not None %}
+                        {{ cash_deposit_last.price|floatformat:2 }} &#8381
                     {% endif %}
                 </td>
             </tr>
