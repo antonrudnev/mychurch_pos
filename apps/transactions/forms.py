@@ -2,8 +2,50 @@ from decimal import Decimal
 
 from directory.models import Item, ItemType
 from django import forms
+from django.core.validators import MinValueValidator
 
 from .models import Transaction
+
+
+class NewProductTransactionForm(forms.Form):
+    name = forms.CharField(
+        label='Название товара',
+        max_length=255,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+    )
+    price = forms.DecimalField(
+        label='Цена за единицу',
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        validators=[MinValueValidator(Decimal('0.01'))],
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '0.01',
+            'step': '0.01',
+        }),
+    )
+    quantity = forms.IntegerField(
+        label='Количество',
+        min_value=1,
+        initial=1,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '1',
+        }),
+    )
+    keep_active = forms.BooleanField(
+        label='Оставить товар активным в справочнике',
+        required=False,
+        initial=True,
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if not name:
+            raise forms.ValidationError('Введите название товара.')
+        return name
 
 
 class TransactionForm(forms.ModelForm):
@@ -14,7 +56,6 @@ class TransactionForm(forms.ModelForm):
             'item': forms.Select(attrs={'class': 'form-select'}),
             'price': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'step': '10',
                 'min': '0.00',
             }),
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),

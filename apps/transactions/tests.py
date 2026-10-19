@@ -119,6 +119,114 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, f'>{self.item.name}</option>')
         self.assertNotContains(response, f'>[{self.item_type.name}] {self.item.name}')
 
+    def test_products_button_opens_product_group_types(self):
+        product_group = ItemType.objects.create(
+            name='Тестовая группа товаров',
+            handle='test-product-group',
+            order_number=2,
+            is_product_group=True,
+        )
+        Item.objects.create(
+            item_type=product_group,
+            name='Позиция группы',
+            handle='product-group-item',
+            price=Decimal('5.00'),
+            order_number=1,
+        )
+        response = self.client.get(reverse('transactions:item_type_select'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:product_group_select")}"',
+        )
+        self.assertContains(response, 'Товары')
+        self.assertNotContains(response, product_group.name)
+
+        response = self.client.get(reverse('transactions:product_group_select'))
+
+        self.assertContains(response, product_group.name)
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_create", args=[product_group.id])}"',
+        )
+        self.assertNotContains(response, f'href="{reverse("transactions:product_group_select")}"')
+        self.assertNotContains(response, self.item_type.name)
+
+    def test_product_group_page_has_new_product_button_after_item_types(self):
+        response = self.client.get(reverse('transactions:product_group_select'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:new_product_transaction")}"',
+        )
+        self.assertContains(response, 'Новый товар')
+
+    def test_new_product_creates_item_in_others_and_transaction(self):
+        create_url = reverse('transactions:new_product_transaction')
+
+        response = self.client.post(
+            create_url,
+            {
+                'name': 'Новая книга',
+                'price': '25.50',
+                'quantity': '2',
+                'keep_active': 'on',
+            },
+        )
+
+        self.assertRedirects(response, reverse('transactions:product_group_select'))
+        item_type = ItemType.objects.get(name='Others')
+        self.assertTrue(item_type.is_product_group)
+        item = Item.objects.get(name='Новая книга')
+        self.assertEqual(item.item_type, item_type)
+        self.assertTrue(item.is_active)
+        transaction = Transaction.objects.get(item=item)
+        self.assertEqual(transaction.cashier, self.user)
+        self.assertEqual(transaction.price, Decimal('25.50'))
+        self.assertEqual(transaction.quantity, 2)
+
+    def test_new_product_can_be_created_inactive(self):
+        self.client.post(
+            reverse('transactions:new_product_transaction'),
+            {
+                'name': 'Разовый товар',
+                'price': '8.00',
+                'quantity': '1',
+            },
+        )
+
+        item = Item.objects.get(name='Разовый товар')
+        self.assertFalse(item.is_active)
+        self.assertTrue(Transaction.objects.filter(item=item).exists())
+
+    def test_existing_item_name_is_reused_without_creating_duplicate(self):
+        existing_item = Item.objects.create(
+            item_type=self.item_type,
+            name='Уже в справочнике',
+            handle='already-in-directory',
+            price=Decimal('3.00'),
+            order_number=2,
+        )
+        item_count = Item.objects.count()
+
+        response = self.client.post(
+            reverse('transactions:new_product_transaction'),
+            {
+                'name': 'уже в справочнике',
+                'price': '4.50',
+                'quantity': '3',
+                'keep_active': 'on',
+            },
+        )
+
+        self.assertRedirects(response, reverse('transactions:product_group_select'))
+        self.assertEqual(Item.objects.count(), item_count)
+        transaction = Transaction.objects.get()
+        self.assertEqual(transaction.item, existing_item)
+        self.assertEqual(transaction.price, Decimal('4.50'))
+        self.assertEqual(transaction.quantity, 3)
+        self.assertFalse(ItemType.objects.filter(name='Others').exists())
+
     def test_item_type_without_active_items_has_disabled_button(self):
         inactive_type = ItemType.objects.create(
             name='Пустая категория',
@@ -259,6 +367,15 @@ class TransactionViewsTests(TestCase):
 
         self.assertRedirects(response, reverse('transactions:transaction_list'))
         self.assertEqual(Transaction.objects.get().price, Decimal('12.50'))
+
+    def test_fixed_item_price_is_displayed_as_text(self):
+        response = self.client.get(
+            reverse('transactions:transaction_create', args=[self.item_type.id])
+        )
+
+        self.assertContains(response, 'id="price-display"')
+        self.assertContains(response, 'priceInput.hidden = true;')
+        self.assertContains(response, 'priceDisplay.textContent = itemPrice;')
 
     def test_zero_price_item_requires_a_custom_price_greater_than_zero(self):
         self.item.price = Decimal('0.00')
