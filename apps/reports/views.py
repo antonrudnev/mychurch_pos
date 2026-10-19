@@ -1,10 +1,23 @@
+from decimal import Decimal
+
 from directory.models import Item
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
-from django.db.models import F, Q, Sum
 from django.core.exceptions import PermissionDenied
+from django.db.models import (
+    Case,
+    CharField,
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Q,
+    Sum,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce, Length, StrIndex, Substr
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.generic import ListView, TemplateView, View
@@ -184,6 +197,49 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .first()
         )
 
+        prefix = "staff"
+        staff_data = (
+            Item.objects
+            .filter(item_type__handle__istartswith=prefix)
+            .annotate(
+                first_dash=StrIndex('handle', Value('-')),
+                second_dash_in_tail=Case(
+                    When(first_dash__gt=0, then=StrIndex(Substr('handle', F('first_dash') + 1), Value('-'))),
+                    default=0
+                ),
+                second_dash=Case(
+                    When(second_dash_in_tail__gt=0, then=F('first_dash') + F('second_dash_in_tail')),
+                    default=0
+                ),
+                short_handle=Case(
+                    When(second_dash__gt=0, then=Substr('handle', 1, F('second_dash') - 1)),
+                    default=F('handle'),
+                    output_field=CharField()
+                )
+            )
+            .values('short_handle')
+            .annotate(
+                total_cost=Coalesce(
+                    Sum(
+                        ExpressionWrapper(
+                            F('transactions__quantity') * F('transactions__price'),
+                            output_field=DecimalField(max_digits=20, decimal_places=2),
+                        ),
+                        filter=Q(
+                            transactions__is_deleted=False,
+                            transactions__created_at__date__range=date_range,
+                        ),
+                    ),
+                    Value(
+                        Decimal('0.00'),
+                        output_field=DecimalField(max_digits=20, decimal_places=2),
+                    ),
+                    output_field=DecimalField(max_digits=20, decimal_places=2),
+                )
+            )
+            .order_by('short_handle')
+        )
+
         not_verified_status = (
             Transaction.objects
             .filter(
@@ -202,6 +258,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'debt_repay_data': debt_repay_data,
             'bank_terminal_data': bank_terminal_data,
             'bank_receipt_data': bank_receipt_data,
+            'staff_data': staff_data,
             'cash_register_data': cash_register_data,
             'cash_deposit_data': cash_deposit_data,
             'not_verified_status':not_verified_status,

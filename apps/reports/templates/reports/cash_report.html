@@ -174,7 +174,11 @@
             </tr>
             <tr>
                 <td class="name-cell-center">Содержание причта</td>
-                <td class="quantity-cell" colspan="3"></td>
+                <td class="quantity-cell" style="text-align: left;" colspan="3">
+                    {% for row in staff_data %}
+                        {{ row.total_cost }}{% if not forloop.last %} / {% endif %}
+                    {% endfor %}
+                </td>
             </tr>
             <tr>
                 <td class="name-cell-tall">Прочие расходы:</td>

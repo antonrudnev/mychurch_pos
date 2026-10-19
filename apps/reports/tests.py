@@ -110,6 +110,39 @@ class CashReportDateRangeTests(TestCase):
         )
         self.assertContains(response, 'data-application-today="2025-01-02"')
 
+    def test_staff_data_displays_transaction_totals(self):
+        staff_type = ItemType.objects.create(
+            name='Содержание причта',
+            handle='staff-clergy',
+            order_number=2,
+        )
+        staff_item = Item.objects.create(
+            item_type=staff_type,
+            name='Священник',
+            handle='staff-clergy-priest',
+            order_number=1,
+        )
+        Transaction.objects.create(
+            item=staff_item,
+            price=Decimal('25.50'),
+            quantity=2,
+            cashier=self.user,
+            created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+        )
+
+        response = self.client.get(
+            self.generate_url,
+            {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        staff_row = next(
+            row for row in response.context_data['staff_data']
+            if row['short_handle'] == 'staff-clergy'
+        )
+        self.assertEqual(staff_row['total_cost'], Decimal('51'))
+        self.assertContains(response, '51')
+
 
 class ReportManagementTests(TestCase):
     def setUp(self):

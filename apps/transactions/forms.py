@@ -9,7 +9,7 @@ from .models import Transaction
 
 class NewProductTransactionForm(forms.Form):
     name = forms.CharField(
-        label='Название товара',
+        label='Наименование товара',
         max_length=255,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
     )
