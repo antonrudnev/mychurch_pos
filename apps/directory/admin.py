@@ -6,7 +6,7 @@ from .models import Item, ItemType
 @admin.register(ItemType)
 class ItemTypeAdmin(admin.ModelAdmin):
     """Настройка отображения типов номенклатуры в админке"""
-    list_display = ('id', 'name', 'is_product_group', 'order_number')
+    list_display = ('id', 'name', 'is_product_group', 'is_open_list', 'order_number')
     prepopulated_fields = {'handle': ('name',)}
     list_display_links = ('name',)
     list_editable = ('order_number',)

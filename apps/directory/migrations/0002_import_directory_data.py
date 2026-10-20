@@ -33,8 +33,9 @@ def import_directory_data(apps, schema_editor):
         ItemType(
             name=row["name"],
             handle=row["handle"],
-            order_number=int(row["order_number"]),
             is_product_group=parse_boolean(row["is_product_group"]),
+            is_open_list=parse_boolean(row["is_open_list"]),
+            order_number=int(row["order_number"]),
         )
         for row in item_type_rows
         if row["handle"] not in existing_type_handles
@@ -71,8 +72,8 @@ def import_directory_data(apps, schema_editor):
             name=row["name"],
             handle=row["handle"],
             price=None if row["price"] == "None" else Decimal(row["price"]),
-            order_number=int(row["order_number"]),
             is_active=parse_boolean(row["is_active"]),
+            order_number=int(row["order_number"]),
         ))
 
     Item.objects.using(database).bulk_create(items)

@@ -1,11 +1,11 @@
-name,handle,order_number,is_product_group
-Таинства,treby-1,3,0
-Записки,treby-2,1,0
-Освящение,treby-3,5,0
-Свечи,candle,2,0
-Пожертвования,donate,4,0
-Люди,staff,6,0
-Деньги,money,7,0
-Прочие требы,other-treby,8,0
-Прочие расходы,other-expense,9,0
-Иконы,product-1,100,1
+name,handle,is_product_group,is_open_list,order_number
+Таинства,treby-1,0,0,3
+Записки,treby-2,0,0,1
+Освящение,treby-3,0,0,5
+Свечи,candle,0,0,2
+Пожертвования,donate,0,0,4
+Люди,staff,0,0,6
+Деньги,money,0,0,7
+Прочие требы,other-treby,0,1,8
+Прочие расходы,other-expense,0,1,9
+Иконы,product-1,1,0,100

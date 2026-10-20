@@ -18,15 +18,20 @@ class ItemType(models.Model):
         verbose_name="Дескриптор",
         help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
+    is_product_group = models.BooleanField(
+        default=False, 
+        verbose_name="Товарная группа",
+        help_text="Категория образует группу ''Товары''"
+    )
+    is_open_list = models.BooleanField(
+        default=False, 
+        verbose_name="Открытый спискок",
+        help_text="Является свободно дополняемым списком"
+    )
     order_number = models.PositiveIntegerField(
         default=1, 
         validators=[MinValueValidator(1)],
         verbose_name="Порядок сортировки"
-    )
-    is_product_group = models.BooleanField(
-        default=False, 
-        verbose_name="Товарная группа",
-        help_text="Флаг, указывающий, что данная категория образует группу ''Товары''"
     )
 
     class Meta:
@@ -73,15 +78,15 @@ class Item(models.Model):
         verbose_name="Цена / Рекомендуемый взнос",
         help_text="Оставьте пустым, если цена не предусмотрена"
     )
-    order_number = models.PositiveIntegerField(
-        default=1, 
-        validators=[MinValueValidator(1)],
-        verbose_name="Порядок сортировки"
-    )
     is_active = models.BooleanField(
         default=True, 
         verbose_name="Активен",
-        help_text="Флаг, указывающий, что товар/услуга доступна для продажи"
+        help_text="Данный товар/услуга доступна для продажи"
+    )
+    order_number = models.PositiveIntegerField(
+            default=1, 
+            validators=[MinValueValidator(1)],
+            verbose_name="Порядок сортировки"
     )
 
     class Meta:
