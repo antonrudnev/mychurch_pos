@@ -9,7 +9,7 @@ from .models import Transaction
 
 class NewProductTransactionForm(forms.Form):
     name = forms.CharField(
-        label='Наименование товара',
+        label='Название товара',
         max_length=255,
         widget=forms.TextInput(attrs={'class': 'form-control'}),
     )
@@ -50,7 +50,7 @@ class NewProductTransactionForm(forms.Form):
 
 class NewOpenListItemForm(forms.Form):
     name = forms.CharField(
-        label='Наименование',
+        label='Название статьи',
         max_length=255,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
@@ -59,7 +59,7 @@ class NewOpenListItemForm(forms.Form):
         }),
     )
     price = forms.DecimalField(
-        label='Цена',
+        label='Стоимость',
         max_digits=10,
         decimal_places=2,
         min_value=Decimal('0.01'),
