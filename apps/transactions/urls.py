@@ -8,6 +8,7 @@ from .views import (
     TransactionCreateView,
     TransactionHomeView,
     TransactionListView,
+    TransactionManageView,
 )
 
 app_name = 'transactions'
@@ -15,6 +16,11 @@ app_name = 'transactions'
 urlpatterns = [
     path('', TransactionHomeView.as_view(), name='home'),
     path('mine/', TransactionListView.as_view(), name='transaction_list'),
+    path(
+        'mine/<int:transaction_id>/',
+        TransactionManageView.as_view(),
+        name='transaction_manage',
+    ),
     path('types/', ItemTypeSelectView.as_view(), name='item_type_select'),
     path('types/products/', ProductGroupSelectView.as_view(), name='product_group_select'),
     path(

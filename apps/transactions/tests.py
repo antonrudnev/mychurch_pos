@@ -78,6 +78,106 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, str(own_transaction.item.name))
         self.assertNotContains(response, str(other_transaction.cashier.username))
 
+    def test_user_with_view_all_permission_sees_other_cashiers_transactions(self):
+        self.grant_permission(self.user, 'view_all_transactions')
+        other_transaction = self.create_transaction(self.other_user)
+
+        response = self.client.get(reverse('transactions:transaction_list'))
+
+        self.assertContains(response, str(other_transaction.item.name))
+        self.assertContains(response, str(self.other_user.username))
+
+    def test_transaction_name_links_to_manage_page_when_user_can_change(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(reverse('transactions:transaction_list'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[transaction.id])}"',
+        )
+
+    def test_manage_page_shows_transaction_details_and_editable_fields(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.item.name)
+        self.assertContains(response, self.item_type.name)
+        self.assertContains(response, 'name="price"')
+        self.assertContains(response, 'name="quantity"')
+        self.assertNotContains(response, 'name="item"')
+        self.assertNotContains(response, 'name="cashier"')
+
+    def test_manage_page_edits_price_and_quantity_with_change_permission(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'price': '20.75', 'quantity': '4'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('20.75'))
+        self.assertEqual(transaction.quantity, 4)
+
+    def test_manage_page_rejects_edit_without_change_permission(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'price': '20.75', 'quantity': '4'},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('12.50'))
+        self.assertEqual(transaction.quantity, 1)
+
+    def test_manage_page_soft_deletes_transaction_with_delete_permission(self):
+        self.grant_permission(self.user, 'delete_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'delete'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        self.assertFalse(Transaction.objects.filter(pk=transaction.pk).exists())
+        self.assertTrue(
+            Transaction.objects.all_with_deleted().filter(
+                pk=transaction.pk,
+                is_deleted=True,
+            ).exists()
+        )
+
+    def test_manage_page_rejects_access_to_another_cashiers_transaction(self):
+        transaction = self.create_transaction(self.other_user)
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_manage_page_hides_actions_user_does_not_have_permission_for(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="delete"')
+
     def test_superuser_sees_all_transactions(self):
         superuser = get_user_model().objects.create_superuser(
             username='admin',

@@ -1,13 +1,19 @@
 from directory.models import Item, ItemType
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db import transaction as db_transaction
 from django.db.models import Exists, Max, OuterRef
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
-from .forms import NewOpenListItemForm, NewProductTransactionForm, TransactionForm
+from .forms import (
+    NewOpenListItemForm,
+    NewProductTransactionForm,
+    TransactionForm,
+    TransactionManageForm,
+)
 from .models import Transaction
 
 
@@ -42,10 +48,61 @@ class TransactionListView(PermissionRequiredMixin, ListView):
             'item__item_type',
             'cashier',
         )
-        if (not self.request.user.has_perm('transactions.view_all') 
-                and not self.request.user.has_perm('transactions.verify')):
+        if (not self.request.user.has_perm('transactions.view_all_transactions')):
             queryset = queryset.filter(cashier=self.request.user)
         return queryset.order_by('-created_at')
+
+
+class TransactionManageView(TemplateView):
+    template_name = 'transactions/transaction_manage.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        self.transaction = get_object_or_404(
+            Transaction.objects.select_related('item', 'item__item_type', 'cashier'),
+            pk=kwargs['transaction_id'],
+        )
+        can_view_all = (
+            request.user.has_perm('transactions.view_all_transactions')
+            or request.user.has_perm('transactions.verify_transaction')
+        )
+        if self.transaction.cashier_id != request.user.pk and not can_view_all:
+            raise PermissionDenied
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self.render_page(request, TransactionManageForm(instance=self.transaction))
+
+    def post(self, request, *args, **kwargs):
+        action = request.POST.get('action')
+        if action == 'save':
+            if not request.user.has_perm('transactions.change_transaction'):
+                raise PermissionDenied
+            form = TransactionManageForm(request.POST, instance=self.transaction)
+            if not form.is_valid():
+                return self.render_page(request, form, status=400)
+            form.save()
+            messages.success(request, 'Транзакция изменена.')
+            return redirect('transactions:transaction_list')
+
+        if action == 'delete':
+            if not request.user.has_perm('transactions.delete_transaction'):
+                raise PermissionDenied
+            self.transaction.delete_soft()
+            messages.success(request, 'Транзакция удалена.')
+            return redirect('transactions:transaction_list')
+
+        raise PermissionDenied
+
+    def render_page(self, request, form, status=200):
+        return render(
+            request,
+            self.template_name,
+            {
+                'transaction': self.transaction,
+                'form': form,
+            },
+            status=status,
+        )
 
 
 class ItemTypeSelectView(PermissionRequiredMixin, ListView):

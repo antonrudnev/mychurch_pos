@@ -78,6 +78,23 @@ class NewOpenListItemForm(forms.Form):
         return name
 
 
+class TransactionManageForm(forms.ModelForm):
+    class Meta:
+        model = Transaction
+        fields = ('price', 'quantity')
+        widgets = {
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0.00',
+                'step': '0.01',
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+            }),
+        }
+
+
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction

@@ -7,7 +7,7 @@
     <div class="col-12" style="max-width: 800px;">
         <div class="text-center border-bottom border-subtle pb-4 mb-4">
             <h1 class="fw-normal h3 m-0 text-body">
-                {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}Все транзакции{% else %}Мои транзакции{% endif %}
+                {% if perms.transactions.view_all_transactions %}Все транзакции{% else %}Мои транзакции{% endif %}
             </h1>
         </div>
 
@@ -16,10 +16,19 @@
                 <div class="py-3">
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
                         <div>
-                            <h2 class="fw-normal h5 mb-1 text-body">{{ transaction.item.name }}</h2>
+                            <h2 class="fw-normal h5 mb-1 text-body">
+                                {% if perms.transactions.change_transaction or perms.transactions.delete_transaction %}
+                                    <a href="{% url 'transactions:transaction_manage' transaction.id %}" class="link-body-emphasis text-decoration-none">{{ transaction.item.name }}</a>
+                                {% else %}
+                                    {{ transaction.item.name }}
+                                {% endif %}
+                            </h2>
                             <p class="text-secondary mb-0 fs-6 fw-light">
                                 <span class="fw-normal text-muted small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
                                 {{ transaction.created_at|date:"d.m.Y H:i" }}
+                                {% if transaction.is_verified %}
+                                    <i class="bi bi-check-circle-fill text-success small"></i>
+                                {% endif %}
                             </p>
                         </div>
                         <div class="text-md-end">
@@ -34,9 +43,6 @@
                             </div>
                             {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}
                                 <div class="text-secondary small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
-                            {% endif %}
-                            {% if transaction.is_verified %}
-                                <div class="text-success small">Проверена</div>
                             {% endif %}
                         </div>
                     </div>

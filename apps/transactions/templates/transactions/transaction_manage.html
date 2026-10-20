@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Управление транзакцией — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 600px;">
+        <h1 class="fw-normal h3 text-center mb-4 text-body">{{ transaction.item.name }}</h1>
+        <p class="text-secondary text-center text-uppercase">{{ transaction.item.item_type.name }} / {% if transaction.is_verified %}<span class="text-success">Транзакция подтверждена</span>{% else %}<span class="text-warning">Транзакция не подтверждена</span>{% endif %}</p>
+        
+        <table class="table w-100 table-borderless m-0">
+            <tbody>
+                <tr>
+                    <td >
+                        <div class="m-0">
+                            <div>Кассир:</div>
+                            <div class="form-control-plaintext fw-bold">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <div class="m-0">
+                            <div>Дата и время:</div>
+                            <div class="form-control-plaintext fw-bold">{{ transaction.created_at|date:"d.m.Y H:i" }}</div>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        {% if perms.transactions.change_transaction %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {% if field.name == 'price' %}
+                            <div class="input-group">
+                                {{ field }}
+                            </div>
+                        {% else %}
+                            {{ field }}
+                        {% endif %}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+                <div class="border-top border-subtle my-4"></div>
+                <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
+            </form>
+        {% endif %}
+
+        {% if perms.transactions.delete_transaction %}
+            <form method="post" onsubmit="return confirm('Удалить эту транзакцию?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2 text-uppercase">Удалить</button>
+            </form>
+        {% endif %}
+
+        <a href="{% url 'transactions:transaction_list' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+{% endblock %}
