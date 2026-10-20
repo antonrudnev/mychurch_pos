@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from directory.models import Item, ItemType
@@ -5,6 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import Transaction
 
@@ -118,6 +120,122 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, f'>{self.item.name}</p>')
         self.assertContains(response, f'type="hidden" name="item" value="{self.item.id}"')
         self.assertNotContains(response, '<select name="item"')
+
+    def test_open_list_type_opens_name_and_price_form_even_without_active_items(self):
+        self.item_type.is_open_list = True
+        self.item_type.save(update_fields=['is_open_list'])
+        self.item.is_active = False
+        self.item.save(update_fields=['is_active'])
+
+        response = self.client.get(reverse('transactions:item_type_select'))
+
+        open_list_url = reverse(
+            'transactions:new_open_list_item',
+            args=[self.item_type.id],
+        )
+        self.assertContains(response, f'href="{open_list_url}"')
+        self.assertNotContains(response, 'disabled')
+
+        response = self.client.get(open_list_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'name="name"')
+        self.assertContains(response, 'name="price"')
+        self.assertNotContains(response, 'name="quantity"')
+        self.assertNotContains(response, 'name="keep_active"')
+
+    def test_open_list_form_creates_item_and_transaction(self):
+        self.item_type.is_open_list = True
+        self.item_type.save(update_fields=['is_open_list'])
+
+        response = self.client.post(
+            reverse('transactions:new_open_list_item', args=[self.item_type.id]),
+            {'name': 'Разовая треба', 'price': '7.50'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:item_type_select'))
+        item = Item.objects.get(item_type=self.item_type, name='Разовая треба')
+        self.assertEqual(item.price, Decimal('7.50'))
+        transaction = Transaction.objects.get(item=item)
+        self.assertEqual(transaction.cashier, self.user)
+        self.assertEqual(transaction.price, Decimal('7.50'))
+        self.assertEqual(transaction.quantity, 1)
+
+    def test_open_list_form_reuses_existing_item_and_updates_its_price(self):
+        self.item_type.is_open_list = True
+        self.item_type.save(update_fields=['is_open_list'])
+        item_count = Item.objects.filter(item_type=self.item_type).count()
+
+        response = self.client.post(
+            reverse('transactions:new_open_list_item', args=[self.item_type.id]),
+            {'name': self.item.name.upper(), 'price': '15.00'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:item_type_select'))
+        self.assertEqual(Item.objects.filter(item_type=self.item_type).count(), item_count)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.price, Decimal('15.00'))
+        transaction = Transaction.objects.get()
+        self.assertEqual(transaction.item, self.item)
+        self.assertEqual(transaction.price, Decimal('15.00'))
+
+    def test_open_list_suggestions_are_30_latest_unique_names_for_same_type(self):
+        self.item_type.is_open_list = True
+        self.item_type.save(update_fields=['is_open_list'])
+        base_time = timezone.now() - timedelta(days=1)
+        items = [
+            Item.objects.create(
+                item_type=self.item_type,
+                name=f'Позиция {index}',
+                handle=f'open-list-item-{index}',
+                price=Decimal('1.00'),
+                order_number=index + 1,
+            )
+            for index in range(32)
+        ]
+        for index, item in enumerate(items):
+            Transaction.objects.create(
+                item=item,
+                price=Decimal('1.00'),
+                cashier=self.user,
+                created_at=base_time + timedelta(minutes=index),
+            )
+        Transaction.objects.create(
+            item=items[31],
+            price=Decimal('1.00'),
+            cashier=self.user,
+            created_at=base_time + timedelta(minutes=33),
+        )
+        other_type = ItemType.objects.create(
+            name='Другая открытая категория',
+            handle='another-open-list',
+            is_open_list=True,
+            order_number=2,
+        )
+        other_item = Item.objects.create(
+            item_type=other_type,
+            name='Не показывать',
+            handle='not-suggested',
+            price=Decimal('1.00'),
+        )
+        Transaction.objects.create(
+            item=other_item,
+            price=Decimal('1.00'),
+            cashier=self.user,
+            created_at=base_time + timedelta(days=1),
+        )
+
+        response = self.client.get(
+            reverse('transactions:new_open_list_item', args=[self.item_type.id])
+        )
+
+        suggestions = list(response.context['recent_item_names'])
+        self.assertEqual(len(suggestions), 30)
+        self.assertEqual(suggestions[0], 'Позиция 31')
+        self.assertEqual(suggestions[-1], 'Позиция 2')
+        self.assertNotIn('Не показывать', suggestions)
+        self.assertEqual(suggestions.count('Позиция 31'), 1)
+        self.assertContains(response, '<datalist id="recent-item-names">')
 
     def test_multiple_items_show_item_dropdown_and_item_type_name(self):
         additional_item = Item.objects.create(

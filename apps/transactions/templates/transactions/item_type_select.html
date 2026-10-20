@@ -18,7 +18,11 @@
             {% endif %}
             {% for item_type in item_types %}
                 <div class="col">
-                    {% if item_type.has_items %}
+                    {% if item_type.is_open_list %}
+                        <a href="{% url 'transactions:new_open_list_item' item_type.id %}" class="btn btn-primary w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
+                            {{ item_type.name }}
+                        </a>
+                    {% elif item_type.has_items %}
                         <a href="{% url 'transactions:transaction_create' item_type.id %}" class="btn btn-primary w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
                             {{ item_type.name }}
                         </a>

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Новая транзакция — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 600px;">
+        <h1 class="fw-normal h3 text-center mb-4 text-body">Новая транзакция</h1>
+        <p class="text-secondary text-center text-uppercase">{{ item_type.name }}</p>
+
+        <form method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    {% if field.name == 'price' %}
+                        <div class="input-group">
+                            {{ field }}
+                        </div>
+                    {% else %}
+                        {{ field }}
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            <datalist id="recent-item-names">
+                {% for name in recent_item_names %}
+                    <option value="{{ name }}">
+                {% endfor %}
+            </datalist>
+            {% for error in form.non_field_errors %}
+                <div class="alert alert-danger">{{ error }}</div>
+            {% endfor %}
+            <div class="border-top border-subtle my-4"></div>
+            <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Создать транзакцию</button>
+        </form>
+
+        {% if item_type.is_product_group %}
+            <a href="{% url 'transactions:product_group_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        {% else %}
+            <a href="{% url 'transactions:item_type_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

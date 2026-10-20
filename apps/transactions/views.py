@@ -2,13 +2,24 @@ from directory.models import Item, ItemType
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction as db_transaction
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, Max, OuterRef
 from django.utils.text import slugify
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView, TemplateView
 
-from .forms import NewProductTransactionForm, TransactionForm
+from .forms import NewOpenListItemForm, NewProductTransactionForm, TransactionForm
 from .models import Transaction
+
+
+def get_unique_item_handle(name):
+    base_handle = slugify(name, allow_unicode=True)[:100] or 'product'
+    handle = base_handle
+    suffix = 2
+    while Item.objects.filter(handle=handle).exists():
+        suffix_text = f'-{suffix}'
+        handle = f'{base_handle[:100 - len(suffix_text)]}{suffix_text}'
+        suffix += 1
+    return handle
 
 
 class TransactionHomeView(PermissionRequiredMixin, TemplateView):
@@ -73,6 +84,89 @@ class ProductGroupSelectView(ItemTypeSelectView):
         return context
 
 
+class NewOpenListItemView(PermissionRequiredMixin, TemplateView):
+    template_name = 'transactions/new_open_list_item.html'
+    permission_required = 'transactions.add_transaction'
+    raise_exception = True
+
+    def dispatch(self, request, *args, **kwargs):
+        self.item_type = get_object_or_404(
+            ItemType,
+            pk=kwargs['item_type_id'],
+            is_open_list=True,
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self.render_form(request, NewOpenListItemForm())
+
+    def post(self, request, *args, **kwargs):
+        form = NewOpenListItemForm(request.POST)
+        if not form.is_valid():
+            return self.render_form(request, form, status=400)
+
+        name = form.cleaned_data['name']
+        price = form.cleaned_data['price']
+        with db_transaction.atomic():
+            normalized_name = name.casefold()
+            item = next(
+                (
+                    candidate
+                    for candidate in Item.objects.filter(
+                        item_type=self.item_type,
+                        is_active=True,
+                    ).order_by('pk').iterator()
+                    if candidate.name.casefold() == normalized_name
+                ),
+                None,
+            )
+            if item is None:
+                item = Item.objects.create(
+                    item_type=self.item_type,
+                    name=name,
+                    handle=get_unique_item_handle(name),
+                    price=price,
+                )
+            elif item.price != price:
+                item.price = price
+                item.save(update_fields=['price'])
+
+            Transaction.objects.create(
+                item=item,
+                price=price,
+                cashier=request.user,
+            )
+
+        messages.success(request, 'Транзакция успешно создана.')
+        return redirect(
+            'transactions:product_group_select'
+            if self.item_type.is_product_group
+            else 'transactions:item_type_select'
+        )
+
+    def get_recent_item_names(self):
+        return (
+            Transaction.objects
+            .filter(item__item_type=self.item_type)
+            .values('item__name')
+            .annotate(last_used=Max('created_at'))
+            .order_by('-last_used', 'item__name')
+            .values_list('item__name', flat=True)[:30]
+        )
+
+    def render_form(self, request, form, status=200):
+        return render(
+            request,
+            self.template_name,
+            {
+                'form': form,
+                'item_type': self.item_type,
+                'recent_item_names': self.get_recent_item_names(),
+            },
+            status=status,
+        )
+
+
 class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
     template_name = 'transactions/new_product_transaction.html'
     permission_required = 'transactions.add_transaction'
@@ -113,7 +207,7 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
                 item = Item.objects.create(
                     item_type=item_type,
                     name=name,
-                    handle=self.get_unique_item_handle(name),
+                    handle=get_unique_item_handle(name),
                     price=form.cleaned_data['price'],
                     is_active=form.cleaned_data['keep_active'],
                 )
@@ -127,16 +221,6 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
 
         messages.success(request, 'Транзакция успешно создана.')
         return redirect('transactions:product_group_select')
-
-    def get_unique_item_handle(self, name):
-        base_handle = slugify(name, allow_unicode=True)[:100] or 'product'
-        handle = base_handle
-        suffix = 2
-        while Item.objects.filter(handle=handle).exists():
-            suffix_text = f'-{suffix}'
-            handle = f'{base_handle[:100 - len(suffix_text)]}{suffix_text}'
-            suffix += 1
-        return handle
 
     def render_form(self, request, form, status=200):
         return render(

@@ -48,6 +48,36 @@ class NewProductTransactionForm(forms.Form):
         return name
 
 
+class NewOpenListItemForm(forms.Form):
+    name = forms.CharField(
+        label='Наименование',
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'list': 'recent-item-names',
+            'autocomplete': 'off',
+        }),
+    )
+    price = forms.DecimalField(
+        label='Цена',
+        max_digits=10,
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        validators=[MinValueValidator(Decimal('0.01'))],
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'min': '0.01',
+            'step': '0.01',
+        }),
+    )
+
+    def clean_name(self):
+        name = self.cleaned_data['name'].strip()
+        if not name:
+            raise forms.ValidationError('Введите наименование.')
+        return name
+
+
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction

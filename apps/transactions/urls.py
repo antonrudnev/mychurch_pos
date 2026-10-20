@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     ItemTypeSelectView,
+    NewOpenListItemView,
     NewProductTransactionView,
     ProductGroupSelectView,
     TransactionCreateView,
@@ -16,6 +17,11 @@ urlpatterns = [
     path('mine/', TransactionListView.as_view(), name='transaction_list'),
     path('types/', ItemTypeSelectView.as_view(), name='item_type_select'),
     path('types/products/', ProductGroupSelectView.as_view(), name='product_group_select'),
+    path(
+        'types/<int:item_type_id>/new-item/',
+        NewOpenListItemView.as_view(),
+        name='new_open_list_item',
+    ),
     path(
         'types/products/new/',
         NewProductTransactionView.as_view(),
