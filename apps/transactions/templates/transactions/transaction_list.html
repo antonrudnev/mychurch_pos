@@ -7,7 +7,7 @@
     <div class="col-12" style="max-width: 800px;">
         <div class="text-center border-bottom border-subtle pb-4 mb-4">
             <h1 class="fw-normal h3 m-0 text-body">
-                {% if request.user.is_superuser %}Все транзакции{% else %}Мои транзакции{% endif %}
+                {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}Все транзакции{% else %}Мои транзакции{% endif %}
             </h1>
         </div>
 
@@ -32,7 +32,7 @@
                                     {{ transaction.quantity }} × {{ transaction.price }} &#8381 = {{ transaction.total_cost }} &#8381
                                 {% endif %}
                             </div>
-                            {% if request.user.is_superuser %}
+                            {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}
                                 <div class="text-secondary small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
                             {% endif %}
                             {% if transaction.is_verified %}

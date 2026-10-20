@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, unique=True, verbose_name='Название типа отчета')),
-                ('handle', models.SlugField(help_text='Используйте cash-report для кассовых отчетов, product-sales для товарных ведомостей.', max_length=100, unique=True, verbose_name='Дескриптор')),
+                ('handle', models.SlugField(help_text='Системный идентификатор. Изменение параметра может нарушить логику обработки данных.', max_length=100, unique=True, verbose_name='Дескриптор')),
             ],
             options={
                 'verbose_name': 'Тип отчета',

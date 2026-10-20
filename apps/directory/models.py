@@ -66,7 +66,7 @@ class Item(models.Model):
     handle = models.SlugField(
             max_length=100, 
             unique=True, 
-            verbose_name="Артикул",
+            verbose_name="Дескриптор",
             help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
     price = models.DecimalField(

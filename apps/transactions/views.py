@@ -3,8 +3,8 @@ from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.db import transaction as db_transaction
 from django.db.models import Exists, Max, OuterRef
-from django.utils.text import slugify
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
 from .forms import NewOpenListItemForm, NewProductTransactionForm, TransactionForm
@@ -42,7 +42,8 @@ class TransactionListView(PermissionRequiredMixin, ListView):
             'item__item_type',
             'cashier',
         )
-        if not self.request.user.is_superuser:
+        if (not self.request.user.has_perm('transactions.view_all') 
+                and not self.request.user.has_perm('transactions.verify')):
             queryset = queryset.filter(cashier=self.request.user)
         return queryset.order_by('-created_at')
 
@@ -135,6 +136,7 @@ class NewOpenListItemView(PermissionRequiredMixin, TemplateView):
                 item=item,
                 price=price,
                 cashier=request.user,
+                is_verified = bool(self.request.user.has_perm('transactions.verify'))
             )
 
         messages.success(request, 'Транзакция успешно создана.')
@@ -217,6 +219,7 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
                 price=form.cleaned_data['price'],
                 quantity=form.cleaned_data['quantity'],
                 cashier=request.user,
+                is_verified = bool(self.request.user.has_perm('transactions.verify'))
             )
 
         messages.success(request, 'Транзакция успешно создана.')
@@ -249,6 +252,7 @@ class TransactionCreateView(PermissionRequiredMixin, TemplateView):
 
         transaction = form.save(commit=False)
         transaction.cashier = request.user
+        transaction.is_verified = bool(self.request.user.has_perm('transactions.verify'))
         transaction.save()
         messages.success(request, 'Транзакция успешно создана.')
         return redirect('transactions:item_type_select')

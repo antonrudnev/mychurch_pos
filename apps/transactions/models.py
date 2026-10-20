@@ -77,6 +77,11 @@ class Transaction(models.Model):
         verbose_name_plural = "Список транзакций"
         ordering = ('-created_at',)
 
+        permissions = [
+            ("view_all_transactions", f"Can view {verbose_name} of all users"),
+            ("verify_transaction", f"Can verify {verbose_name}"),
+        ]
+
     @property
     def total_cost(self):
         """Динамический расчет стоимости без сохранения в базу данных"""
