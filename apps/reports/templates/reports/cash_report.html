@@ -130,7 +130,18 @@
             </tr>
             <tr>
                 <td class="name-cell-tall">Прочие требы:</td>
-                <td class="quantity-cell" colspan="3"></td>
+                <td class="quantity-cell" style="text-align:left" colspan="3">
+                    {% if donate_data is not None %}
+                        {% for row in donate_data %}
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>; {% if forloop.last %}<br>{% endif %}
+                        {% endfor %}
+                    {% endif %}
+                    {% if other_treby_data is not None %}
+                        {% for row in other_treby_data %}
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>;
+                        {% endfor %}
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Дано в долг</td>
@@ -173,7 +184,13 @@
             </tr>
             <tr>
                 <td class="name-cell-tall">Прочие расходы:</td>
-                <td class="quantity-cell" colspan="3"></td>
+                <td class="quantity-cell" style="text-align:left" colspan="3">
+                    {% if other_expense_data is not None %}
+                        {% for row in other_expense_data %}
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>;
+                        {% endfor %}
+                    {% endif %}
+                </td>
             </tr>
             <tr>
                 <td class="name-cell-right">Касса (остаток):</td>

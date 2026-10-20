@@ -201,7 +201,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         staff_total = (
             Transaction.objects
             .filter(
-                item__handle__istartswith=prefix,
+                item__item_type__handle__iexact=prefix,
                 is_deleted=False,
                 created_at__date__range=date_range,
             )
@@ -210,7 +210,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
         staff_data = (
             Item.objects
-            .filter(item_type__handle__istartswith=prefix)
+            .filter(item_type__handle__iexact=prefix)
             .annotate(
                 first_dash=StrIndex('handle', Value('-')),
                 second_dash_in_tail=Case(
@@ -250,6 +250,58 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .order_by('short_handle')
         )
 
+        prefix = "donate"
+        donate_total = (
+            Transaction.objects
+            .filter(
+                item__item_type__handle__iexact=prefix,
+                is_deleted=False,
+                created_at__date__range=date_range,
+            )
+            .aggregate(total_cost=Sum('price'))
+            .get('total_cost')
+        )
+        donate_data = (
+            Transaction.objects
+            .filter(
+                item__item_type__handle__iexact=prefix,
+                is_deleted=False,
+                created_at__date__range=date_range,
+            )
+            .values('item__name',
+                    'item__handle')
+            .annotate(total_cost=Sum('price'))
+            .order_by('item__handle')
+        )
+
+        prefix = "other-treby"
+        other_treby_data = (
+            Transaction.objects
+            .filter(
+                item__item_type__handle__iexact=prefix,
+                is_deleted=False,
+                created_at__date__range=date_range,
+            )
+            .values('item__name',
+                    'item__handle')
+            .annotate(total_cost=Sum('price'))
+            .order_by('item__name')
+        )
+
+        prefix = "other-expense"
+        other_expense_data = (
+            Transaction.objects
+            .filter(
+                item__item_type__handle__iexact=prefix,
+                is_deleted=False,
+                created_at__date__range=date_range,
+            )
+            .values('item__name',
+                    'item__handle')
+            .annotate(total_cost=Sum('price'))
+            .order_by('item__name')
+        )
+
         not_verified_status = (
             Transaction.objects
             .filter(
@@ -272,6 +324,10 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'staff_data': staff_data,
             'cash_register_last': cash_register_last,
             'cash_deposit_last': cash_deposit_last,
+            'donate_total': donate_total,
+            'donate_data': donate_data,
+            'other_treby_data': other_treby_data,
+            'other_expense_data': other_expense_data,
             'not_verified_status':not_verified_status,
             'current_time': timezone.now(),
             'current_user': self.request.user,
