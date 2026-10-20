@@ -196,7 +196,7 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
                 item_type = ItemType.objects.filter(handle__iexact=item_type_handle).first()
                 if item_type is None:
                     item_type = ItemType.objects.create(
-                        name='Другие',
+                        name='Прочие товары',
                         handle=item_type_handle,
                         is_product_group=True,
                     )

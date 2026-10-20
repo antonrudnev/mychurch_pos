@@ -23,7 +23,15 @@
                             </p>
                         </div>
                         <div class="text-md-end">
-                            <div>{{ transaction.quantity }} × {{ transaction.price }} = {{ transaction.total_cost }} руб.</div>
+                            <div>
+                                {% if transaction.item.price is None %}
+                                    {{ transaction.quantity }} шт.
+                                {% elif transaction.item.price == 0 %}
+                                    {{ transaction.price }} &#8381
+                                {% else %}
+                                    {{ transaction.quantity }} × {{ transaction.price }} &#8381 = {{ transaction.total_cost }} &#8381
+                                {% endif %}
+                            </div>
                             {% if request.user.is_superuser %}
                                 <div class="text-secondary small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
                             {% endif %}
