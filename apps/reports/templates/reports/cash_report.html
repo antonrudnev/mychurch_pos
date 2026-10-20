@@ -133,12 +133,15 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if donate_data is not None %}
                         {% for row in donate_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>; {% if forloop.last %}<br>{% endif %}
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
+                        {% if donate_data and other_treby_data is not None and other_treby_data %}
+                            <br><br>
+                        {% endif%}
                     {% endif %}
                     {% if other_treby_data is not None %}
                         {% for row in other_treby_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>;
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
@@ -187,7 +190,7 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if other_expense_data is not None %}
                         {% for row in other_expense_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>;
+                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
