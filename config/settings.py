@@ -148,6 +148,8 @@ MAILERS = {
 
 LOGIN_REDIRECT_URL = '/welcome/'
 
+LOGIN_URL = '/login/'
+
 LOGOUT_REDIRECT_URL = '/login/'
 
 REDIRECT_FIELD_NAME = 'next'

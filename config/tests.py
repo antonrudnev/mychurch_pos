@@ -36,3 +36,36 @@ class CaseInsensitiveUsernameTests(TestCase):
 
         self.assertRedirects(response, reverse('welcome_landing'))
         self.assertEqual(int(self.client.session['_auth_user_id']), user.pk)
+
+
+class PasswordChangeTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='password-user',
+            password='Old-password-123!',
+        )
+
+    def test_password_change_requires_authentication(self):
+        response = self.client.get(reverse('password_change'))
+
+        self.assertRedirects(
+            response,
+            f'{reverse("login")}?next={reverse("password_change")}',
+        )
+
+    def test_password_change_updates_password_and_keeps_user_logged_in(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(
+            reverse('password_change'),
+            {
+                'old_password': 'Old-password-123!',
+                'new_password1': 'New-strong-password-456!',
+                'new_password2': 'New-strong-password-456!',
+            },
+        )
+
+        self.assertRedirects(response, reverse('password_change_done'))
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password('New-strong-password-456!'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
