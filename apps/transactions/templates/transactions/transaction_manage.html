@@ -6,7 +6,7 @@
 <div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
         <h1 class="fw-normal h3 text-center mb-4 text-body">{{ transaction.item.name }}</h1>
-        <p class="text-secondary text-center text-uppercase">{{ transaction.item.item_type.name }} / {% if transaction.is_verified %}<span class="text-success">Транзакция подтверждена</span>{% else %}<span class="text-warning">Транзакция не подтверждена</span>{% endif %}</p>
+        <p class="text-secondary text-center text-uppercase">{{ transaction.item.item_type.name }} / {% if transaction.is_verified %}<span class="text-success">Транзакция подтверждена</span>{% else %}<span class="text-warning">Транзакция не подтверждена</span>{% endif %}</p>        
         
         <table class="table w-100 table-borderless m-0">
             <tbody>
@@ -50,6 +50,18 @@
                 {% endfor %}
                 <div class="border-top border-subtle my-4"></div>
                 <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
+            </form>
+        {% endif %}
+
+        {% if perms.transactions.verify_transaction %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_verification">
+                {% if transaction.is_verified %}
+                    <button type="submit" class="btn btn-warning w-100 py-2 text-uppercase">Снять подтверждение</button>
+                {% else %}
+                    <button type="submit" class="btn btn-success w-100 py-2 text-uppercase">Подтвердить транзакцию</button>
+                {% endif %}
             </form>
         {% endif %}
 

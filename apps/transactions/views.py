@@ -91,6 +91,25 @@ class TransactionManageView(TemplateView):
             messages.success(request, 'Транзакция удалена.')
             return redirect('transactions:transaction_list')
 
+        if action == 'toggle_verification':
+            if not request.user.has_perm('transactions.verify_transaction'):
+                raise PermissionDenied
+            self.transaction.is_verified = not self.transaction.is_verified
+            self.transaction.verified_by = (
+                request.user if self.transaction.is_verified else None
+            )
+            self.transaction.save(update_fields=['is_verified', 'verified_by'])
+            messages.success(
+                request,
+                'Транзакция подтверждена.'
+                if self.transaction.is_verified
+                else 'Подтверждение транзакции снято.',
+            )
+            return redirect(
+                'transactions:transaction_manage',
+                transaction_id=self.transaction.pk,
+            )
+
         raise PermissionDenied
 
     def render_page(self, request, form, status=200):

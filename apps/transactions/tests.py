@@ -159,6 +159,55 @@ class TransactionViewsTests(TestCase):
             ).exists()
         )
 
+    def test_user_with_verify_permission_can_verify_transaction(self):
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'toggle_verification'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+        )
+        transaction.refresh_from_db()
+        self.assertTrue(transaction.is_verified)
+        self.assertEqual(transaction.verified_by, self.user)
+
+    def test_user_with_verify_permission_can_unverify_transaction(self):
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.verified_by = self.other_user
+        transaction.save(update_fields=['is_verified', 'verified_by'])
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'toggle_verification'},
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+        )
+        transaction.refresh_from_db()
+        self.assertFalse(transaction.is_verified)
+        self.assertIsNone(transaction.verified_by)
+
+    def test_user_without_verify_permission_cannot_toggle_verification(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'toggle_verification'},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        transaction.refresh_from_db()
+        self.assertFalse(transaction.is_verified)
+
     def test_manage_page_rejects_access_to_another_cashiers_transaction(self):
         transaction = self.create_transaction(self.other_user)
 
@@ -177,6 +226,7 @@ class TransactionViewsTests(TestCase):
 
         self.assertNotContains(response, 'name="action" value="save"')
         self.assertNotContains(response, 'name="action" value="delete"')
+        self.assertNotContains(response, 'name="action" value="toggle_verification"')
 
     def test_superuser_sees_all_transactions(self):
         superuser = get_user_model().objects.create_superuser(
