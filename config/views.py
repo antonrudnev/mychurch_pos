@@ -1,6 +1,7 @@
 from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
 from django.shortcuts import redirect, render
+
+from config.forms import CaseInsensitiveUserCreationForm
 
 
 def register_view(request):
@@ -9,14 +10,14 @@ def register_view(request):
         return redirect('welcome_landing') 
         
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CaseInsensitiveUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
             # Автоматически входим в систему после успешной регистрации
             login(request, user)
             return redirect('welcome_landing') 
     else:
-        form = UserCreationForm()
+        form = CaseInsensitiveUserCreationForm()
         
     return render(request, 'registration/register.html', {'form': form})
 
