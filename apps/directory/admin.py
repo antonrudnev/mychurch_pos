@@ -15,7 +15,7 @@ class ItemTypeAdmin(admin.ModelAdmin):
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     """Настройка отображения реестра товаров и услуг в админке"""
-    list_display = ('id', 'display_handle', 'name', 'item_type', 'display_price', 'is_active', 'order_number')
+    list_display = ('id', 'name', 'item_type', 'display_price', 'is_active', 'order_number')
     prepopulated_fields = {'handle': ('name',)}
 
     # Теперь клик по названию или ID открывает карточку редактирования
@@ -39,12 +39,6 @@ class ItemAdmin(admin.ModelAdmin):
             'fields': ('is_active', 'order_number')
         }),
     )
-
-    @admin.display(description='Артикул', ordering='handle')
-    def display_handle(self, obj):
-        if obj.item_type.is_product_group:
-            return obj.handle
-        return ''
 
     @admin.display(description='Цена / Рекомендуемый взнос', ordering='price')
     def display_price(self, obj):

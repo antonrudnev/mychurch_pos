@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item.name }} — {{ directory_app_verbose_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 600px;">
+        <h1 class="fw-normal h3 text-center mb-4 text-body">{{ item.name }}</h1>
+        <p class="text-secondary text-center text-uppercase">{% if item.is_active %}<span class="text-success">Доступно</span>{% else %}<span class="text-danger">Не доступно</span>{% endif %}</p>
+
+        {% if perms.directory.change_item %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger">{{ error }}</div>
+                {% endfor %}
+                <div class="border-top border-subtle my-4"></div>
+                <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
+            </form>
+
+            <form method="post" onsubmit="return confirm('{% if item.is_active %}Деактивировать{% else %}Активировать{% endif %} эту позицию?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_active">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2 text-uppercase">
+                    {% if item.is_active %}Деактивировать{% else %}Активировать{% endif %}
+                </button>
+            </form>
+        {% else %}
+            <div class="mb-3">
+                <div class="form-label">{{ form.item_type.label }}</div>
+                <div class="form-control-plaintext">{{ item.item_type.name }}</div>
+            </div>
+            <div class="mb-3">
+                <div class="form-label">{{ form.name.label }}</div>
+                <div class="form-control-plaintext">{{ item.name }}</div>
+            </div>
+            <div class="mb-3">
+                <div class="form-label">{{ form.price.label }}</div>
+                <div class="form-control-plaintext">
+                    {% if item.price is None %}—{% elif item.price == 0 %}Сумма по запросу{% else %}{{ item.price|floatformat:2 }} &#8381;{% endif %}
+                </div>
+            </div>
+            <div class="mb-3">
+                <div class="form-label">{{ form.order_number.label }}</div>
+                <div class="form-control-plaintext">{{ item.order_number }}</div>
+            </div>
+        {% endif %}
+        {% if perms.directory.item_type_view %}
+            <a href="{% url 'directory:item_type_detail' item.item_type_id %}" class="btn btn-outline-secondary w-100 py-2 mt-3 text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -8,13 +8,13 @@ from django.db.models.aggregates import Max
 class ItemType(models.Model):
     """Таблица типов номенклатуры (например: Товар, Таинство, Записка, Пожертвование)"""
     name = models.CharField(
-        max_length=100, 
-        unique=True, 
+        max_length=100,
+        unique=True,
         verbose_name="Название категории"
     )
     handle = models.SlugField(
-        max_length=100, 
-        unique=True, 
+        max_length=100,
+        unique=True,
         verbose_name="Дескриптор",
         help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
@@ -38,6 +38,9 @@ class ItemType(models.Model):
         verbose_name = "Категория номенклатуры"
         verbose_name_plural = "Категории номенклатуры"
         ordering = ('name',)
+        permissions = [
+            ('item_type_view', 'Can view item types'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.pk and self.order_number == 1:
@@ -64,10 +67,10 @@ class Item(models.Model):
         verbose_name="Название"
     )
     handle = models.SlugField(
-            max_length=100, 
-            unique=True, 
-            verbose_name="Дескриптор",
-            help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
+        max_length=100,
+        unique=True,
+        verbose_name="Дескриптор",
+        help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
     price = models.DecimalField(
         max_digits=10, 

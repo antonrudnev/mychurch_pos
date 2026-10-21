@@ -1,3 +1,123 @@
-from django.shortcuts import render
+from django.db.models import Exists, OuterRef, Q
+from django.contrib.auth.mixins import PermissionRequiredMixin
+from django import forms
+from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.generic import ListView, TemplateView
 
-# Create your views here.
+from .models import Item, ItemType
+
+
+class ItemForm(forms.ModelForm):
+    class Meta:
+        model = Item
+        fields = ('item_type', 'name', 'price', 'order_number')
+        widgets = {
+            'item_type': forms.Select(attrs={'class': 'form-select'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'step': '0.01',
+            }),
+            'order_number': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+            }),
+        }
+
+
+class ItemTypeListView(PermissionRequiredMixin, ListView):
+    model = ItemType
+    template_name = 'directory/item_type_list.html'
+    context_object_name = 'item_types'
+    permission_required = 'directory.item_type_view'
+    raise_exception = True
+
+    def get_queryset(self):
+        nonzero_price_items = Item.objects.filter(
+            item_type_id=OuterRef('pk'),
+            price__isnull=False,
+        ).exclude(price=0)
+        return (
+            ItemType.objects
+            .annotate(has_nonzero_price_items=Exists(nonzero_price_items))
+            .filter(Q(is_product_group=True) | Q(has_nonzero_price_items=True))
+            .order_by('order_number', 'name')
+        )
+
+
+class ItemTypeDetailView(PermissionRequiredMixin, ListView):
+    model = Item
+    template_name = 'directory/item_type_detail.html'
+    context_object_name = 'items'
+    permission_required = 'directory.item_type_view'
+    raise_exception = True
+    paginate_by = 5
+
+    def get_item_type(self):
+        if not hasattr(self, 'item_type'):
+            self.item_type = get_object_or_404(ItemType, pk=self.kwargs['pk'])
+        return self.item_type
+
+    def get_queryset(self):
+        return (
+            Item.objects
+            .filter(item_type=self.get_item_type())
+            .select_related('item_type')
+            .order_by('order_number', 'name')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['item_type'] = self.get_item_type()
+        return context
+
+
+class ItemDetailView(PermissionRequiredMixin, TemplateView):
+    template_name = 'directory/item_detail.html'
+    permission_required = 'directory.view_item'
+    raise_exception = True
+
+    def dispatch(self, request, *args, **kwargs):
+        self.item = get_object_or_404(
+            Item.objects.select_related('item_type'),
+            pk=kwargs['pk'],
+        )
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return self.render_page(request, ItemForm(instance=self.item))
+
+    def post(self, request, *args, **kwargs):
+        if not request.user.has_perm('directory.change_item'):
+            raise PermissionDenied
+
+        action = request.POST.get('action')
+        if action == 'save':
+            form = ItemForm(request.POST, instance=self.item)
+            if not form.is_valid():
+                return self.render_page(request, form, status=400)
+            form.save()
+            messages.success(request, 'Позиция справочника изменена.')
+            return redirect('directory:item_detail', pk=self.item.pk)
+
+        if action == 'toggle_active':
+            self.item.is_active = not self.item.is_active
+            self.item.save(update_fields=['is_active'])
+            messages.success(
+                request,
+                'Позиция активирована.' if self.item.is_active else 'Позиция деактивирована.',
+            )
+            return redirect('directory:item_detail', pk=self.item.pk)
+
+        raise PermissionDenied
+
+    def render_page(self, request, form, status=200):
+        return render(
+            request,
+            self.template_name,
+            {'item': self.item, 'form': form},
+            status=status,
+        )

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}{{ item_type.name }} — {{ directory_app_verbose_name }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 800px;">
+        <div class="text-center border-bottom border-subtle pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0 text-body">{{ item_type.name }}</h1>
+        </div>
+
+        <div class="my-4">
+            {% for item in items %}
+                <div class="py-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                        <div>
+                            <h2 class="fw-normal h5 mb-1 text-body">
+                                {% if perms.directory.view_item %}
+                                    <a href="{% url 'directory:item_detail' item.pk %}" class="link-body-emphasis text-decoration-none">{{ item.name }}</a>
+                                {% else %}
+                                    {{ item.name }}
+                                {% endif %}
+                            </h2>
+                            <p class="text-secondary mb-0 fs-6 fw-light">{{ item.item_type.name }}</p>
+                        </div>
+                        <div class="text-md-end">
+                            <div>
+                                {% if item.price is None %}
+                                    —
+                                {% elif item.price == 0 %}
+                                    Сумма по запросу
+                                {% else %}
+                                    {{ item.price|floatformat:2 }} &#8381;
+                                {% endif %}
+                            </div>
+                            <div class="text-secondary small">
+                                {% if item.is_active %}<span class="text-success">Доступно</span>{% else %}<span class="text-danger">Не доступно</span>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                    <div class="border-top border-subtle my-2"></div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center py-5">
+                    <h2 class="fw-light text-uppercase small text-muted mb-2">В этой категории пока нет позиций</h2>
+                </div>
+            {% endfor %}
+        </div>
+
+        {% if is_paginated %}
+            <nav aria-label="Навигация по списку позиций" class="my-4">
+                <ul class="pagination pagination-sm justify-content-center m-0 gap-1">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-left"></i></span>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active" aria-current="page">
+                                <span class="page-link btn-primary border-primary fw-normal">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link border-subtle text-secondary fw-light" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-right"></i></span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+
+        <div class="border-top border-subtle my-4"></div>
+        <a href="{% url 'directory:home' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+{% endblock %}
