@@ -31,7 +31,7 @@ from .models import Report, ReportType
 def render_cash_report_document(html, base_url):
     base_stylesheet = CSS(string="""
         @page { size: A4 portrait; margin: 10mm; }
-        html, body { height: auto !important; margin: 0 !important; }
+        html, body { height: auto !important; margin: 0 !important; color: black !important; }
         .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
         h2 { margin: 0 0 4mm !important; font-size: 12pt !important; }
         h5 { font-size: 8pt !important; }
@@ -42,9 +42,11 @@ def render_cash_report_document(html, base_url):
         tr { break-inside: avoid; }
         td {
             padding: 1mm 1.5mm !important;
-            line-height: 2.1 !important;
+            line-height: 2.15 !important;
         }
         .name-cell-tall { height: 100px !important; }
+        .quantity-cell { font-weight: normal !important; color: black !important; }
+        .cash-cell { font-weight: normal !important; color: black !important; }
         .report-footer { margin: 0 !important; font-size: 8pt !important; }
         .report-actions, .alert-success { display: none !important; }
     """)
