@@ -302,6 +302,8 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             .order_by('item__name')
         )
 
+        bank_terminal_sales = bank_terminal_total - donate_total if bank_terminal_total and donate_total else 0
+
         not_verified_status = (
             Transaction.objects
             .filter(
@@ -319,6 +321,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'debt_lend_total': debt_lend_total,
             'debt_repay_total': debt_repay_total,
             'bank_terminal_total': bank_terminal_total,
+            'bank_terminal_sales': bank_terminal_sales,
             'bank_receipt_total': bank_receipt_total,
             'staff_total': staff_total,
             'staff_data': staff_data,

@@ -11,11 +11,11 @@
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
         
-        .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; text-align: center;}
-        .name-cell { width: 35%; }
-        .name-cell-center { width: 35%; text-align: center; }
-        .name-cell-right { width: 35%; text-align: right; }
-        .name-cell-tall { width: 35%; height: 120px; vertical-align: middle; text-align: center;}
+        .quantity-cell { font-weight: bold; color: #2980b9; width: 20%; text-align: center;}
+        .name-cell { width: 30%; }
+        .name-cell-center { width: 30%; text-align: center; }
+        .name-cell-right { width: 30%; text-align: right; }
+        .name-cell-tall { width: 30%; height: 120px; vertical-align: middle; text-align: center;}
         .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; }
         
         tr:nth-child(even) { background-color: #fdfdfe; }
@@ -133,7 +133,7 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if donate_data is not None %}
                         {% for row in donate_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                         {% if donate_data and other_treby_data is not None and other_treby_data %}
                             <br><br>
@@ -141,14 +141,14 @@
                     {% endif %}
                     {% if other_treby_data is not None %}
                         {% for row in other_treby_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Дано в долг</td>
-                <td class="quantity-cell">
+                <td class="name-cell-centerquantity-cell">
                     {% if debt_lend_total is not None %}
                         {{ debt_lend_total|floatformat:2 }} &#8381
                     {% endif %}
@@ -165,6 +165,9 @@
                 <td class="quantity-cell">
                     {% if bank_terminal_total is not None %}
                         {{ bank_terminal_total|floatformat:2 }} &#8381
+                        {% if bank_terminal_sales %}
+                           - {{ donate_total|floatformat:2 }} &#8381 = {{ bank_terminal_sales|floatformat:2 }} &#8381
+                        {% endif %}
                     {% endif %}
                 </td>
                 <td class="name-cell-center">Чековая проверка</td>
@@ -190,7 +193,7 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if other_expense_data is not None %}
                         {% for row in other_expense_data %}
-                            {{ row.item__name }} {{ row.total_cost }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
