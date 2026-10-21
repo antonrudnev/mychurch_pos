@@ -12,6 +12,7 @@ from transactions.models import Transaction
 
 from .forms import ReportDateRangeForm
 from .models import Report, ReportType
+from .views import render_cash_report_document
 
 
 class ReportDateRangeFormTests(TestCase):
@@ -95,6 +96,56 @@ class CashReportDateRangeTests(TestCase):
         report = Report.objects.get()
         self.assertIn('02.01.2025', report.name)
         self.assertIn('02.01.2025', report.dump)
+
+    def test_cash_report_pdf_opens_inline_with_selected_date_range(self):
+        date_range = {'date_from': '2025-01-02', 'date_to': '2025-01-02'}
+        report_response = self.client.get(self.generate_url, date_range)
+        pdf_response = self.client.get(reverse('reports:cash_report_pdf'), date_range)
+
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_response['Content-Disposition'].startswith('inline;'))
+        self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
+        self.assertContains(
+            report_response,
+            f'href="{reverse("reports:cash_report_pdf")}?date_from=2025-01-02&amp;date_to=2025-01-02"',
+        )
+        self.assertContains(report_response, 'target="_blank"')
+
+    def test_cash_report_pdf_rejects_invalid_date_range(self):
+        response = self.client.get(
+            reverse('reports:cash_report_pdf'),
+            {'date_from': 'not-a-date', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertNotEqual(response['Content-Type'], 'application/pdf')
+
+    def test_cash_report_table_font_scales_to_fit_one_a4_page(self):
+        treby_type = ItemType.objects.create(
+            name='Требы для проверки печати',
+            handle='treby-print-fit',
+            order_number=2,
+        )
+        for index in range(80):
+            Item.objects.create(
+                item_type=treby_type,
+                name=f'Позиция для проверки печати {index}',
+                handle=f'treby-print-fit-{index}',
+                order_number=index + 1,
+            )
+
+        response = self.client.get(
+            self.generate_url,
+            {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+        )
+        document, font_size = render_cash_report_document(
+            response.content.decode(response.charset),
+            base_url='http://testserver/',
+        )
+
+        self.assertEqual(len(document.pages), 1)
+        self.assertLess(font_size, 12)
 
     def test_date_picker_uses_application_timezone_today(self):
         utc_now = datetime(2025, 1, 1, 18, tzinfo=datetime_timezone.utc)
@@ -226,7 +277,7 @@ class ReportManagementTests(TestCase):
     def test_report_title_and_open_link_have_distinct_destinations(self):
         self.grant_permission('change_report')
 
-        response = self.client.get(reverse('reports:report_list'))
+        response = self.client.get(reverse('reports:home'))
 
         self.assertContains(
             response,
@@ -236,5 +287,20 @@ class ReportManagementTests(TestCase):
             response,
             f'href="{reverse("reports:print_report", args=[self.report.id])}"',
         )
+        self.assertContains(
+            response,
+            f'href="{reverse("reports:print_report", args=[self.report.id])}?format=pdf"',
+        )
+
+    def test_print_report_pdf_format_uses_cash_report_pdf_renderer(self):
+        response = self.client.get(
+            reverse('reports:print_report', args=[self.report.id]),
+            {'format': 'pdf'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/pdf')
+        self.assertTrue(response['Content-Disposition'].startswith('inline;'))
+        self.assertTrue(response.content.startswith(b'%PDF-'))
 
 # Create your tests here.

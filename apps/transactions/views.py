@@ -270,7 +270,7 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
                 None,
             )
             if item is None:
-                item_type_handle = 'other-product'
+                item_type_handle = 'product-other'
                 item_type = ItemType.objects.filter(handle__iexact=item_type_handle).first()
                 if item_type is None:
                     item_type = ItemType.objects.create(

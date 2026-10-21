@@ -56,11 +56,21 @@
 
                     <!-- Действие -->
                     <div class="text-md-end pt-1">
-                        <a href="{% url 'reports:print_report' report.id %}" 
-                           target="_blank" 
-                           class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
-                            Открыть <i class="bi bi-box-arrow-up-right small"></i>
-                        </a>
+                        <div>
+                            <a href="{% url 'reports:print_report' report.id %}" 
+                            target="_blank" 
+                            class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
+                                Открыть <i class="bi bi-box-arrow-up-right small"></i>
+                            </a>
+                        </div>
+                        <div>
+                            <a href="{% url 'reports:print_report' report.id %}?format=pdf"
+                            target="_blank"
+                            rel="noopener"
+                            class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-danger">
+                                PDF <i class="bi bi-file-earmark-pdf small"></i>
+                            </a>
+                        </div>
                     </div>
                     
                 </div>

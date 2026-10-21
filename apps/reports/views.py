@@ -22,9 +22,43 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
+from weasyprint import CSS, HTML
 
 from .forms import ReportDateRangeForm, ReportNameForm
 from .models import Report, ReportType
+
+
+def render_cash_report_document(html, base_url):
+    base_stylesheet = CSS(string="""
+        @page { size: A4 portrait; margin: 10mm; }
+        html, body { height: auto !important; margin: 0 !important; }
+        .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
+        h2 { margin: 0 0 4mm !important; font-size: 14pt !important; }
+        h5 { font-size: 9pt !important; }
+        table {
+            flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none;
+        }
+        tbody { height: auto !important; }
+        tr { break-inside: avoid; }
+        td {
+            padding: 1mm 1.5mm !important;
+            line-height: 2.0 !important;
+        }
+        .name-cell-tall { height: 100px !important; }
+        .report-footer { margin: 0 !important; font-size: 8pt !important; }
+        .report-actions, .alert-success { display: none !important; }
+    """)
+
+    def render_at_font_size(font_size):
+        font_stylesheet = CSS(string=f'table, table td {{ font-size: {font_size}pt !important; }}')
+        return HTML(string=html, base_url=base_url).render(
+            stylesheets=[base_stylesheet, font_stylesheet],
+        )
+
+    font_size = 9.0
+    document = render_at_font_size(font_size)
+
+    return document, font_size
 
 
 class CashReportView(PermissionRequiredMixin, TemplateView):
@@ -105,7 +139,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         product_total = (
             Transaction.objects
             .filter(
-                item__item_type__handle__istartswith=prefix,
+                item__item_type__is_product_group=True,
                 is_deleted=False,
                 created_at__date__range=date_range,
             )
@@ -341,12 +375,54 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         return context
 
 
+class CashReportPdfView(CashReportView):
+    def get(self, request, *args, **kwargs):
+        form = ReportDateRangeForm(request.GET)
+        if not form.is_valid():
+            return self.render_to_response(
+                {'form': form, 'application_today': timezone.localdate()},
+                status=400,
+            )
+
+        context = self.get_report_context(form)
+        context['is_saving'] = True
+        html = render_to_string(
+            'reports/cash_report.html',
+            context,
+            request=request,
+        )
+        document, _font_size = render_cash_report_document(
+            html,
+            base_url=request.build_absolute_uri('/'),
+        )
+        pdf = document.write_pdf()
+        response = HttpResponse(pdf, content_type='application/pdf')
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filename = f'cash-report-{date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}.pdf'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
+
+
 class PrintReportView(PermissionRequiredMixin, View):
     permission_required = 'reports.view_report'
     raise_exception = True 
 
     def get(self, request, report_id, *args, **kwargs):
         report = get_object_or_404(Report, id=report_id)
+        if request.GET.get('format') == 'pdf':
+            document, _font_size = render_cash_report_document(
+                report.dump,
+                base_url=request.build_absolute_uri('/'),
+            )
+            response = HttpResponse(
+                document.write_pdf(),
+                content_type='application/pdf',
+            )
+            response['Content-Disposition'] = (
+                f'inline; filename="report-{report.pk}.pdf"'
+            )
+            return response
         return HttpResponse(report.dump, content_type='text/html; charset=utf-8')
 
 

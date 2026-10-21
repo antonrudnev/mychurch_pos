@@ -3,6 +3,12 @@ FROM python:3.14-slim
 # Установка системных зависимостей
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    fonts-dejavu-core \
+    libgdk-pixbuf-2.0-0 \
+    libharfbuzz-subset0 \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

@@ -10,13 +10,15 @@
         
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
-        
-        .quantity-cell { font-weight: bold; color: #2980b9; width: 20%; text-align: center;}
-        .name-cell { width: 30%; }
-        .name-cell-center { width: 30%; text-align: center; }
-        .name-cell-right { width: 30%; text-align: right; }
-        .name-cell-tall { width: 30%; height: 120px; vertical-align: middle; text-align: center;}
-        .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; }
+
+        .name-cell { width: 35%; }
+        .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; text-align: center;}
+        .name-cell-center { width: 20%; text-align: center; }
+        .name-cell-tall { width: 20%; height: 55px; vertical-align: middle; text-align: center;}
+        .name-cell-right { width: 20%; text-align: right; font-weight: bold;}
+        .cash-cell { font-weight: bold; color: #2980b9; width: 30%; text-align: center;}
+        .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; } 
+
         
         tr:nth-child(even) { background-color: #fdfdfe; }
         tr:hover { background-color: #f5f6fa; }
@@ -93,8 +95,8 @@
             период с <strong>{{ date_from|date:"d.m.Y" }} по {{ date_to|date:"d.m.Y" }}</strong>
         {% endif %}
     </h2>
-    
-    <table>
+    <h5>Требы:</h5>
+    <table style='margin-bottom: 0;'>
         <tbody>
             {% for row in treby_data %}
                 {% cycle 'left' 'right' as position silent %}
@@ -113,18 +115,23 @@
                         <td class="quantity-cell empty-cell"></td>
                     </tr>
                 {% endif %}
-            {% endfor %}
+            {% endfor %}            
+        </tbody>
+    </table>
+    <h5>Финансы:</h5>
+    <table>
+        <tbody>
             <tr>
-                <td class="name-cell">Реализация товара</td>
-                <td class="quantity-cell">
+                <td class="name-cell-center">Реализация товара</td>
+                <td class="cash-cell">
                     {% if product_total is not None %}
-                        {{ product_total|floatformat:2 }} &#8381
+                        {{ product_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
-                <td class="name-cell">Реализация свечей</td>
-                <td class="quantity-cell">
+                <td class="name-cell-center">Реализация свечей</td>
+                <td class="cash-cell">
                     {% if candle_total is not None %}
-                        {{ candle_total|floatformat:2 }} &#8381
+                        {{ candle_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
             </tr>
@@ -133,7 +140,7 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if donate_data is not None %}
                         {% for row in donate_data %}
-                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                         {% if donate_data and other_treby_data is not None and other_treby_data %}
                             <br><br>
@@ -141,50 +148,50 @@
                     {% endif %}
                     {% if other_treby_data is not None %}
                         {% for row in other_treby_data %}
-                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Дано в долг</td>
-                <td class="name-cell-centerquantity-cell">
+                <td class="cash-cell">
                     {% if debt_lend_total is not None %}
-                        {{ debt_lend_total|floatformat:2 }} &#8381
+                        {{ debt_lend_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
                 <td class="name-cell-center">Возврат долга</td>
-                <td class="quantity-cell">
+                <td class="cash-cell">
                     {% if debt_repay_total is not None %}
-                        {{ debt_repay_total|floatformat:2 }} &#8381
+                        {{ debt_repay_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Банк</td>
-                <td class="quantity-cell">
+                <td class="cash-cell">
                     {% if bank_terminal_total is not None %}
-                        {{ bank_terminal_total|floatformat:2 }} &#8381
+                        {{ bank_terminal_total|floatformat:2 }}
                         {% if bank_terminal_sales %}
-                           - {{ donate_total|floatformat:2 }} &#8381 = {{ bank_terminal_sales|floatformat:2 }} &#8381
-                        {% endif %}
+                           - {{ donate_total|floatformat:2 }} = {{ bank_terminal_sales|floatformat:2 }}
+                        {% endif %}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
                 <td class="name-cell-center">Чековая проверка</td>
-                <td class="quantity-cell">
+                <td class="cash-cell">
                     {% if bank_receipt_total is not None %}
-                        {{ bank_receipt_total|floatformat:2 }} &#8381
+                        {{ bank_receipt_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-center">Содержание причта</td>
-                <td class="quantity-cell" colspan="3">
+                <td class="cash-cell" colspan="3">
                     {% if staff_total is not None %}
                         {% for row in staff_data %}
-                            {{ row.total_cost|floatformat:2 }}  &#8381 {% if not forloop.last %} + {% endif %}
+                            {{ row.total_cost|floatformat:2 }} {% if not forloop.last %} + {% endif %}
                         {% endfor %}
-                        = {{ staff_total|floatformat:2 }} &#8381
+                        = {{ staff_total|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
             </tr>
@@ -193,22 +200,22 @@
                 <td class="quantity-cell" style="text-align:left" colspan="3">
                     {% if other_expense_data is not None %}
                         {% for row in other_expense_data %}
-                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }} <span>&#8381</span>{% if not forloop.last %}; {% endif %}
+                            {{ row.item__name }} {{ row.total_cost|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                     {% endif %}
                 </td>
             </tr>
             <tr>
                 <td class="name-cell-right">Касса (остаток):</td>
-                <td class="quantity-cell">
+                <td class="cash-cell">
                     {% if cash_register_last is not None %}
-                        {{ cash_register_last.price|floatformat:2 }} &#8381
+                        {{ cash_register_last.price|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
                 <td class="name-cell-right">Сейф (размен):</td>
-                <td class="quantity-cell">
+                <td class="cash-cell">
                     {% if cash_deposit_last is not None %}
-                        {{ cash_deposit_last.price|floatformat:2 }} &#8381
+                        {{ cash_deposit_last.price|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
             </tr>
@@ -243,6 +250,12 @@
             <input type="hidden" name="date_to" value="{{ date_to|date:'Y-m-d' }}"> 
             <button type="submit" class="btn-save">Сохранить</button> 
         </form>
+        <a
+            class="btn-save"
+            href="{% url 'reports:cash_report_pdf' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+            target="_blank"
+            rel="noopener"
+        >Открыть PDF</a>
         
         {% if messages %}
             {% for message in messages %}
