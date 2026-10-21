@@ -11,8 +11,8 @@
         table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
         td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
 
-        .name-cell { width: 35%; }
-        .quantity-cell { font-weight: bold; color: #2980b9; width: 15%; text-align: center;}
+        .name-cell { width: 37%; }
+        .quantity-cell { font-weight: bold; color: #2980b9; width: 13%; text-align: center;}
         .name-cell-center { width: 20%; text-align: center; }
         .name-cell-tall { width: 20%; height: 55px; vertical-align: middle; text-align: center;}
         .name-cell-right { width: 20%; text-align: right; font-weight: bold;}
@@ -143,7 +143,7 @@
                             {{ row.item__name }} {{ row.total_cost|floatformat:2 }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
                         {% endfor %}
                         {% if donate_data and other_treby_data is not None and other_treby_data %}
-                            <br><br>
+                            <br>
                         {% endif%}
                     {% endif %}
                     {% if other_treby_data is not None %}

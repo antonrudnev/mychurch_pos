@@ -33,8 +33,8 @@ def render_cash_report_document(html, base_url):
         @page { size: A4 portrait; margin: 10mm; }
         html, body { height: auto !important; margin: 0 !important; }
         .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
-        h2 { margin: 0 0 4mm !important; font-size: 14pt !important; }
-        h5 { font-size: 9pt !important; }
+        h2 { margin: 0 0 4mm !important; font-size: 12pt !important; }
+        h5 { font-size: 8pt !important; }
         table {
             flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none;
         }
@@ -42,7 +42,7 @@ def render_cash_report_document(html, base_url):
         tr { break-inside: avoid; }
         td {
             padding: 1mm 1.5mm !important;
-            line-height: 2.0 !important;
+            line-height: 2.1 !important;
         }
         .name-cell-tall { height: 100px !important; }
         .report-footer { margin: 0 !important; font-size: 8pt !important; }
@@ -55,7 +55,7 @@ def render_cash_report_document(html, base_url):
             stylesheets=[base_stylesheet, font_stylesheet],
         )
 
-    font_size = 9.0
+    font_size = 8.5
     document = render_at_font_size(font_size)
 
     return document, font_size
