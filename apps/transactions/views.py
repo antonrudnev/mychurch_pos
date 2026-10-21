@@ -95,7 +95,7 @@ class TransactionManageView(TemplateView):
         if action == 'save':
             if (
                 not request.user.has_perm('transactions.change_transaction')
-                or not self.can_manage_transaction(request.user)
+                or self.transaction.is_verified
             ):
                 raise PermissionDenied
             form = TransactionManageForm(request.POST, instance=self.transaction)
@@ -146,7 +146,7 @@ class TransactionManageView(TemplateView):
                 'transaction_list_url': self.get_transaction_list_url(request),
                 'can_change_transaction': (
                     request.user.has_perm('transactions.change_transaction')
-                    and self.can_manage_transaction(request.user)
+                    and not self.transaction.is_verified
                 ),
                 'can_view_all_transactions': request.user.has_perm(
                     'transactions.view_all_transactions'

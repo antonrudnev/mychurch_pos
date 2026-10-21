@@ -47,20 +47,31 @@
                 <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
             </form>
         {% else %}
-            <div class="mb-4">
-                {% if transaction.item.price is not None %}
-                    <div class="mb-3">
-                        <div class="form-label">Сумма</div>
-                        <div class="form-control-plaintext fw-bold">{{ transaction.price }} &#8381;</div>
-                    </div>
-                {% endif %}
-                {% if transaction.item.price != 0 %}
-                    <div class="mb-3">
-                        <div class="form-label">Количество</div>
-                        <div class="form-control-plaintext fw-bold">{{ transaction.quantity }}</div>
-                    </div>
-                {% endif %}
-            </div>
+            <table class="table w-100 table-borderless m-0">
+                <tbody>
+                    <tr>
+                        {% if transaction.item.price != 0 %}
+                        <td >
+                            <div class="m-0">
+                                <div>Количество:</div>
+                                <div class="form-control-plaintext fw-bold">{{ transaction.quantity }}</div>
+                            </div>
+                        </td>
+                        {% endif %}
+                        {% if transaction.item.price is not None %}
+                        <td class="text-end">
+                            <div class="m-0">
+                                <div>Сумма:</div>
+                                <div class="form-control-plaintext fw-bold">{{ transaction.price }} &#8381;</div>
+                                {% if transaction.item.price != 0 %}
+                                    <div class="form-control-plaintext small">= {{ transaction.total_cost }} &#8381;</div>
+                                {% endif %}            
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                </tbody>
+            </table>
         {% endif %}
 
         {% if perms.transactions.verify_transaction %}

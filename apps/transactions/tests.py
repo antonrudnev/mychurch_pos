@@ -274,7 +274,7 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(transaction.price, Decimal('12.50'))
         self.assertEqual(transaction.quantity, 1)
 
-    def test_user_with_verify_permission_can_edit_verified_transaction(self):
+    def test_user_with_verify_permission_cannot_edit_verified_transaction(self):
         self.grant_permission(self.user, 'change_transaction')
         self.grant_permission(self.user, 'verify_transaction')
         transaction = self.create_transaction(self.user)
@@ -286,10 +286,10 @@ class TransactionViewsTests(TestCase):
             {'action': 'save', 'price': '20.75', 'quantity': '4'},
         )
 
-        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        self.assertEqual(response.status_code, 403)
         transaction.refresh_from_db()
-        self.assertEqual(transaction.price, Decimal('20.75'))
-        self.assertEqual(transaction.quantity, 4)
+        self.assertEqual(transaction.price, Decimal('12.50'))
+        self.assertEqual(transaction.quantity, 1)
 
     def test_manage_page_soft_deletes_transaction_with_delete_permission(self):
         self.grant_permission(self.user, 'delete_transaction')
@@ -422,6 +422,23 @@ class TransactionViewsTests(TestCase):
 
         self.assertNotContains(response, 'name="action" value="save"')
         self.assertNotContains(response, 'name="action" value="delete"')
+
+    def test_manage_page_shows_verified_transaction_as_read_only_to_verifier(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="price"')
+        self.assertContains(response, 'Сумма:')
+        self.assertRegex(response.content.decode(), r'12[.,]50')
 
     def test_superuser_sees_all_transactions(self):
         superuser = get_user_model().objects.create_superuser(

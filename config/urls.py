@@ -22,6 +22,7 @@ from config.views import register_view, welcome_landing_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', welcome_landing_view, name='home'),
     path('welcome/', welcome_landing_view, name='welcome_landing'),
     path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
