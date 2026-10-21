@@ -121,7 +121,7 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = (TransactionDateFilter, 'item__item_type__name', 'is_verified', 'cashier', DeletedFilter)
     search_fields = ('item__name__icontains', 'cashier__username__icontains', 'item__item_type__name__icontains')
     date_hierarchy = 'created_at'
-    readonly_fields = ('get_total_cost', 'verified_by', 'cashier', 'is_deleted')
+    readonly_fields = ('get_total_cost', 'verified_by', 'cashier')
     actions = (make_verified,)
 
     @admin.display(description='Итоговая стоимость (руб.)')
