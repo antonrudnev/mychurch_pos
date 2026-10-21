@@ -51,6 +51,7 @@ class CashReportDateRangeTests(TestCase):
             name='Товары',
             handle='product',
             order_number=1,
+            is_product_group=True,
         )
         self.product = Item.objects.create(
             item_type=product_type,
@@ -81,24 +82,143 @@ class CashReportDateRangeTests(TestCase):
 
     def test_report_filters_transactions_and_saves_selected_period(self):
         date_range = {'date_from': '2025-01-02', 'date_to': '2025-01-02'}
+        Transaction.objects.filter(
+            created_at__date=date(2025, 1, 2),
+        ).update(is_verified=True)
 
         response = self.client.get(self.generate_url, date_range)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context_data['product_data'], Decimal('20.00'))
+        self.assertEqual(response.context_data['product_total'], Decimal('20.00'))
         self.assertEqual(response.context_data['date_from'], date(2025, 1, 2))
         self.assertEqual(response.context_data['date_to'], date(2025, 1, 2))
 
         response = self.client.post(self.generate_url, date_range)
 
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('reports:report_list'))
+        self.assertEqual(response.url, reverse('reports:home'))
         report = Report.objects.get()
         self.assertIn('02.01.2025', report.name)
         self.assertIn('02.01.2025', report.dump)
 
+    def test_report_period_submission_redirects_to_unverified_transactions(self):
+        response = self.client.get(
+            self.generate_url,
+            {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-02&preset=custom",
+        )
+        self.assertFalse(Report.objects.exists())
+
+    def test_saving_report_does_not_prompt_again_for_unverified_transactions(self):
+        response = self.client.post(
+            self.generate_url,
+            {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, reverse('reports:home'))
+        self.assertTrue(Report.objects.exists())
+
+    def test_report_period_without_unverified_transactions_opens_preview(self):
+        Transaction.objects.filter(created_at__date=date(2025, 1, 2)).update(
+            is_verified=True,
+        )
+
+        response = self.client.get(
+            self.generate_url,
+            {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('product_total', response.context)
+        self.assertFalse(Report.objects.exists())
+
+    def test_report_period_can_proceed_without_verifying_transactions(self):
+        permission = Permission.objects.get(
+            content_type__app_label='transactions',
+            codename='verify_transaction',
+        )
+        self.user.user_permissions.add(permission)
+        response = self.client.get(
+            self.generate_url,
+            {
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+                'skip_unverified_check': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('product_total', response.context)
+        self.assertFalse(Report.objects.exists())
+
+    def test_report_period_cannot_skip_unverified_check_without_verify_permission(self):
+        response = self.client.get(
+            self.generate_url,
+            {
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+                'skip_unverified_check': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('transactions:transaction_list'), response.url)
+        self.assertFalse(Report.objects.exists())
+
+    def test_return_from_transaction_review_opens_report_date_picker(self):
+        response = self.client.get(
+            self.generate_url,
+            {
+                'select_period': '1',
+                'preserve_dates': '1',
+                'preset': 'last-week',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-03',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.context['form'].initial['date_from'],
+            date(2025, 1, 2),
+        )
+        self.assertEqual(
+            response.context['form'].initial['date_to'],
+            date(2025, 1, 3),
+        )
+        self.assertEqual(response.context['selected_preset'], 'last-week')
+        self.assertTrue(response.context['preserve_date_values'])
+        self.assertContains(response, 'value="last-week" selected')
+        self.assertContains(response, 'id="id_date_from"')
+        self.assertContains(response, 'id="id_date_to"')
+        self.assertContains(response, 'value="2025-01-02"')
+        self.assertContains(response, 'value="2025-01-03"')
+
+        submit_response = self.client.get(
+            self.generate_url,
+            {
+                'preset': 'last-week',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-03',
+            },
+        )
+        self.assertRedirects(
+            submit_response,
+            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-03&preset=last-week",
+            fetch_redirect_response=False,
+        )
+
     def test_cash_report_pdf_opens_inline_with_selected_date_range(self):
         date_range = {'date_from': '2025-01-02', 'date_to': '2025-01-02'}
+        Transaction.objects.filter(
+            created_at__date=date(2025, 1, 2),
+        ).update(is_verified=True)
         report_response = self.client.get(self.generate_url, date_range)
         pdf_response = self.client.get(reverse('reports:cash_report_pdf'), date_range)
 

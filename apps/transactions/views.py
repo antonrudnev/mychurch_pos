@@ -6,8 +6,10 @@ from django.contrib.auth.mixins import PermissionRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db import transaction as db_transaction
 from django.db.models import Exists, Max, OuterRef
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
@@ -31,6 +33,13 @@ def get_unique_item_handle(name):
     return handle
 
 
+def get_review_preset(request):
+    preset = request.GET.get('preset', 'custom')
+    if preset not in {'week', 'last-week', '3', '5', 'custom'}:
+        return 'custom'
+    return preset
+
+
 class TransactionHomeView(PermissionRequiredMixin, TemplateView):
     template_name = 'transactions/transaction_home.html'
     permission_required = 'transactions.view_transaction'
@@ -45,25 +54,111 @@ class TransactionListView(PermissionRequiredMixin, ListView):
     raise_exception = True
     paginate_by = 5
 
+    def has_permission(self):
+        if self.request.user.has_perm('transactions.view_transaction'):
+            return True
+        return (
+            self.request.GET.get('unverified') == '1'
+            and (
+                self.request.user.has_perm('transactions.verify_transaction')
+                or self.request.user.has_perm('reports.add_report')
+            )
+        )
+
     def get_queryset(self):
         queryset = Transaction.objects.select_related(
             'item',
             'item__item_type',
             'cashier',
         )
+        if getattr(self, 'is_verification_review', False):
+            queryset = queryset.filter(
+                is_verified=False,
+                created_at__date__range=(self.date_from, self.date_to),
+            )
+            if self.request.user.has_perm('transactions.verify_transaction'):
+                return queryset.order_by('-created_at')
         if (not self.request.user.has_perm('transactions.view_all_transactions')):
             queryset = queryset.filter(cashier=self.request.user)
         return queryset.order_by('-created_at')
 
+    def get(self, request, *args, **kwargs):
+        self.is_verification_review = request.GET.get('unverified') == '1'
+        if self.is_verification_review:
+            if not (
+                request.user.has_perm('transactions.verify_transaction')
+                or request.user.has_perm('reports.add_report')
+            ):
+                raise PermissionDenied
+            self.date_from = parse_date(request.GET.get('date_from', ''))
+            self.date_to = parse_date(request.GET.get('date_to', ''))
+            if (
+                self.date_from is None
+                or self.date_to is None
+                or self.date_from > self.date_to
+            ):
+                return HttpResponseBadRequest('A valid transaction date range is required.')
+        return super().get(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['is_verification_review'] = self.is_verification_review
+        if self.is_verification_review:
+            context['date_from'] = self.date_from
+            context['date_to'] = self.date_to
+            context['period_preset'] = get_review_preset(self.request)
+            context['can_proceed_report'] = (
+                self.request.user.has_perm('transactions.verify_transaction')
+                and self.request.user.has_perm('reports.add_report')
+            )
+            proceed_report_query = urlencode({
+                'date_from': self.date_from.isoformat(),
+                'date_to': self.date_to.isoformat(),
+                'preset': context['period_preset'],
+                'skip_unverified_check': '1',
+            })
+            context['proceed_report_url'] = (
+                f"{reverse('reports:generate_report', args=['cash-report'])}?"
+                f"{proceed_report_query}"
+            )
+            context['report_return_url'] = (
+                f"{reverse('reports:generate_report', args=['cash-report'])}?"
+                f"select_period=1&preserve_dates=1"
+                f"&preset={context['period_preset']}"
+                f"&date_from={self.date_from:%Y-%m-%d}"
+                f"&date_to={self.date_to:%Y-%m-%d}"
+            )
+        return context
 
 class TransactionManageView(TemplateView):
     template_name = 'transactions/transaction_manage.html'
 
     def get_transaction_list_url(self, request):
+        query = self.get_review_query(request)
+        if query:
+            return f"{reverse('transactions:transaction_list')}?{query}"
         page = request.GET.get('page')
         if page and page.isdecimal() and len(page) <= 9:
             return f"{reverse('transactions:transaction_list')}?{urlencode({'page': page})}"
         return reverse('transactions:transaction_list')
+
+    def get_review_query(self, request):
+        if request.GET.get('unverified') != '1':
+            return ''
+        date_from = parse_date(request.GET.get('date_from', ''))
+        date_to = parse_date(request.GET.get('date_to', ''))
+        if date_from is None or date_to is None or date_from > date_to:
+            return ''
+        query = {
+            'unverified': '1',
+            'date_from': date_from.isoformat(),
+            'date_to': date_to.isoformat(),
+            'preset': get_review_preset(request),
+        }
+        page = request.GET.get('page')
+        if page and page.isdecimal() and len(page) <= 9:
+            query['page'] = page
+        return urlencode(query)
 
     def can_manage_transaction(self, user):
         return (
@@ -72,13 +167,32 @@ class TransactionManageView(TemplateView):
         )
 
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_perm('transactions.view_transaction'):
-            raise PermissionDenied
-
         self.transaction = get_object_or_404(
             Transaction.objects.select_related('item', 'item__item_type', 'cashier'),
             pk=kwargs['transaction_id'],
         )
+
+        is_report_review = (
+            request.GET.get('unverified') == '1'
+            and request.user.has_perm('reports.add_report')
+            and not self.transaction.is_verified
+        )
+        if is_report_review:
+            date_from = parse_date(request.GET.get('date_from', ''))
+            date_to = parse_date(request.GET.get('date_to', ''))
+            is_report_review = (
+                date_from is not None
+                and date_to is not None
+                and date_from <= date_to
+                and date_from <= self.transaction.created_at.date() <= date_to
+            )
+
+        if (
+            not request.user.has_perm('transactions.view_transaction')
+            and not is_report_review
+        ):
+            raise PermissionDenied
+
         can_view_all = (
             request.user.has_perm('transactions.view_all_transactions')
             or request.user.has_perm('transactions.verify_transaction')
@@ -142,10 +256,14 @@ class TransactionManageView(TemplateView):
                 if self.transaction.is_verified
                 else 'Подтверждение транзакции снято.',
             )
-            return redirect(
+            manage_url = reverse(
                 'transactions:transaction_manage',
-                transaction_id=self.transaction.pk,
+                args=[self.transaction.pk],
             )
+            review_query = self.get_review_query(request)
+            if review_query:
+                manage_url = f'{manage_url}?{review_query}'
+            return redirect(manage_url)
 
         raise PermissionDenied
 

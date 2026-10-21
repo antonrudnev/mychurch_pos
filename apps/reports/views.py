@@ -1,4 +1,5 @@
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from directory.models import Item
 from django.contrib import messages
@@ -19,7 +20,9 @@ from django.db.models.functions import Coalesce, StrIndex, Substr
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
 from weasyprint import CSS, HTML
@@ -69,6 +72,24 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
     raise_exception = False
 
     def get(self, request, *args, **kwargs):
+        if request.GET.get('select_period') == '1':
+            date_from = parse_date(request.GET.get('date_from', ''))
+            date_to = parse_date(request.GET.get('date_to', ''))
+            initial = {}
+            if date_from:
+                initial['date_from'] = date_from
+            if date_to:
+                initial['date_to'] = date_to
+            preset = request.GET.get('preset', 'custom')
+            if preset not in {'week', 'last-week', '3', '5', 'custom'}:
+                preset = 'custom'
+            return self.render_to_response({
+                'form': ReportDateRangeForm(initial=initial),
+                'application_today': timezone.localdate(),
+                'selected_preset': preset,
+                'preserve_date_values': request.GET.get('preserve_dates') == '1',
+            })
+
         has_date_range = 'date_from' in request.GET or 'date_to' in request.GET
         form = ReportDateRangeForm(request.GET if has_date_range else None)
         if not has_date_range:
@@ -81,6 +102,30 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
                 'form': form,
                 'application_today': timezone.localdate(),
             }, status=400)
+
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        can_skip_unverified_check = (
+            request.GET.get('skip_unverified_check') == '1'
+            and request.user.has_perm('transactions.verify_transaction')
+        )
+        has_unverified = (
+            not can_skip_unverified_check
+            and Transaction.objects.filter(
+                is_deleted=False,
+                is_verified=False,
+                created_at__date__range=(date_from, date_to),
+            ).exists()
+        )
+        if has_unverified:
+            return redirect(
+                self.get_unverified_review_url(
+                    date_from,
+                    date_to,
+                    request.GET.get('preset', 'custom'),
+                )
+            )
+
         self.template_name = 'reports/cash_report.html'
         return self.render_to_response(self.get_report_context(form))
 
@@ -89,13 +134,13 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         if not form.is_valid():
             return self.render_to_response({'form': form}, status=400)
 
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
         self.template_name = 'reports/cash_report.html'
         context = self.get_report_context(form)
         context['is_saving'] = True
         html_dump = render_to_string(self.template_name, context, request=request)
 
-        date_from = form.cleaned_data['date_from']
-        date_to = form.cleaned_data['date_to']
         report_name = (
             f"Кассовый отчет за {date_from:%d.%m.%Y}{f' - {date_to:%d.%m.%Y}' if date_from != date_to else ''}"
         )
@@ -111,6 +156,17 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
         messages.success(request, f"'{report_name}' успешно сохранен")
         return redirect('reports:home')
+
+    def get_unverified_review_url(self, date_from, date_to, preset='custom'):
+        if preset not in {'week', 'last-week', '3', '5', 'custom'}:
+            preset = 'custom'
+        query = urlencode({
+            'unverified': '1',
+            'date_from': date_from.isoformat(),
+            'date_to': date_to.isoformat(),
+            'preset': preset,
+        })
+        return f"{reverse('transactions:transaction_list')}?{query}"
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -368,6 +424,10 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'other_treby_data': other_treby_data,
             'other_expense_data': other_expense_data,
             'not_verified_status':not_verified_status,
+            'unverified_review_url': self.get_unverified_review_url(
+                date_from,
+                date_to,
+            ),
             'current_time': timezone.now(),
             'current_user': self.request.user,
             'date_from': date_from,

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from directory.models import Item, ItemType
@@ -86,6 +86,166 @@ class TransactionViewsTests(TestCase):
 
         self.assertContains(response, str(other_transaction.item.name))
         self.assertContains(response, str(self.other_user.username))
+
+    def test_verification_review_lists_only_unverified_transactions_in_selected_period(self):
+        self.grant_permission(self.user, 'verify_transaction')
+        self.user.user_permissions.add(
+            Permission.objects.get(
+                content_type__app_label='reports',
+                codename='add_report',
+            )
+        )
+        matching_transaction = self.create_transaction(self.user)
+        matching_transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12))
+        matching_transaction.save(update_fields=['created_at'])
+
+        verified_transaction = self.create_transaction(self.user)
+        verified_transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 13))
+        verified_transaction.is_verified = True
+        verified_transaction.save(update_fields=['created_at', 'is_verified'])
+
+        outside_range_transaction = self.create_transaction(self.other_user)
+        outside_range_transaction.created_at = timezone.make_aware(
+            datetime(2025, 1, 3, 12)
+        )
+        outside_range_transaction.save(update_fields=['created_at'])
+
+        other_cashier_transaction = self.create_transaction(self.other_user)
+        other_cashier_transaction.created_at = timezone.make_aware(
+            datetime(2025, 1, 2, 14)
+        )
+        other_cashier_transaction.save(update_fields=['created_at'])
+
+        response = self.client.get(
+            reverse('transactions:transaction_list'),
+            {
+                'unverified': '1',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+                'preset': 'last-week',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Проверьте эти транзакции')
+        self.assertContains(response, other_cashier_transaction.cashier.username)
+        listed_ids = {
+            transaction.pk
+            for transaction in response.context['transactions']
+        }
+        self.assertEqual(
+            listed_ids,
+            {matching_transaction.pk, other_cashier_transaction.pk},
+        )
+        self.assertEqual(response.context['paginator'].count, 2)
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[matching_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;page=1"',
+        )
+        self.assertContains(
+            response,
+            'select_period=1&amp;preserve_dates=1&amp;preset=last-week&amp;date_from=2025-01-02&amp;date_to=2025-01-02',
+        )
+        self.assertContains(
+            response,
+            f'href="{reverse("reports:generate_report", args=["cash-report"])}?date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;skip_unverified_check=1"',
+        )
+        self.assertContains(response, 'Продолжить без проверки')
+
+        manage_response = self.client.get(
+            reverse(
+                'transactions:transaction_manage',
+                args=[matching_transaction.pk],
+            ),
+            {
+                'unverified': '1',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+                'preset': 'last-week',
+                'page': '1',
+            },
+        )
+        self.assertContains(
+            manage_response,
+            f'href="{reverse("transactions:transaction_list")}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;page=1"',
+        )
+    def test_verification_review_requires_verify_permission_and_valid_dates(self):
+        url = reverse('transactions:transaction_list')
+        query = {'unverified': '1', 'date_from': '2025-01-02', 'date_to': '2025-01-02'}
+
+        response = self.client.get(url, query)
+
+        self.assertEqual(response.status_code, 403)
+
+        self.grant_permission(self.user, 'verify_transaction')
+        response = self.client.get(
+            url,
+            {'unverified': '1', 'date_from': 'invalid', 'date_to': '2025-01-02'},
+        )
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_report_creator_can_review_and_edit_own_unverified_transactions(self):
+        reports_permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename='add_report',
+        )
+        self.user.user_permissions.add(reports_permission)
+        self.grant_permission(self.user, 'change_transaction')
+        self.user.user_permissions.remove(
+            Permission.objects.get(
+                content_type__app_label='transactions',
+                codename='view_transaction',
+            )
+        )
+        own_transaction = self.create_transaction(self.user)
+        own_transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12))
+        own_transaction.save(update_fields=['created_at'])
+        other_transaction = self.create_transaction(self.other_user)
+        other_transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 13))
+        other_transaction.save(update_fields=['created_at'])
+
+        response = self.client.get(
+            reverse('transactions:transaction_list'),
+            {
+                'unverified': '1',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[own_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=custom&amp;page=1"',
+        )
+        self.assertNotContains(response, str(other_transaction.cashier.username))
+        self.assertNotContains(response, 'Продолжить без проверки')
+
+        self.grant_permission(self.user, 'view_all_transactions')
+        all_transactions_response = self.client.get(
+            reverse('transactions:transaction_list'),
+            {
+                'unverified': '1',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+            },
+        )
+        self.assertContains(
+            all_transactions_response,
+            str(other_transaction.cashier.username),
+        )
+
+        manage_response = self.client.get(
+            reverse('transactions:transaction_manage', args=[own_transaction.pk]),
+            {
+                'unverified': '1',
+                'date_from': '2025-01-02',
+                'date_to': '2025-01-02',
+            },
+        )
+        self.assertEqual(manage_response.status_code, 200)
+        self.assertTrue(manage_response.context['can_change_transaction'])
 
     def test_transaction_name_links_to_manage_page_when_user_can_change(self):
         self.grant_permission(self.user, 'change_transaction')

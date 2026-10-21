@@ -8,15 +8,15 @@
         <h1 class="fw-normal h3 mb-4 text-body">Задайте период отчета</h1>
         <p class="text-secondary">Выберите период из списка или укажите даты</p>
 
-        <form method="get" class="text-start" id="date-range-form">
+        <form method="get" action="{% url 'reports:generate_report' 'cash-report' %}" class="text-start" id="date-range-form">
             <div class="mb-3">
                 <label for="date-preset" class="form-label">Выбрать период</label>
-                <select id="date-preset" name="preset" class="form-select" data-application-today="{{ application_today|date:'Y-m-d' }}">
-                    <option value="week" {% if request.GET.preset == "week" or not request.GET.preset %}selected{% endif %}>Эта неделя</option>
-                    <option value="last-week" {% if request.GET.preset == "last-week" %}selected{% endif %}>Прошлая неделя</option>
-                    <option value="3" {% if request.GET.preset == "3" %}selected{% endif %}>Последние 3 дня</option>
-                    <option value="5" {% if request.GET.preset == "5" %}selected{% endif %}>Последние 5 дней</option>
-                    <option value="custom" {% if request.GET.preset == "custom" %}selected{% endif %}>Указать даты вручную</option>
+                <select id="date-preset" name="preset" class="form-select" data-application-today="{{ application_today|date:'Y-m-d' }}" data-preserve-date-values="{{ preserve_date_values|yesno:'true,false' }}">
+                    <option value="week" {% if selected_preset == "week" or request.GET.preset == "week" or not selected_preset and not request.GET.preset %}selected{% endif %}>Эта неделя</option>
+                    <option value="last-week" {% if selected_preset == "last-week" or request.GET.preset == "last-week" %}selected{% endif %}>Прошлая неделя</option>
+                    <option value="3" {% if selected_preset == "3" or request.GET.preset == "3" %}selected{% endif %}>Последние 3 дня</option>
+                    <option value="5" {% if selected_preset == "5" or request.GET.preset == "5" %}selected{% endif %}>Последние 5 дней</option>
+                    <option value="custom" {% if selected_preset == "custom" or request.GET.preset == "custom" %}selected{% endif %}>Указать даты вручную</option>
                 </select>
             </div>
 
@@ -87,10 +87,13 @@
 
     function applyPreset() {
         const isCustom = preset.value === 'custom';
+        const preserveDateValues = preset.dataset.preserveDateValues === 'true';
+        preset.dataset.preserveDateValues = 'false';
         // Скрываем или показываем всю строку с полями сразу
         customDateContainer.hidden = !isCustom;
         
         if (isCustom) return;
+        if (preserveDateValues) return;
 
         const end = parseDate(preset.dataset.applicationToday);
         const start = new Date(end);

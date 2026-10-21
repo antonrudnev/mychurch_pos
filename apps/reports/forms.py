@@ -7,11 +7,17 @@ from django.utils import timezone
 class ReportDateRangeForm(forms.Form):
     date_from = forms.DateField(
         label="С даты",
-        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        widget=forms.DateInput(
+            format="%Y-%m-%d",
+            attrs={"type": "date", "class": "form-control"},
+        ),
     )
     date_to = forms.DateField(
         label="По дату включительно",
-        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+        widget=forms.DateInput(
+            format="%Y-%m-%d",
+            attrs={"type": "date", "class": "form-control"},
+        ),
     )
 
     def __init__(self, *args, **kwargs):
