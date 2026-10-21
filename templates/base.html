@@ -88,18 +88,26 @@
                     </span>                    
                     {% if user.is_staff %}
                         <a href="/admin/" class="btn btn-sm btn-outline-warning me-3" title="Вход в панель администрирования">
-                            <i class="bi bi-shield-fill-exclamation fs-5"></i>
+                            <i class="bi bi-shield-fill-exclamation fs-5 m-1"></i>
                         </a>
                     {% endif %}
-                    <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary me-3">Сменить пароль</a>
-                    <form method="post" action="{% url 'logout' %}" class="m-0">
+                    <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary me-3" title="Сменить пароль">
+                        <i class="bi bi-key fs-5 m-1"></i>
+                    </a>
+                    <form method="post" action="{% url 'logout' %}" class="me-3">
                         {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Выйти</button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger " title="Выйти">
+                            <i class="bi bi-box-arrow-right fs-5 m-1"></i>
+                        </button>
                     </form>
                 {% else %}
                     <div class="d-flex d-none d-lg-inline-block">
-                        <a href="{% url 'login' %}" class="btn btn-sm btn-primary me-2">Войти</a>
-                        <a href="{% url 'register' %}" class="btn btn-sm btn-outline-light" id="reg-btn">Регистрация</a>
+                        <a href="{% url 'register' %}" class="btn btn-sm btn-light" id="reg-btn" title="Регистрация">
+                            Регистрация
+                        </a>
+                        <a href="{% url 'login' %}" class="btn btn-sm btn-outline-primary" title="Войти">
+                            Войти
+                        </a>
                     </div>
                 {% endif %}
             </div>
