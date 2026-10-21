@@ -74,7 +74,7 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             dump=html_dump
         )
         messages.success(request, f"'{report_name}' успешно сохранен")
-        return redirect('reports:report_list')
+        return redirect('reports:home')
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -378,14 +378,14 @@ class ReportManageView(PermissionRequiredMixin, View):
             report.name = form.cleaned_data['name']
             report.save(update_fields=['name'])
             messages.success(request, 'Название отчета изменено.')
-            return redirect('reports:report_list')
+            return redirect('reports:home')
 
         if action == 'delete':
             if not request.user.has_perm('reports.delete_report'):
                 raise PermissionDenied
             report.delete()
             messages.success(request, 'Отчет удален.')
-            return redirect('reports:report_list')
+            return redirect('reports:home')
 
         raise PermissionDenied
 
@@ -423,7 +423,7 @@ class DynamicReportRouterView(PermissionRequiredMixin, View):
         
         # Если класс в коде еще не написан, возвращаем пользователя в архив
         messages.error(request, "Этот тип документа еще не поддерживается системой.")
-        return redirect('reports:report_list')
+        return redirect('reports:home')
 
 
 class ReportTypeSelectView(PermissionRequiredMixin, ListView):

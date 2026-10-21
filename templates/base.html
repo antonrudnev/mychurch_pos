@@ -61,7 +61,7 @@
                     {% endif %}
                     {% if perms.reports.view_report %}
                         <li class="nav-item">
-                            <a class="nav-link" href="/reports/">
+                            <a class="nav-link" href="{% url 'reports:home' %}">
                                 {{ reports_app_verbose_name|default:"Отчеты" }}
                             </a>
                         </li>
