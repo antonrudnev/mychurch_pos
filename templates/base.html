@@ -37,7 +37,10 @@
 <nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
     <div class="container-fluid px-3">
         <!-- Логотип / Ссылка на главную -->
-        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">Ксения Петербургская</a>        
+        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">
+            <img src="{% static 'images/favicon.png' %}" width="30" height="30" class="d-inline-block align-text-center me-2">
+            Ксения Петербургская
+        </a>
 
         <!-- Кнопка-гамбургер для mobile -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
