@@ -114,6 +114,32 @@ class TransactionViewsTests(TestCase):
         self.assertNotContains(response, 'name="item"')
         self.assertNotContains(response, 'name="cashier"')
 
+    def test_manage_page_shows_transaction_data_as_labels_without_change_permission(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Сумма')
+        self.assertRegex(response.content.decode(), r'12[.,]50')
+        self.assertContains(response, 'Количество')
+        self.assertContains(response, '<div class="form-control-plaintext fw-bold">1</div>')
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="price"')
+        self.assertNotContains(response, 'name="quantity"')
+
+    def test_view_only_user_can_open_transaction_from_list(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(reverse('transactions:transaction_list'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[transaction.id])}"',
+        )
+
     def test_manage_page_edits_price_and_quantity_with_change_permission(self):
         self.grant_permission(self.user, 'change_transaction')
         transaction = self.create_transaction(self.user)
@@ -128,6 +154,97 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(transaction.price, Decimal('20.75'))
         self.assertEqual(transaction.quantity, 4)
 
+    def test_list_links_keep_the_current_page_when_opening_a_transaction(self):
+        transaction = self.create_transaction(self.user)
+        transaction.created_at = timezone.now() - timedelta(days=1)
+        transaction.save(update_fields=['created_at'])
+        for _ in range(5):
+            self.create_transaction(self.user)
+
+        response = self.client.get(
+            reverse('transactions:transaction_list'),
+            {'page': 2},
+        )
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[transaction.id])}?page=2"',
+        )
+
+    def test_manage_return_link_keeps_the_transaction_list_page(self):
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.get(
+            f'{reverse("transactions:transaction_manage", args=[transaction.id])}?page=2'
+        )
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_list")}?page=2"',
+        )
+
+    def test_save_returns_to_the_transaction_list_page(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            f'{reverse("transactions:transaction_manage", args=[transaction.id])}?page=2',
+            {'action': 'save', 'price': '20.75', 'quantity': '4'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            f'{reverse("transactions:transaction_list")}?page=2',
+        )
+
+    def test_delete_returns_to_the_transaction_list_page(self):
+        self.grant_permission(self.user, 'delete_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            f'{reverse("transactions:transaction_manage", args=[transaction.id])}?page=2',
+            {'action': 'delete'},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            f'{reverse("transactions:transaction_list")}?page=2',
+        )
+
+    def test_manage_page_saves_transactions_without_item_price(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.item.price = None
+        self.item.save(update_fields=['price'])
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'quantity': '4'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('12.50'))
+        self.assertEqual(transaction.quantity, 4)
+
+    def test_manage_page_saves_zero_price_item_without_posted_quantity(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.item.price = Decimal('0.00')
+        self.item.save(update_fields=['price'])
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'price': '20.75'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('20.75'))
+        self.assertEqual(transaction.quantity, 1)
+
     def test_manage_page_rejects_edit_without_change_permission(self):
         transaction = self.create_transaction(self.user)
 
@@ -140,6 +257,39 @@ class TransactionViewsTests(TestCase):
         transaction.refresh_from_db()
         self.assertEqual(transaction.price, Decimal('12.50'))
         self.assertEqual(transaction.quantity, 1)
+
+    def test_user_without_verify_permission_cannot_edit_verified_transaction(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'price': '20.75', 'quantity': '4'},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('12.50'))
+        self.assertEqual(transaction.quantity, 1)
+
+    def test_user_with_verify_permission_can_edit_verified_transaction(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'save', 'price': '20.75', 'quantity': '4'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertEqual(transaction.price, Decimal('20.75'))
+        self.assertEqual(transaction.quantity, 4)
 
     def test_manage_page_soft_deletes_transaction_with_delete_permission(self):
         self.grant_permission(self.user, 'delete_transaction')
@@ -158,6 +308,37 @@ class TransactionViewsTests(TestCase):
                 is_deleted=True,
             ).exists()
         )
+
+    def test_user_without_verify_permission_cannot_delete_verified_transaction(self):
+        self.grant_permission(self.user, 'delete_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'delete'},
+        )
+
+        self.assertEqual(response.status_code, 403)
+        transaction.refresh_from_db()
+        self.assertFalse(transaction.is_deleted)
+
+    def test_user_with_verify_permission_can_delete_verified_transaction(self):
+        self.grant_permission(self.user, 'delete_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {'action': 'delete'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertTrue(transaction.is_deleted)
 
     def test_user_with_verify_permission_can_verify_transaction(self):
         self.grant_permission(self.user, 'verify_transaction')
@@ -227,6 +408,20 @@ class TransactionViewsTests(TestCase):
         self.assertNotContains(response, 'name="action" value="save"')
         self.assertNotContains(response, 'name="action" value="delete"')
         self.assertNotContains(response, 'name="action" value="toggle_verification"')
+
+    def test_manage_page_hides_edit_and_delete_actions_for_verified_transaction(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'delete_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.save(update_fields=['is_verified'])
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.id])
+        )
+
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="delete"')
 
     def test_superuser_sees_all_transactions(self):
         superuser = get_user_model().objects.create_superuser(

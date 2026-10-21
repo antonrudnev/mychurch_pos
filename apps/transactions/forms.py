@@ -94,6 +94,14 @@ class TransactionManageForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        item_price = self.instance.item.price
+        if item_price is None:
+            self.fields.pop('price')
+        elif item_price == 0:
+            self.fields.pop('quantity')
+
 
 class TransactionForm(forms.ModelForm):
     class Meta:

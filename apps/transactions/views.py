@@ -1,3 +1,5 @@
+from urllib.parse import urlencode
+
 from directory.models import Item, ItemType
 from django.contrib import messages
 from django.contrib.auth.mixins import PermissionRequiredMixin
@@ -5,6 +7,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import transaction as db_transaction
 from django.db.models import Exists, Max, OuterRef
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
@@ -56,7 +59,22 @@ class TransactionListView(PermissionRequiredMixin, ListView):
 class TransactionManageView(TemplateView):
     template_name = 'transactions/transaction_manage.html'
 
+    def get_transaction_list_url(self, request):
+        page = request.GET.get('page')
+        if page and page.isdecimal() and len(page) <= 9:
+            return f"{reverse('transactions:transaction_list')}?{urlencode({'page': page})}"
+        return reverse('transactions:transaction_list')
+
+    def can_manage_transaction(self, user):
+        return (
+            not self.transaction.is_verified
+            or user.has_perm('transactions.verify_transaction')
+        )
+
     def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_perm('transactions.view_transaction'):
+            raise PermissionDenied
+
         self.transaction = get_object_or_404(
             Transaction.objects.select_related('item', 'item__item_type', 'cashier'),
             pk=kwargs['transaction_id'],
@@ -75,21 +93,27 @@ class TransactionManageView(TemplateView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get('action')
         if action == 'save':
-            if not request.user.has_perm('transactions.change_transaction'):
+            if (
+                not request.user.has_perm('transactions.change_transaction')
+                or not self.can_manage_transaction(request.user)
+            ):
                 raise PermissionDenied
             form = TransactionManageForm(request.POST, instance=self.transaction)
             if not form.is_valid():
                 return self.render_page(request, form, status=400)
             form.save()
             messages.success(request, 'Транзакция изменена.')
-            return redirect('transactions:transaction_list')
+            return redirect(self.get_transaction_list_url(request))
 
         if action == 'delete':
-            if not request.user.has_perm('transactions.delete_transaction'):
+            if (
+                not request.user.has_perm('transactions.delete_transaction')
+                or not self.can_manage_transaction(request.user)
+            ):
                 raise PermissionDenied
             self.transaction.delete_soft()
             messages.success(request, 'Транзакция удалена.')
-            return redirect('transactions:transaction_list')
+            return redirect(self.get_transaction_list_url(request))
 
         if action == 'toggle_verification':
             if not request.user.has_perm('transactions.verify_transaction'):
@@ -119,6 +143,18 @@ class TransactionManageView(TemplateView):
             {
                 'transaction': self.transaction,
                 'form': form,
+                'transaction_list_url': self.get_transaction_list_url(request),
+                'can_change_transaction': (
+                    request.user.has_perm('transactions.change_transaction')
+                    and self.can_manage_transaction(request.user)
+                ),
+                'can_view_all_transactions': request.user.has_perm(
+                    'transactions.view_all_transactions'
+                ),
+                'can_delete_transaction': (
+                    request.user.has_perm('transactions.delete_transaction')
+                    and self.can_manage_transaction(request.user)
+                ),
             },
             status=status,
         )

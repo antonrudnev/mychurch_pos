@@ -17,11 +17,7 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
                         <div>
                             <h2 class="fw-normal h5 mb-1 text-body">
-                                {% if perms.transactions.change_transaction or perms.transactions.delete_transaction %}
-                                    <a href="{% url 'transactions:transaction_manage' transaction.id %}" class="link-body-emphasis text-decoration-none">{{ transaction.item.name }}</a>
-                                {% else %}
-                                    {{ transaction.item.name }}
-                                {% endif %}
+                                <a href="{% url 'transactions:transaction_manage' transaction.id %}?page={{ page_obj.number }}" class="link-body-emphasis text-decoration-none">{{ transaction.item.name }}</a>
                             </h2>
                             <p class="text-secondary mb-0 fs-6 fw-light">
                                 <span class="fw-normal text-muted small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
