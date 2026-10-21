@@ -341,12 +341,17 @@ class TransactionViewsTests(TestCase):
         self.assertTrue(transaction.is_deleted)
 
     def test_user_with_verify_permission_can_verify_transaction(self):
+        self.grant_permission(self.user, 'change_transaction')
         self.grant_permission(self.user, 'verify_transaction')
         transaction = self.create_transaction(self.user)
 
         response = self.client.post(
             reverse('transactions:transaction_manage', args=[transaction.id]),
-            {'action': 'toggle_verification'},
+            {
+                'action': 'toggle_verification',
+                'price': '20.75',
+                'quantity': '4',
+            },
         )
 
         self.assertRedirects(
@@ -356,6 +361,28 @@ class TransactionViewsTests(TestCase):
         transaction.refresh_from_db()
         self.assertTrue(transaction.is_verified)
         self.assertEqual(transaction.verified_by, self.user)
+        self.assertEqual(transaction.price, Decimal('20.75'))
+        self.assertEqual(transaction.quantity, 4)
+
+    def test_verification_does_not_happen_when_transaction_changes_are_invalid(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+
+        response = self.client.post(
+            reverse('transactions:transaction_manage', args=[transaction.id]),
+            {
+                'action': 'toggle_verification',
+                'price': '-1.00',
+                'quantity': '4',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        transaction.refresh_from_db()
+        self.assertFalse(transaction.is_verified)
+        self.assertEqual(transaction.price, Decimal('12.50'))
+        self.assertEqual(transaction.quantity, 1)
 
     def test_user_with_verify_permission_can_unverify_transaction(self):
         self.grant_permission(self.user, 'verify_transaction')
