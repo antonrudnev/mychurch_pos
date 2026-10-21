@@ -118,11 +118,24 @@ class TransactionManageView(TemplateView):
         if action == 'toggle_verification':
             if not request.user.has_perm('transactions.verify_transaction'):
                 raise PermissionDenied
+
+            if (
+                not self.transaction.is_verified
+                and request.user.has_perm('transactions.change_transaction')
+            ):
+                form = TransactionManageForm(
+                    request.POST,
+                    instance=self.transaction,
+                )
+                if not form.is_valid():
+                    return self.render_page(request, form, status=400)
+                self.transaction = form.save(commit=False)
+
             self.transaction.is_verified = not self.transaction.is_verified
             self.transaction.verified_by = (
                 request.user if self.transaction.is_verified else None
             )
-            self.transaction.save(update_fields=['is_verified', 'verified_by'])
+            self.transaction.save()
             messages.success(
                 request,
                 'Транзакция подтверждена.'
