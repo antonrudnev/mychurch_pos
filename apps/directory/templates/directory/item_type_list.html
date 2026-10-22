@@ -11,7 +11,7 @@
         <div class="row row-cols-1 row-cols-sm-2 g-3 my-4">
             {% for item_type in item_types %}
                 <div class="col">
-                    <a href="{% url 'directory:item_type_detail' item_type.pk %}" class="btn btn-info w-100 h-100 py-3 d-flex align-items-center justify-content-center fs-5">
+                    <a href="{% url 'directory:item_type_detail' item_type.pk %}" class="btn btn-danger w-100 h-100 py-3 d-flex align-items-center justify-content-center fs-5">
                         {{ item_type.name }}
                     </a>
                 </div>
