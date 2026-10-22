@@ -38,7 +38,7 @@
                                 {% endif %}
                             </div>
                             {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}
-                                <div class="text-secondary small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
+                                <div class="{% if transaction.cashier == user %}text-secondary{% else %}text-primary{% endif %} small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
                             {% endif %}
                         </div>
                     </div>
