@@ -159,6 +159,7 @@ class DirectoryViewsTests(TestCase):
 
     def test_item_detail_edits_type_name_price_and_order_number(self):
         self.grant_permission('change_item')
+        self.grant_permission('change_itemtype')
         item_type = self.create_item_type('Каталог исходный тип', 'catalog-source-type')
         new_type = self.create_item_type('Каталог новый тип', 'catalog-new-type')
         item = self.create_item(
@@ -188,6 +189,47 @@ class DirectoryViewsTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.item_type, new_type)
         self.assertEqual(item.name, 'Каталог новая позиция')
+        self.assertEqual(item.price, Decimal('19.25'))
+        self.assertEqual(item.order_number, 7)
+
+    def test_item_type_is_read_only_without_change_itemtype_permission(self):
+        self.grant_permission('change_item')
+        item_type = self.create_item_type(
+            'Каталог неизменяемая категория',
+            'catalog-fixed-category',
+        )
+        other_type = self.create_item_type(
+            'Каталог поддельная категория',
+            'catalog-forged-category',
+        )
+        item = self.create_item(
+            item_type,
+            'Каталог редактирование без категории',
+            'catalog-edit-no-category',
+            Decimal('3.00'),
+        )
+        detail_url = reverse('directory:item_detail', args=[item.pk])
+
+        get_response = self.client.get(detail_url)
+        self.assertContains(get_response, 'Каталог')
+        self.assertContains(get_response, item_type.name)
+        self.assertNotContains(get_response, 'name="item_type"')
+
+        post_response = self.client.post(
+            detail_url,
+            {
+                'action': 'save',
+                'item_type': other_type.pk,
+                'name': 'Обновленное название',
+                'price': '19.25',
+                'order_number': '7',
+            },
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.item_type, item_type)
+        self.assertEqual(item.name, 'Обновленное название')
         self.assertEqual(item.price, Decimal('19.25'))
         self.assertEqual(item.order_number, 7)
 

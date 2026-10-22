@@ -28,6 +28,11 @@ class ItemForm(forms.ModelForm):
             }),
         }
 
+    def __init__(self, *args, can_change_item_type=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not can_change_item_type:
+            self.fields.pop('item_type')
+
 
 class ItemTypeListView(PermissionRequiredMixin, ListView):
     model = ItemType
@@ -90,7 +95,18 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        return self.render_page(request, ItemForm(instance=self.item))
+        return self.render_page(
+            request,
+            self.get_form(request, instance=self.item),
+        )
+
+    def get_form(self, request, **kwargs):
+        return ItemForm(
+            can_change_item_type=request.user.has_perm(
+                'directory.change_itemtype'
+            ),
+            **kwargs,
+        )
 
     def get_item_list_url(self, request):
         list_url = reverse(
@@ -114,7 +130,11 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
         if action == 'save':
             if not request.user.has_perm('directory.change_item'):
                 raise PermissionDenied
-            form = ItemForm(request.POST, instance=self.item)
+            form = self.get_form(
+                request,
+                data=request.POST,
+                instance=self.item,
+            )
             if not form.is_valid():
                 return self.render_page(request, form, status=400)
             form.save()
@@ -142,6 +162,9 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
                 'item': self.item,
                 'form': form,
                 'item_list_url': self.get_item_list_url(request),
+                'can_change_item_type': request.user.has_perm(
+                    'directory.change_itemtype'
+                ),
             },
             status=status,
         )
