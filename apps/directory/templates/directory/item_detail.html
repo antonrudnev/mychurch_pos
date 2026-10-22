@@ -28,13 +28,6 @@
                 <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
             </form>
 
-            <form method="post" onsubmit="return confirm('{% if item.is_active %}Деактивировать{% else %}Активировать{% endif %} эту позицию?');">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="toggle_active">
-                <button type="submit" class="btn btn-outline-danger w-100 py-2 text-uppercase">
-                    {% if item.is_active %}Деактивировать{% else %}Активировать{% endif %}
-                </button>
-            </form>
         {% else %}
             <div class="mb-3">
                 <div class="form-label">{{ form.item_type.label }}</div>
@@ -54,9 +47,19 @@
                 <div class="form-label">{{ form.order_number.label }}</div>
                 <div class="form-control-plaintext">{{ item.order_number }}</div>
             </div>
+            <div class="border-top border-subtle my-4"></div>
         {% endif %}
-        {% if perms.directory.item_type_view %}
-            <a href="{% url 'directory:item_type_detail' item.item_type_id %}" class="btn btn-outline-secondary w-100 py-2 mt-3 text-uppercase">
+        {% if perms.directory.delete_item %}
+            <form method="post" onsubmit="return confirm('{% if item.is_active %}Деактивировать{% else %}Активировать{% endif %} эту позицию?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="toggle_active">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2 mb-3 text-uppercase">
+                    {% if item.is_active %}Деактивировать{% else %}Активировать{% endif %}
+                </button>
+            </form>
+        {% endif %}
+        {% if perms.directory.view_itemtype %}
+            <a href="{% url 'directory:item_type_detail' item.item_type_id %}" class="btn btn-outline-secondary w-100 py-2 text-uppercase">
                 <i class="bi bi-arrow-left me-1"></i> Вернуться
             </a>
         {% endif %}

@@ -32,7 +32,7 @@ class ItemTypeListView(PermissionRequiredMixin, ListView):
     model = ItemType
     template_name = 'directory/item_type_list.html'
     context_object_name = 'item_types'
-    permission_required = 'directory.item_type_view'
+    permission_required = 'directory.view_itemtype'
     raise_exception = True
 
     def get_queryset(self):
@@ -52,7 +52,7 @@ class ItemTypeDetailView(PermissionRequiredMixin, ListView):
     model = Item
     template_name = 'directory/item_type_detail.html'
     context_object_name = 'items'
-    permission_required = 'directory.item_type_view'
+    permission_required = 'directory.view_itemtype'
     raise_exception = True
     paginate_by = 5
 
@@ -91,11 +91,10 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
         return self.render_page(request, ItemForm(instance=self.item))
 
     def post(self, request, *args, **kwargs):
-        if not request.user.has_perm('directory.change_item'):
-            raise PermissionDenied
-
         action = request.POST.get('action')
         if action == 'save':
+            if not request.user.has_perm('directory.change_item'):
+                raise PermissionDenied
             form = ItemForm(request.POST, instance=self.item)
             if not form.is_valid():
                 return self.render_page(request, form, status=400)
@@ -104,6 +103,8 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
             return redirect('directory:item_detail', pk=self.item.pk)
 
         if action == 'toggle_active':
+            if not request.user.has_perm('directory.delete_item'):
+                raise PermissionDenied
             self.item.is_active = not self.item.is_active
             self.item.save(update_fields=['is_active'])
             messages.success(

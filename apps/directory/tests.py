@@ -16,7 +16,7 @@ class DirectoryViewsTests(TestCase):
         )
         permissions = Permission.objects.filter(
             content_type__app_label='directory',
-            codename__in=('view_item', 'item_type_view'),
+            codename__in=('view_item', 'view_itemtype'),
         )
         self.user.user_permissions.add(*permissions)
         self.client.force_login(self.user)
@@ -215,7 +215,7 @@ class DirectoryViewsTests(TestCase):
         self.assertEqual(item.price, Decimal('3.00'))
 
     def test_item_detail_can_activate_and_deactivate_with_change_permission(self):
-        self.grant_permission('change_item')
+        self.grant_permission('delete_item')
         item_type = self.create_item_type('Каталог статус', 'catalog-status')
         item = self.create_item(
             item_type,
@@ -231,6 +231,9 @@ class DirectoryViewsTests(TestCase):
         self.assertRedirects(response, detail_url)
         item.refresh_from_db()
         self.assertTrue(item.is_active)
+        detail_response = self.client.get(detail_url)
+        self.assertContains(detail_response, 'name="action" value="toggle_active"')
+        self.assertNotContains(detail_response, 'name="action" value="save"')
 
         response = self.client.post(detail_url, {'action': 'toggle_active'})
 
@@ -238,7 +241,8 @@ class DirectoryViewsTests(TestCase):
         item.refresh_from_db()
         self.assertFalse(item.is_active)
 
-    def test_item_detail_rejects_status_change_without_change_permission(self):
+    def test_item_detail_rejects_status_change_without_delete_permission(self):
+        self.grant_permission('change_item')
         item_type = self.create_item_type('Каталог статус без прав', 'catalog-status-no-change')
         item = self.create_item(
             item_type,
@@ -256,8 +260,29 @@ class DirectoryViewsTests(TestCase):
         item.refresh_from_db()
         self.assertTrue(item.is_active)
 
+    def test_item_detail_can_change_status_with_delete_permission_only(self):
+        self.grant_permission('delete_item')
+        item_type = self.create_item_type(
+            'Каталог только удаление',
+            'catalog-delete-only',
+        )
+        item = self.create_item(
+            item_type,
+            'Каталог позиция удаление',
+            'catalog-delete-only-item',
+            Decimal('3.00'),
+            is_active=False,
+        )
+        detail_url = reverse('directory:item_detail', args=[item.pk])
+
+        response = self.client.post(detail_url, {'action': 'toggle_active'})
+
+        self.assertRedirects(response, detail_url)
+        item.refresh_from_db()
+        self.assertTrue(item.is_active)
+
     def test_directory_views_require_view_item_permission(self):
-        self.remove_permission('item_type_view')
+        self.remove_permission('view_itemtype')
         self.remove_permission('view_item')
 
         home_response = self.client.get(reverse('directory:home'))
@@ -268,7 +293,7 @@ class DirectoryViewsTests(TestCase):
         self.assertEqual(home_response.status_code, 403)
         self.assertEqual(detail_response.status_code, 403)
 
-    def test_item_type_view_permission_allows_type_pages_without_item_details(self):
+    def test_view_itemtype_permission_allows_type_pages_without_item_details(self):
         self.remove_permission('view_item')
         item_type = self.create_item_type(
             'Каталог только тип просмотр',
@@ -299,7 +324,7 @@ class DirectoryViewsTests(TestCase):
         self.assertEqual(item_response.status_code, 403)
 
     def test_item_view_permission_allows_item_details_without_type_pages(self):
-        self.remove_permission('item_type_view')
+        self.remove_permission('view_itemtype')
         item_type = self.create_item_type(
             'Каталог item view тип',
             'catalog-item-view-type',
