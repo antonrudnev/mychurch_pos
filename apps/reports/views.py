@@ -44,12 +44,11 @@ def render_cash_report_document(html, base_url):
         tbody { height: auto !important; }
         tr { break-inside: avoid; }
         td {
-            padding: 1mm 1.5mm !important;
-            line-height: 2.4 !important;
+            padding: 2.2mm 2mm !important;
+            line-height: 1.4 !important;
+            color: black !important;
         }
         .name-cell-tall { height: 100px !important; }
-        .quantity-cell { font-weight: normal !important; color: black !important; }
-        .cash-cell { font-weight: normal !important; color: black !important; }
         .report-footer { margin: 0 !important; font-size: 8pt !important; }
         .report-actions, .alert-success { display: none !important; }
     """)

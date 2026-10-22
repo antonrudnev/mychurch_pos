@@ -17,6 +17,7 @@
         .name-cell-tall { width: 20%; height: 55px; vertical-align: middle; text-align: center;}
         .name-cell-right { width: 20%; text-align: right; font-weight: bold;}
         .cash-cell { font-weight: bold; color: #2980b9; width: 30%; text-align: center;}
+        .cash-cell-tall { font-weight: bold; color: #2980b9; width: 80%; text-align: left;}
         .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; } 
 
         
@@ -137,7 +138,7 @@
             </tr>
             <tr>
                 <td class="name-cell-tall">Прочие требы:</td>
-                <td class="quantity-cell" style="text-align:left" colspan="3">
+                <td class="cash-cell-tall" colspan="3">
                     {% if donate_data is not None %}
                         {% for row in donate_data %}
                             {{ row.item__name }} {{ row.total_cost|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
@@ -173,7 +174,7 @@
                     {% if bank_terminal_total is not None %}
                         {{ bank_terminal_total|floatformat:"2g" }}
                         {% if bank_terminal_sales %}
-                           - {{ donate_total|floatformat:"2g" }} = {{ bank_terminal_sales|floatformat:"2g" }}
+                           - {{ donate_total|floatformat:"2g" }}<br>= {{ bank_terminal_sales|floatformat:"2g" }}
                         {% endif %}<span style="font-weight: normal;"> &#8381</span>
                     {% endif %}
                 </td>
@@ -197,7 +198,7 @@
             </tr>
             <tr>
                 <td class="name-cell-tall">Прочие расходы:</td>
-                <td class="quantity-cell" style="text-align:left" colspan="3">
+                <td class="cash-cell-tall" colspan="3">
                     {% if other_expense_data is not None %}
                         {% for row in other_expense_data %}
                             {{ row.item__name }} {{ row.total_cost|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381</span>{% if not forloop.last %}; {% endif %}
