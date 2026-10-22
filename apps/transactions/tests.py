@@ -343,6 +343,15 @@ class TransactionViewsTests(TestCase):
             f'href="{reverse("transactions:transaction_list")}?page=2"',
         )
 
+    def test_edit_form_preserves_list_page_in_its_post_url(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+        manage_url = reverse('transactions:transaction_manage', args=[transaction.id])
+
+        response = self.client.get(f'{manage_url}?page=2')
+
+        self.assertContains(response, f'action="{manage_url}?page=2"')
+
     def test_save_returns_to_the_transaction_list_page(self):
         self.grant_permission(self.user, 'change_transaction')
         transaction = self.create_transaction(self.user)
@@ -504,11 +513,21 @@ class TransactionViewsTests(TestCase):
         self.grant_permission(self.user, 'change_transaction')
         self.grant_permission(self.user, 'verify_transaction')
         transaction = self.create_transaction(self.user)
+        transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12))
+        transaction.save(update_fields=['created_at'])
+        for minute in range(6):
+            other_transaction = self.create_transaction(self.user)
+            other_transaction.created_at = timezone.make_aware(
+                datetime(2025, 1, 2, 13, minute)
+            )
+            other_transaction.save(update_fields=['created_at'])
 
         response = self.client.post(
-            reverse('transactions:transaction_manage', args=[transaction.id]),
+            f"{reverse('transactions:transaction_manage', args=[transaction.id])}"
+            "?unverified=1&date_from=2025-01-02&date_to=2025-01-03"
+            "&preset=week&page=2",
             {
-                'action': 'toggle_verification',
+                'action': 'save_and_verify',
                 'price': '20.75',
                 'quantity': '4',
             },
@@ -516,7 +535,9 @@ class TransactionViewsTests(TestCase):
 
         self.assertRedirects(
             response,
-            reverse('transactions:transaction_manage', args=[transaction.id]),
+            f"{reverse('transactions:transaction_list')}"
+            "?unverified=1&date_from=2025-01-02&date_to=2025-01-03"
+            "&preset=week&page=2",
         )
         transaction.refresh_from_db()
         self.assertTrue(transaction.is_verified)
@@ -532,7 +553,7 @@ class TransactionViewsTests(TestCase):
         response = self.client.post(
             reverse('transactions:transaction_manage', args=[transaction.id]),
             {
-                'action': 'toggle_verification',
+                'action': 'save_and_verify',
                 'price': '-1.00',
                 'quantity': '4',
             },
@@ -549,20 +570,64 @@ class TransactionViewsTests(TestCase):
         transaction = self.create_transaction(self.user)
         transaction.is_verified = True
         transaction.verified_by = self.other_user
+        transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12))
         transaction.save(update_fields=['is_verified', 'verified_by'])
 
         response = self.client.post(
-            reverse('transactions:transaction_manage', args=[transaction.id]),
+            f"{reverse('transactions:transaction_manage', args=[transaction.id])}"
+            "?unverified=1&date_from=2025-01-02&date_to=2025-01-03"
+            "&preset=week&page=1",
             {'action': 'toggle_verification'},
         )
 
         self.assertRedirects(
             response,
-            reverse('transactions:transaction_manage', args=[transaction.id]),
+            f"{reverse('transactions:transaction_manage', args=[transaction.id])}"
+            "?unverified=1&date_from=2025-01-02&date_to=2025-01-03"
+            "&preset=week&page=1",
         )
         transaction.refresh_from_db()
         self.assertFalse(transaction.is_verified)
         self.assertIsNone(transaction.verified_by)
+
+    def test_toggle_then_save_and_verify_keeps_plain_list_page(self):
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.verified_by = self.other_user
+        transaction.save(update_fields=['is_verified', 'verified_by'])
+        manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[transaction.id],
+        )
+
+        toggle_response = self.client.post(
+            f'{manage_url}?page=2',
+            {'action': 'toggle_verification'},
+        )
+
+        expected_manage_url = f'{manage_url}?page=2'
+        self.assertRedirects(
+            toggle_response,
+            expected_manage_url,
+            fetch_redirect_response=False,
+        )
+
+        verify_response = self.client.post(
+            expected_manage_url,
+            {
+                'action': 'save_and_verify',
+                'price': '20.75',
+                'quantity': '4',
+            },
+        )
+
+        self.assertRedirects(
+            verify_response,
+            f'{reverse("transactions:transaction_list")}?page=2',
+            fetch_redirect_response=False,
+        )
 
     def test_user_without_verify_permission_cannot_toggle_verification(self):
         transaction = self.create_transaction(self.user)

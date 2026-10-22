@@ -28,7 +28,7 @@
         </table>
 
         {% if can_change_transaction %}
-            <form method="post" class="mb-4">
+            <form method="post" action="{{ request.get_full_path }}" class="mb-4">
                 {% csrf_token %}
                 {% for field in form %}
                     <div class="mb-3">
@@ -43,9 +43,10 @@
                     <div class="alert alert-danger">{{ error }}</div>
                 {% endfor %}
                 <div class="border-top border-subtle my-4"></div>
-                <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
                 {% if perms.transactions.verify_transaction %}
-                    <button type="submit" name="action" value="toggle_verification" class="btn btn-success w-100 py-2 mt-2 text-uppercase">Подтвердить транзакцию</button>
+                    <button type="submit" name="action" value="save_and_verify" class="btn btn-success w-100 py-2 mt-2 text-uppercase">Принять и сохранить</button>
+                {% else %}
+                    <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
                 {% endif %}
             </form>
         {% else %}
@@ -82,9 +83,9 @@
                 {% csrf_token %}
                 <input type="hidden" name="action" value="toggle_verification">
                 {% if transaction.is_verified %}
-                    <button type="submit" class="btn btn-warning w-100 py-2 text-uppercase">Снять подтверждение</button>
+                    <button type="submit" class="btn btn-warning w-100 py-2 text-uppercase">Отклонить</button>
                 {% else %}
-                    <button type="submit" class="btn btn-success w-100 py-2 text-uppercase">Подтвердить транзакцию</button>
+                    <button type="submit" class="btn btn-success w-100 py-2 text-uppercase">Принять</button>
                 {% endif %}
             </form>
         {% endif %}

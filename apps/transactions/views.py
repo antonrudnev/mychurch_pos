@@ -229,6 +229,26 @@ class TransactionManageView(TemplateView):
             messages.success(request, 'Транзакция удалена.')
             return redirect(self.get_transaction_list_url(request))
 
+        if action == 'save_and_verify':
+            if (
+                not request.user.has_perm('transactions.verify_transaction')
+                or not request.user.has_perm('transactions.change_transaction')
+                or self.transaction.is_verified
+            ):
+                raise PermissionDenied
+
+            form = TransactionManageForm(request.POST, instance=self.transaction)
+            if not form.is_valid():
+                return self.render_page(request, form, status=400)
+
+            self.transaction = form.save(commit=False)
+            self.transaction.is_verified = True
+            self.transaction.verified_by = request.user
+            self.transaction.save()
+            form.save_m2m()
+            messages.success(request, 'Транзакция подтверждена.')
+            return redirect(self.get_transaction_list_url(request))
+
         if action == 'toggle_verification':
             if not request.user.has_perm('transactions.verify_transaction'):
                 raise PermissionDenied
@@ -261,6 +281,10 @@ class TransactionManageView(TemplateView):
                 args=[self.transaction.pk],
             )
             review_query = self.get_review_query(request)
+            if not review_query:
+                page = request.GET.get('page')
+                if page and page.isdecimal() and len(page) <= 9:
+                    review_query = urlencode({'page': page})
             if review_query:
                 manage_url = f'{manage_url}?{review_query}'
             return redirect(manage_url)
