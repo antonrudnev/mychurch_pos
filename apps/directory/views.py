@@ -4,6 +4,7 @@ from django import forms
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.generic import ListView, TemplateView
 
 from .models import Item, ItemType
@@ -85,10 +86,28 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
             Item.objects.select_related('item_type'),
             pk=kwargs['pk'],
         )
+        self.origin_item_type_id = self.item.item_type_id
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         return self.render_page(request, ItemForm(instance=self.item))
+
+    def get_item_list_url(self, request):
+        list_url = reverse(
+            'directory:item_type_detail',
+            args=[self.origin_item_type_id],
+        )
+        page = request.GET.get('page')
+        if page and page.isdecimal() and len(page) <= 9:
+            return f'{list_url}?page={page}'
+        return list_url
+
+    def get_item_detail_url(self, request):
+        detail_url = reverse('directory:item_detail', args=[self.item.pk])
+        page = request.GET.get('page')
+        if page and page.isdecimal() and len(page) <= 9:
+            return f'{detail_url}?page={page}'
+        return detail_url
 
     def post(self, request, *args, **kwargs):
         action = request.POST.get('action')
@@ -100,7 +119,7 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
                 return self.render_page(request, form, status=400)
             form.save()
             messages.success(request, 'Позиция справочника изменена.')
-            return redirect('directory:item_detail', pk=self.item.pk)
+            return redirect(self.get_item_list_url(request))
 
         if action == 'toggle_active':
             if not request.user.has_perm('directory.delete_item'):
@@ -111,7 +130,7 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
                 request,
                 'Позиция активирована.' if self.item.is_active else 'Позиция деактивирована.',
             )
-            return redirect('directory:item_detail', pk=self.item.pk)
+            return redirect(self.get_item_detail_url(request))
 
         raise PermissionDenied
 
@@ -119,6 +138,10 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
         return render(
             request,
             self.template_name,
-            {'item': self.item, 'form': form},
+            {
+                'item': self.item,
+                'form': form,
+                'item_list_url': self.get_item_list_url(request),
+            },
             status=status,
         )

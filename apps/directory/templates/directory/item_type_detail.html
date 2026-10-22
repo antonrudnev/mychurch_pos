@@ -16,7 +16,7 @@
                         <div>
                             <h2 class="fw-normal h5 mb-1 text-body">
                                 {% if perms.directory.view_item %}
-                                    <a href="{% url 'directory:item_detail' item.pk %}" class="link-body-emphasis text-decoration-none">{{ item.name }}</a>
+                                    <a href="{% url 'directory:item_detail' item.pk %}?page={{ page_obj.number }}" class="link-body-emphasis text-decoration-none">{{ item.name }}</a>
                                 {% else %}
                                     {{ item.name }}
                                 {% endif %}

@@ -9,7 +9,7 @@
         <p class="text-secondary text-center text-uppercase">{% if item.is_active %}<span class="text-success">Доступно</span>{% else %}<span class="text-danger">Не доступно</span>{% endif %}</p>
 
         {% if perms.directory.change_item %}
-            <form method="post" class="mb-4">
+            <form method="post" action="{{ request.get_full_path }}" class="mb-4">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="save">
                 {% for field in form %}
@@ -50,7 +50,7 @@
             <div class="border-top border-subtle my-4"></div>
         {% endif %}
         {% if perms.directory.delete_item %}
-            <form method="post" onsubmit="return confirm('{% if item.is_active %}Деактивировать{% else %}Активировать{% endif %} эту позицию?');">
+            <form method="post" action="{{ request.get_full_path }}" onsubmit="return confirm('{% if item.is_active %}Деактивировать{% else %}Активировать{% endif %} эту позицию?');">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="toggle_active">
                 <button type="submit" class="btn btn-outline-danger w-100 py-2 mb-3 text-uppercase">
@@ -59,7 +59,7 @@
             </form>
         {% endif %}
         {% if perms.directory.view_itemtype %}
-            <a href="{% url 'directory:item_type_detail' item.item_type_id %}" class="btn btn-outline-secondary w-100 py-2 text-uppercase">
+            <a href="{{ item_list_url }}" class="btn btn-outline-secondary w-100 py-2 text-uppercase">
                 <i class="bi bi-arrow-left me-1"></i> Вернуться
             </a>
         {% endif %}

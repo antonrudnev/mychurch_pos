@@ -154,7 +154,7 @@ class DirectoryViewsTests(TestCase):
 
         self.assertContains(
             response,
-            f'href="{reverse("directory:item_detail", args=[item.pk])}"',
+            f'href="{reverse("directory:item_detail", args=[item.pk])}?page=1"',
         )
 
     def test_item_detail_edits_type_name_price_and_order_number(self):
@@ -168,8 +168,9 @@ class DirectoryViewsTests(TestCase):
             Decimal('3.00'),
         )
 
+        detail_url = reverse('directory:item_detail', args=[item.pk])
         response = self.client.post(
-            reverse('directory:item_detail', args=[item.pk]),
+            f'{detail_url}?page=2',
             {
                 'action': 'save',
                 'item_type': new_type.pk,
@@ -179,15 +180,72 @@ class DirectoryViewsTests(TestCase):
             },
         )
 
-        self.assertRedirects(
-            response,
-            reverse('directory:item_detail', args=[item.pk]),
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response.url,
+            f'{reverse("directory:item_type_detail", args=[item_type.pk])}?page=2',
         )
         item.refresh_from_db()
         self.assertEqual(item.item_type, new_type)
         self.assertEqual(item.name, 'Каталог новая позиция')
         self.assertEqual(item.price, Decimal('19.25'))
         self.assertEqual(item.order_number, 7)
+
+    def test_item_detail_return_link_keeps_items_list_page(self):
+        item_type = self.create_item_type(
+            'Каталог возврат страницы',
+            'catalog-return-page',
+        )
+        item = self.create_item(
+            item_type,
+            'Каталог возврат позиция',
+            'catalog-return-item',
+            Decimal('3.00'),
+        )
+
+        response = self.client.get(
+            f'{reverse("directory:item_detail", args=[item.pk])}?page=2'
+        )
+
+        self.assertContains(
+            response,
+            f'href="{reverse("directory:item_type_detail", args=[item_type.pk])}?page=2"',
+        )
+
+    def test_toggle_active_keeps_item_list_page_for_return(self):
+        self.grant_permission('delete_item')
+        item_type = self.create_item_type(
+            'Каталог переключение страницы',
+            'catalog-toggle-page',
+        )
+        item = self.create_item(
+            item_type,
+            'Каталог позиция переключение',
+            'catalog-toggle-page-item',
+            Decimal('3.00'),
+        )
+        detail_url = reverse('directory:item_detail', args=[item.pk])
+        detail_url_with_page = f'{detail_url}?page=2'
+
+        detail_response = self.client.get(detail_url_with_page)
+        self.assertContains(
+            detail_response,
+            f'action="{detail_url_with_page}"',
+        )
+
+        toggle_response = self.client.post(
+            detail_url_with_page,
+            {'action': 'toggle_active'},
+            follow=False,
+        )
+
+        self.assertEqual(toggle_response.status_code, 302)
+        self.assertEqual(toggle_response.url, detail_url_with_page)
+        detail_response = self.client.get(toggle_response.url)
+        self.assertContains(
+            detail_response,
+            f'href="{reverse("directory:item_type_detail", args=[item_type.pk])}?page=2"',
+        )
 
     def test_item_detail_rejects_edits_without_change_permission(self):
         item_type = self.create_item_type('Каталог без прав', 'catalog-no-change')
@@ -319,7 +377,7 @@ class DirectoryViewsTests(TestCase):
         self.assertEqual(type_response.status_code, 200)
         self.assertNotContains(
             type_response,
-            f'href="{reverse("directory:item_detail", args=[item.pk])}"',
+            f'href="{reverse("directory:item_detail", args=[item.pk])}?page=1"',
         )
         self.assertEqual(item_response.status_code, 403)
 
