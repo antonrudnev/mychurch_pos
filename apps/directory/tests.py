@@ -113,6 +113,39 @@ class DirectoryViewsTests(TestCase):
         self.assertContains(response, '25')
         self.assertContains(response, 'Снято с продажи')
 
+    def test_item_type_detail_shows_only_items_with_nonzero_prices(self):
+        item_type = self.create_item_type(
+            'Каталог цены',
+            'catalog-price-filter',
+        )
+        priced_item = self.create_item(
+            item_type,
+            'Каталог позиция с ценой',
+            'catalog-priced-item',
+            Decimal('25.50'),
+        )
+        self.create_item(
+            item_type,
+            'Каталог позиция нулевая',
+            'catalog-zero-price-item',
+            Decimal('0.00'),
+        )
+        self.create_item(
+            item_type,
+            'Каталог позиция без цены',
+            'catalog-no-price-item',
+            None,
+        )
+
+        response = self.client.get(
+            reverse('directory:item_type_detail', args=[item_type.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, priced_item.name)
+        self.assertNotContains(response, 'Каталог позиция нулевая')
+        self.assertNotContains(response, 'Каталог позиция без цены')
+
     def test_item_type_detail_uses_five_item_pagination(self):
         item_type = self.create_item_type('Каталог тест пагинация', 'catalog-test-pagination')
         items = [

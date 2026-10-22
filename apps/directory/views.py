@@ -71,6 +71,8 @@ class ItemTypeDetailView(PermissionRequiredMixin, ListView):
         return (
             Item.objects
             .filter(item_type=self.get_item_type())
+            .filter(price__isnull=False)
+            .exclude(price=0)
             .select_related('item_type')
             .order_by('order_number', 'name')
         )
