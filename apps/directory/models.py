@@ -94,6 +94,10 @@ class Item(models.Model):
         verbose_name_plural = "Реестр товаров и услуг"
         ordering = ('item_type__name', 'name')
 
+        permissions = [
+            ("change_item_price", f"Can change {verbose_name} price"),
+        ]
+
     def save(self, *args, **kwargs):
         if not self.pk and self.order_number == 1:
             max_order = Item.objects.aggregate(max_val=Max('order_number'))['max_val']

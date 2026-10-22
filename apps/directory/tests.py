@@ -225,6 +225,46 @@ class DirectoryViewsTests(TestCase):
         self.assertEqual(item.price, Decimal('19.25'))
         self.assertEqual(item.order_number, 7)
 
+    def test_item_detail_price_permission_only_changes_price(self):
+        self.grant_permission('change_item_price')
+        item_type = self.create_item_type(
+            'Каталог изменение цены',
+            'catalog-price-permission',
+        )
+        item = self.create_item(
+            item_type,
+            'Каталог только цена',
+            'catalog-price-only',
+            Decimal('3.00'),
+        )
+        original_order_number = item.order_number
+        detail_url = reverse('directory:item_detail', args=[item.pk])
+
+        get_response = self.client.get(detail_url)
+
+        self.assertContains(get_response, 'name="price"')
+        self.assertContains(get_response, 'Каталог только цена')
+        self.assertNotContains(get_response, 'name="name"')
+        self.assertNotContains(get_response, 'name="order_number"')
+
+        post_response = self.client.post(
+            detail_url,
+            {
+                'action': 'save',
+                'item_type': '',
+                'name': 'Подмененное название',
+                'price': '19.25',
+                'order_number': '7',
+            },
+        )
+
+        self.assertEqual(post_response.status_code, 302)
+        item.refresh_from_db()
+        self.assertEqual(item.item_type, item_type)
+        self.assertEqual(item.name, 'Каталог только цена')
+        self.assertEqual(item.price, Decimal('19.25'))
+        self.assertEqual(item.order_number, original_order_number)
+
     def test_item_type_is_read_only_without_change_itemtype_permission(self):
         self.grant_permission('change_item')
         item_type = self.create_item_type(

@@ -28,8 +28,19 @@ class ItemForm(forms.ModelForm):
             }),
         }
 
-    def __init__(self, *args, can_change_item_type=True, **kwargs):
+    def __init__(
+        self,
+        *args,
+        can_change_item=True,
+        can_change_item_price=False,
+        can_change_item_type=True,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
+        if not can_change_item:
+            self.fields['name'].disabled = True
+            self.fields['order_number'].disabled = True
+            self.fields['price'].disabled = not can_change_item_price
         if not can_change_item_type:
             self.fields.pop('item_type')
 
@@ -104,6 +115,10 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
 
     def get_form(self, request, **kwargs):
         return ItemForm(
+            can_change_item=request.user.has_perm('directory.change_item'),
+            can_change_item_price=request.user.has_perm(
+                'directory.change_item_price'
+            ),
             can_change_item_type=request.user.has_perm(
                 'directory.change_itemtype'
             ),
@@ -130,7 +145,10 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         action = request.POST.get('action')
         if action == 'save':
-            if not request.user.has_perm('directory.change_item'):
+            if not (
+                request.user.has_perm('directory.change_item')
+                or request.user.has_perm('directory.change_item_price')
+            ):
                 raise PermissionDenied
             form = self.get_form(
                 request,
@@ -164,6 +182,13 @@ class ItemDetailView(PermissionRequiredMixin, TemplateView):
                 'item': self.item,
                 'form': form,
                 'item_list_url': self.get_item_list_url(request),
+                'can_edit_item': (
+                    request.user.has_perm('directory.change_item')
+                    or request.user.has_perm('directory.change_item_price')
+                ),
+                'can_change_item': request.user.has_perm(
+                    'directory.change_item'
+                ),
                 'can_change_item_type': request.user.has_perm(
                     'directory.change_itemtype'
                 ),

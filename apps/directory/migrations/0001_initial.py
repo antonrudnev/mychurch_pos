@@ -45,6 +45,7 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Позиция реестра',
                 'verbose_name_plural': 'Реестр товаров и услуг',
                 'ordering': ('item_type__name', 'name'),
+                'permissions': [('change_item_price', 'Can change Позиция реестра price')],
             },
         ),
     ]
