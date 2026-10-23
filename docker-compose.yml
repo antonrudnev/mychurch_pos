@@ -53,10 +53,14 @@ services:
       HTTPS_METHOD: redirect
       LETSENCRYPT_HOST: ${DOMAIN:?Set DOMAIN in .env}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:?Set DJANGO_SUPERUSER_USERNAME in .env}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:?Set DJANGO_SUPERUSER_EMAIL in .env}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:?Set DJANGO_SUPERUSER_PASSWORD in .env}
     # Накатываем миграции и запускаем Gunicorn
     command: >
-      sh -c "python manage.py migrate && 
-             gunicorn --workers 5 --bind 0.0.0.0:8000 config.wsgi:application"
+      sh -c "python manage.py migrate &&
+             python scripts/ensure_superuser.py &&
+             exec gunicorn --workers 5 --bind 0.0.0.0:8000 config.wsgi:application"
 
 volumes:
   db_data:
