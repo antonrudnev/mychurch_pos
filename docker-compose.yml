@@ -59,6 +59,7 @@ services:
     # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate &&
+             python scripts/data_upload.py &&
              python scripts/ensure_superuser.py &&
              exec gunicorn --workers 5 --bind 0.0.0.0:8000 config.wsgi:application"
 

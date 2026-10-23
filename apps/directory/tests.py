@@ -38,6 +38,17 @@ class DirectoryViewsTests(TestCase):
             is_active=is_active,
         )
 
+    def test_item_handle_defaults_to_slugified_name(self):
+        item_type = self.create_item_type('Catalog test type', 'catalog-test-type')
+
+        item = Item.objects.create(
+            item_type=item_type,
+            name='Catalog test donation',
+            price=None,
+        )
+
+        self.assertEqual(item.handle, 'catalog-test-donation')
+
     def grant_permission(self, codename):
         permission = Permission.objects.get(
             content_type__app_label='directory',

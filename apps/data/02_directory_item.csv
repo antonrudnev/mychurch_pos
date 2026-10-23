@@ -1,0 +1,17 @@
+fk__directory_itemtype__handle,name,handle,price,is_active,order_number
+product-icony,ИК-42,ik-42,200,1,209
+product-icony,ИК-75,ik-75,35,1,210
+product-knigi,В-298,v-298,170,1,212
+product-maslo,0506,0506,530,1,214
+product-produkty,А-17,a-17,100,1,217
+product-produkty,А-18,a-18,110,1,218
+product-produkty,А-19,a-19,140,1,219
+product-svechnye-nabory,0123,0123-2,700,1,215
+product-svechnye-nabory,0510,0510-2,2000,1,225
+product-svechnye-nabory,Для домашней молитвы,0123,140,1,207
+product-svechnye-nabory,Сорокоустные,0510,400,1,206
+product-serebro,К-72,k-72,1460,1,213
+product-sluzhebnaya-utvar,0004,0004,50,1,220
+product-sluzhebnaya-utvar,0008,0008,80,1,221
+product-sluzhebnaya-utvar,0394,0394,160,1,223
+product-sluzhebnaya-utvar,Вино,0001,1000,1,208

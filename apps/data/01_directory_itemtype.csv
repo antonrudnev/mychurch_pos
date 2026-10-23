@@ -1,0 +1,11 @@
+name,handle,is_product_group,is_open_list,order_number
+Аксессуары,product-aksessuary,1,0,101
+Ангелы,product-angely,1,0,102
+Иконы,product-icony,1,0,103
+Книги,product-knigi,1,0,104
+Масло,product-maslo,1,0,105
+Продукты,product-produkty,1,0,106
+Разное,product-raznoe,1,0,107
+Свечные наборы,product-svechnye-nabory,1,0,108
+Серебро,product-serebro,1,0,109
+Служебная утварь,product-sluzhebnaya-utvar,1,0,110

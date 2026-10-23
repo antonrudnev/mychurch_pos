@@ -8,4 +8,3 @@ name,handle,is_product_group,is_open_list,order_number
 Деньги,money,0,0,7
 Прочие требы,other-treby,0,1,8
 Прочие расходы,other-expense,0,1,9
-Иконы,product-1,1,0,100

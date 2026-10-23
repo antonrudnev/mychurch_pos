@@ -468,6 +468,7 @@ class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
                         name='Прочие товары',
                         handle=item_type_handle,
                         is_product_group=True,
+                        order_number = 1000
                     )
                 elif not item_type.is_product_group:
                     item_type.is_product_group = True

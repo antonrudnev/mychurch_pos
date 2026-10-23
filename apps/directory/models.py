@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.db.models.aggregates import Max
+from django.utils.text import slugify
 
 
 class ItemType(models.Model):
@@ -99,6 +100,11 @@ class Item(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        if not self.handle:
+            self.handle = slugify(self.name)
+            if kwargs.get('update_fields') is not None:
+                kwargs['update_fields'] = set(kwargs['update_fields']) | {'handle'}
+
         if not self.pk and self.order_number == 1:
             max_order = Item.objects.aggregate(max_val=Max('order_number'))['max_val']
             if max_order is not None:
