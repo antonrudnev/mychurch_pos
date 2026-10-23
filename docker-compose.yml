@@ -1,12 +1,40 @@
 version: '3.8'
 
 services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy:1.6.0
+    container_name: nginx-proxy
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - certs:/etc/nginx/certs:ro
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+
+  letsencrypt:
+    image: nginxproxy/acme-companion:2.4.0
+    restart: always
+    depends_on:
+      - nginx-proxy
+    environment:
+      DEFAULT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
+      NGINX_PROXY_CONTAINER: nginx-proxy
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   web:
     build: .
     container_name: church_pos_web
     restart: always
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     volumes:
       - .:/app
       # Изолируем папку статики, чтобы локальный код из .:/app не затирал собранную админку
@@ -16,6 +44,15 @@ services:
     environment:
       TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
       TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
+      DEBUG: "False"
+      SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
+      ALLOWED_HOSTS: ${DOMAIN:?Set DOMAIN in .env}
+      CSRF_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
+      VIRTUAL_HOST: ${DOMAIN:?Set DOMAIN in .env}
+      VIRTUAL_PORT: 8000
+      HTTPS_METHOD: redirect
+      LETSENCRYPT_HOST: ${DOMAIN:?Set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
     # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate && 
@@ -23,3 +60,7 @@ services:
 
 volumes:
   db_data:
+  certs:
+  vhost.d:
+  html:
+  acme:
