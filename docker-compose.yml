@@ -41,18 +41,7 @@ services:
       - certs:/etc/nginx/certs:rw
       - acme_dynu:/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
-    entrypoint: ["/bin/sh", "-c"]
-    command: >
-      set -eu;
-      : "$${Dynu_ClientId:?Set DYNU_CLIENT_ID in .env when using dns-01}";
-      : "$${Dynu_Secret:?Set DYNU_CLIENT_SECRET in .env when using dns-01}";
-      acme.sh --set-default-ca --server letsencrypt;
-      acme.sh --issue --dns dns_dynu -d "$$DOMAIN" --accountemail "$$LETSENCRYPT_EMAIL";
-      acme.sh --install-cert -d "$$DOMAIN"
-      --key-file "/etc/nginx/certs/$$DOMAIN.key"
-      --fullchain-file "/etc/nginx/certs/$$DOMAIN.crt"
-      --reloadcmd "docker restart nginx-proxy";
-      exec /entry.sh daemon
+    command: ["/bin/sh", "/usr/local/bin/issue-dynu-cert.sh"]
 
   letsencrypt:
     profiles:
