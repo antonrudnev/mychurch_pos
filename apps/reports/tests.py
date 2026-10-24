@@ -8,6 +8,7 @@ from django.contrib.auth.models import Permission
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.http import content_disposition_header
 from transactions.models import Transaction
 
 from .forms import ReportDateRangeForm
@@ -225,6 +226,10 @@ class CashReportDateRangeTests(TestCase):
         self.assertEqual(pdf_response.status_code, 200)
         self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
         self.assertTrue(pdf_response['Content-Disposition'].startswith('inline;'))
+        self.assertEqual(
+            pdf_response['Content-Disposition'],
+            'inline; filename="cas-report-2025-01-02-2025-01-02.pdf"',
+        )
         self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
         self.assertContains(
             report_response,
@@ -241,7 +246,7 @@ class CashReportDateRangeTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertNotEqual(response['Content-Type'], 'application/pdf')
 
-    def test_cash_report_table_font_scales_to_fit_one_a4_page(self):
+    def test_cash_report_renders_on_one_a4_page_at_fixed_font_size(self):
         treby_type = ItemType.objects.create(
             name='Требы для проверки печати',
             handle='treby-print-fit',
@@ -259,13 +264,12 @@ class CashReportDateRangeTests(TestCase):
             self.generate_url,
             {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
         )
-        document, font_size = render_cash_report_document(
+        document = render_cash_report_document(
             response.content.decode(response.charset),
             base_url='http://testserver/',
         )
 
         self.assertEqual(len(document.pages), 1)
-        self.assertLess(font_size, 12)
 
     def test_date_picker_uses_application_timezone_today(self):
         utc_now = datetime(2025, 1, 1, 18, tzinfo=datetime_timezone.utc)
@@ -420,7 +424,19 @@ class ReportManagementTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/pdf')
-        self.assertTrue(response['Content-Disposition'].startswith('inline;'))
+        self.assertEqual(
+            response['Content-Disposition'],
+            content_disposition_header(False, 'Исходное название.pdf'),
+        )
         self.assertTrue(response.content.startswith(b'%PDF-'))
+
+    def test_print_report_requires_view_permission(self):
+        self.user.user_permissions.clear()
+
+        response = self.client.get(
+            reverse('reports:print_report', args=[self.report.id]),
+        )
+
+        self.assertEqual(response.status_code, 403)
 
 # Create your tests here.

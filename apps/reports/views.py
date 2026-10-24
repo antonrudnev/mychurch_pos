@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal
 from urllib.parse import urlencode
 
@@ -17,12 +18,13 @@ from django.db.models import (
     When,
 )
 from django.db.models.functions import Coalesce, StrIndex, Substr
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.http import content_disposition_header
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
 from weasyprint import CSS, HTML
@@ -32,7 +34,7 @@ from .models import Report, ReportType
 
 
 def render_cash_report_document(html, base_url):
-    base_stylesheet = CSS(string="""
+    stylesheet = CSS(string="""
         @page { size: A4 portrait; margin: 10mm; }
         html, body { height: auto !important; margin: 0 !important; color: black !important; }
         .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
@@ -40,6 +42,7 @@ def render_cash_report_document(html, base_url):
         h5 { font-size: 7pt !important; margin-bottom: 10px; }
         table {
             flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none;
+           
         }
         tbody { height: auto !important; }
         tr { break-inside: avoid; }
@@ -47,22 +50,16 @@ def render_cash_report_document(html, base_url):
             padding: 2.2mm 2mm !important;
             line-height: 1.4 !important;
             color: black !important;
+            font-size: 8pt !important;
         }
         .name-cell-tall { height: 100px !important; }
         .report-footer { margin: 0 !important; font-size: 8pt !important; }
         .report-actions, .alert-success { display: none !important; }
     """)
 
-    def render_at_font_size(font_size):
-        font_stylesheet = CSS(string=f'table, table td {{ font-size: {font_size}pt !important; }}')
-        return HTML(string=html, base_url=base_url).render(
-            stylesheets=[base_stylesheet, font_stylesheet],
-        )
-
-    font_size = 8.0
-    document = render_at_font_size(font_size)
-
-    return document, font_size
+    return HTML(string=html, base_url=base_url).render(
+        stylesheets=[stylesheet],
+    )
 
 
 class CashReportView(PermissionRequiredMixin, TemplateView):
@@ -436,8 +433,32 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         return context
 
 
-class CashReportPdfView(CashReportView):
+class ReportPrintView(CashReportView):
+    def get_permission_required(self):
+        if 'report_id' in self.kwargs:
+            return ('reports.view_report',)
+        return ('reports.add_report',)
+
+    def handle_no_permission(self):
+        if 'report_id' in self.kwargs:
+            raise PermissionDenied
+        return super().handle_no_permission()
+
     def get(self, request, *args, **kwargs):
+        report_id = kwargs.get('report_id')
+        if report_id is not None:
+            report = get_object_or_404(Report, id=report_id)
+            if request.GET.get('format') == 'pdf':
+                return self.render_pdf_response(
+                    request,
+                    report.dump,
+                    report.name,
+                )
+            return HttpResponse(
+                report.dump,
+                content_type='text/html; charset=utf-8',
+            )
+
         form = ReportDateRangeForm(request.GET)
         if not form.is_valid():
             return self.render_to_response(
@@ -452,39 +473,35 @@ class CashReportPdfView(CashReportView):
             context,
             request=request,
         )
-        document, _font_size = render_cash_report_document(
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        filename = f'Кассовый отчёт за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+        return self.render_pdf_response(request, html, filename)
+
+    def post(self, request, *args, **kwargs):
+        if 'report_id' in kwargs:
+            return HttpResponseNotAllowed(['GET'])
+        return super().post(request, *args, **kwargs)
+
+    def render_pdf_response(self, request, html, filename):
+        document = render_cash_report_document(
             html,
             base_url=request.build_absolute_uri('/'),
         )
-        pdf = document.write_pdf()
-        response = HttpResponse(pdf, content_type='application/pdf')
-        date_from = form.cleaned_data['date_from']
-        date_to = form.cleaned_data['date_to']
-        filename = f'cash-report-{date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}.pdf'
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        response = HttpResponse(
+            document.write_pdf(),
+            content_type='application/pdf',
+        )
+        safe_filename = re.sub(r'[\x00-\x1f\x7f/\\"]', '-', filename).strip(' .')
+        if not safe_filename:
+            safe_filename = 'report'
+        if not safe_filename.lower().endswith('.pdf'):
+            safe_filename = f'{safe_filename}.pdf'
+        response['Content-Disposition'] = content_disposition_header(
+            False,
+            safe_filename,
+        )
         return response
-
-
-class PrintReportView(PermissionRequiredMixin, View):
-    permission_required = 'reports.view_report'
-    raise_exception = True 
-
-    def get(self, request, report_id, *args, **kwargs):
-        report = get_object_or_404(Report, id=report_id)
-        if request.GET.get('format') == 'pdf':
-            document, _font_size = render_cash_report_document(
-                report.dump,
-                base_url=request.build_absolute_uri('/'),
-            )
-            response = HttpResponse(
-                document.write_pdf(),
-                content_type='application/pdf',
-            )
-            response['Content-Disposition'] = (
-                f'inline; filename="report-{report.pk}.pdf"'
-            )
-            return response
-        return HttpResponse(report.dump, content_type='text/html; charset=utf-8')
 
 
 class ReportManageView(PermissionRequiredMixin, View):
