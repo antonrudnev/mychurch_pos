@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   default-cert:
     build: ./docker/default-cert
@@ -28,7 +26,6 @@ services:
     profiles:
       - dns-01
     build: ./docker/acme-dynu
-    container_name: acme-dynu
     restart: always
     depends_on:
       - nginx-proxy
@@ -62,16 +59,9 @@ services:
 
   web:
     build: .
-    container_name: church_pos_web
     restart: always
-    expose:
-      - "8000"
     volumes:
-      - .:/app
-      # Изолируем папку статики, чтобы локальный код из .:/app не затирал собранную админку
-      - /app/staticfiles  
-      # Монтируем папку ./db_volume на сервере в папку /app/db_volume внутри контейнера
-      - ./db_volume:/app/db_volume  
+      - ./db_volume:/app/db_volume
     environment:
       TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
       TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
@@ -80,10 +70,8 @@ services:
       ALLOWED_HOSTS: ${DOMAIN:?Set DOMAIN in .env}
       CSRF_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
       VIRTUAL_HOST: ${DOMAIN:?Set DOMAIN in .env}
-      VIRTUAL_PORT: 8000
       HTTPS_METHOD: redirect
       LETSENCRYPT_HOST: ${DOMAIN:?Set DOMAIN in .env}
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
       DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:?Set DJANGO_SUPERUSER_USERNAME in .env}
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:?Set DJANGO_SUPERUSER_EMAIL in .env}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:?Set DJANGO_SUPERUSER_PASSWORD in .env}
@@ -95,7 +83,6 @@ services:
              exec gunicorn --workers 5 --bind 0.0.0.0:8000 config.wsgi:application"
 
 volumes:
-  db_data:
   certs:
   vhost.d:
   html:
