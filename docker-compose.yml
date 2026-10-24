@@ -1,10 +1,29 @@
 version: '3.8'
 
 services:
+  default-cert:
+    image: alpine:3.20
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+    volumes:
+      - certs:/etc/nginx/certs
+    command: >
+      sh -c 'if [ ! -s /etc/nginx/certs/default.crt ] || [ ! -s /etc/nginx/certs/default.key ]; then
+        apk add --no-cache openssl &&
+        openssl req -x509 -nodes -days 3650 -newkey rsa:2048
+        -keyout /etc/nginx/certs/default.key
+        -out /etc/nginx/certs/default.crt
+        -subj "/CN=$$DOMAIN"
+        -addext "subjectAltName=DNS:$$DOMAIN";
+      fi'
+
   nginx-proxy:
     image: nginxproxy/nginx-proxy:1.6.0
     container_name: nginx-proxy
     restart: always
+    depends_on:
+      default-cert:
+        condition: service_completed_successfully
     ports:
       - "80:80"
       - "443:443"
@@ -14,7 +33,39 @@ services:
       - html:/usr/share/nginx/html
       - /var/run/docker.sock:/tmp/docker.sock:ro
 
+  acme-dynu:
+    profiles:
+      - dns-01
+    build: ./docker/acme-dynu
+    container_name: acme-dynu
+    restart: always
+    depends_on:
+      - nginx-proxy
+    environment:
+      DOMAIN: ${DOMAIN:?Set DOMAIN in .env}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL:?Set LETSENCRYPT_EMAIL in .env}
+      Dynu_ClientId: ${DYNU_CLIENT_ID:-}
+      Dynu_Secret: ${DYNU_CLIENT_SECRET:-}
+    volumes:
+      - certs:/etc/nginx/certs:rw
+      - acme_dynu:/acme.sh
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      set -eu;
+      : "$${Dynu_ClientId:?Set DYNU_CLIENT_ID in .env when using dns-01}";
+      : "$${Dynu_Secret:?Set DYNU_CLIENT_SECRET in .env when using dns-01}";
+      acme.sh --set-default-ca --server letsencrypt;
+      acme.sh --issue --dns dns_dynu -d "$$DOMAIN" --accountemail "$$LETSENCRYPT_EMAIL";
+      acme.sh --install-cert -d "$$DOMAIN"
+      --key-file "/etc/nginx/certs/$$DOMAIN.key"
+      --fullchain-file "/etc/nginx/certs/$$DOMAIN.crt"
+      --reloadcmd "docker restart nginx-proxy";
+      exec /entry.sh daemon
+
   letsencrypt:
+    profiles:
+      - http-01
     image: nginxproxy/acme-companion:2.4.0
     restart: always
     depends_on:
@@ -26,7 +77,7 @@ services:
       - certs:/etc/nginx/certs:rw
       - vhost.d:/etc/nginx/vhost.d
       - html:/usr/share/nginx/html
-      - acme:/etc/acme.sh
+      - acme_http:/etc/acme.sh
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   web:
@@ -68,4 +119,5 @@ volumes:
   certs:
   vhost.d:
   html:
-  acme:
+  acme_dynu:
+  acme_http:
