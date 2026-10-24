@@ -4,15 +4,16 @@ set -eu
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 cd "$script_dir"
 
-if [ -n "${DYNU_CLIENT_ID:-}" ]; then
-    dynu_client_id=$DYNU_CLIENT_ID
-else
-    unset DYNU_CLIENT_ID
-    if [ -f .env ]; then
-        dynu_client_id=$(awk '
+read_env_value() {
+    awk -v key="$1" '
         /^[[:space:]]*#/ { next }
-        /^[[:space:]]*DYNU_CLIENT_ID[[:space:]]*=/ {
-            value = substr($0, index($0, "=") + 1)
+        {
+            line = $0
+            sub(/^[[:space:]]*/, "", line)
+            if (line !~ ("^" key "[[:space:]]*=")) {
+                next
+            }
+            value = substr(line, index(line, "=") + 1)
             sub(/[[:space:]]+#.*/, "", value)
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
             if (value ~ /^".*"$/ || value ~ /^'\''.*'\''$/) {
@@ -21,13 +22,26 @@ else
             print value
             exit
         }
-        ' .env)
-    else
-        dynu_client_id=
+    ' .env
+}
+
+dynu_client_id=${DYNU_CLIENT_ID:-}
+if [ -z "$dynu_client_id" ]; then
+    unset DYNU_CLIENT_ID
+    if [ -f .env ]; then
+        dynu_client_id=$(read_env_value DYNU_CLIENT_ID)
     fi
 fi
 
-if [ -n "$dynu_client_id" ]; then
+dynu_client_secret=${DYNU_CLIENT_SECRET:-}
+if [ -z "$dynu_client_secret" ]; then
+    unset DYNU_CLIENT_SECRET
+    if [ -f .env ]; then
+        dynu_client_secret=$(read_env_value DYNU_CLIENT_SECRET)
+    fi
+fi
+
+if [ -n "$dynu_client_id" ] && [ -n "$dynu_client_secret" ]; then
     profile=dns-01
 else
     profile=http-01

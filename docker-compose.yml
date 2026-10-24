@@ -8,8 +8,10 @@ services:
     volumes:
       - certs:/etc/nginx/certs
     command: >
-      sh -c 'if [ ! -s /etc/nginx/certs/default.crt ] || [ ! -s /etc/nginx/certs/default.key ]; then
-        apk add --no-cache openssl &&
+      sh -c 'apk add --no-cache openssl &&
+        if [ ! -s /etc/nginx/certs/default.crt ] ||
+        [ ! -s /etc/nginx/certs/default.key ] ||
+        ! openssl x509 -in /etc/nginx/certs/default.crt -noout -checkhost "$$DOMAIN" >/dev/null 2>&1; then
         openssl req -x509 -nodes -days 3650 -newkey rsa:2048
         -keyout /etc/nginx/certs/default.key
         -out /etc/nginx/certs/default.crt
