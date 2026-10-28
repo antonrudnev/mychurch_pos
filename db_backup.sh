@@ -1,1 +1,12 @@
-sqlite3 ./db_volume/db.sqlite3 ".backup 'db.backup'"
+#!/bin/sh
+set -eu
+
+LOCAL_HOME=${LOCAL_HOME:?Set LOCAL_HOME}
+DB_PATH=${DB_PATH:-$LOCAL_HOME/mychurch_pos/db_volume/db.sqlite3}
+BACKUP_PATH=${BACKUP_PATH:-$LOCAL_HOME/mychurch_pos/db.backup}
+REMOTE_USER=${REMOTE_USER:?Set REMOTE_USER}
+REMOTE_HOST=${REMOTE_HOST:?Set REMOTE_HOST}
+REMOTE_PATH=${REMOTE_PATH:?Set REMOTE_PATH}
+
+sqlite3 "$DB_PATH" ".backup '$BACKUP_PATH'"
+scp "$BACKUP_PATH" "$REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH"
