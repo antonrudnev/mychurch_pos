@@ -10,16 +10,16 @@
 
         <div class="row row-cols-1 row-cols-sm-2 g-3 my-4">
             {% if not is_product_group_page %}
-                <div class="col">
+                <div class="col position-relative">
                     <div class="btn-group hstack gap-1 w-100 h-100 shadow-sm" role="group" aria-label="Действия с товарами">
                         <a href="{% url 'transactions:product_search' %}" class="btn btn-success w-20 h-100 py-3 d-flex align-items-center justify-content-center " aria-label="Найти товар" title="Найти товар">
                             <i class="bi bi-search" aria-hidden="true"></i>
                         </a>
                         <div class="vr"></div>
-                        <a href="{% url 'transactions:product_group_select' %}" class="btn btn-success w-75 h-100 py-3 d-flex align-items-center justify-content-center fs-5">
-                            Товары
+                        <a href="{% url 'transactions:product_group_select' %}" class="btn btn-success w-75 h-100 py-3 d-flex align-items-center justify-content-center fs-5" aria-label="Товары">
                         </a>
                     </div>
+                    <span class="position-absolute top-50 start-50 translate-middle pe-none z-2 fs-5 text-white" aria-hidden="true">Товары</span>
                 </div>
             {% endif %}
             {% for item_type in item_types %}
