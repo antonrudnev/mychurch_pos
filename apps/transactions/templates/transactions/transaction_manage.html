@@ -3,7 +3,7 @@
 {% block title %}Управление транзакцией — Церковная лавка{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center justify-content-center px-3" style="min-height: calc(100vh - 140px);">
+<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
         <h1 class="fw-normal h3 text-center mb-4 text-body">{{ transaction.item.name }}</h1>
         <p class="text-secondary text-center text-uppercase">{{ transaction.item.item_type.name }} / {% if transaction.is_verified %}<span class="text-success">Транзакция подтверждена</span>{% else %}<span class="text-warning">Транзакция не подтверждена</span>{% endif %}</p>        
