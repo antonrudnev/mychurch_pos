@@ -352,6 +352,35 @@ class ProductGroupSelectView(ItemTypeSelectView):
         return context
 
 
+class ProductSearchView(PermissionRequiredMixin, TemplateView):
+    template_name = 'transactions/product_search.html'
+    permission_required = 'transactions.add_transaction'
+    raise_exception = True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        items = Item.objects.filter(
+            item_type__is_product_group=True,
+            is_active=True,
+        ).select_related('item_type').order_by('name', 'item_type__name')
+        selected_item_id = self.request.GET.get('item')
+        context['items'] = items
+        context['selected_item'] = (
+            get_object_or_404(items, pk=selected_item_id)
+            if selected_item_id is not None
+            else None
+        )
+        selected_item = context['selected_item']
+        if selected_item is not None:
+            if selected_item.price is None:
+                context['selected_item_price'] = 'Не указана'
+            elif selected_item.price == 0:
+                context['selected_item_price'] = 'Сумма по запросу'
+            else:
+                context['selected_item_price'] = f'{selected_item.price} руб.'
+        return context
+
+
 class NewOpenListItemView(PermissionRequiredMixin, TemplateView):
     template_name = 'transactions/new_open_list_item.html'
     permission_required = 'transactions.add_transaction'
@@ -509,7 +538,19 @@ class TransactionCreateView(PermissionRequiredMixin, TemplateView):
 
     def get(self, request, *args, **kwargs):
         self.item_type = get_object_or_404(ItemType, pk=kwargs['item_type_id'])
-        form = TransactionForm(item_type=self.item_type)
+        selected_item = None
+        selected_item_id = request.GET.get('item')
+        if selected_item_id is not None:
+            selected_item = get_object_or_404(
+                Item,
+                pk=selected_item_id,
+                item_type=self.item_type,
+                is_active=True,
+            )
+        form = TransactionForm(
+            item_type=self.item_type,
+            selected_item=selected_item,
+        )
         return self.render_form(request, form)
 
     def post(self, request, *args, **kwargs):

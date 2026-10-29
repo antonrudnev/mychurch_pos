@@ -116,7 +116,7 @@ class TransactionForm(forms.ModelForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
         }
 
-    def __init__(self, *args, item_type: ItemType, **kwargs):
+    def __init__(self, *args, item_type: ItemType, selected_item=None, **kwargs):
         super().__init__(*args, **kwargs)
         items = Item.objects.filter(
             item_type=item_type,
@@ -127,7 +127,9 @@ class TransactionForm(forms.ModelForm):
         self.fields['item'].label_from_instance = lambda item: item.name
         self.fields['price'].required = False
         self.single_item = items[0] if len(items) == 1 else None
-        if self.single_item is not None:
+        if selected_item is not None:
+            self.fields['item'].initial = selected_item.pk
+        elif self.single_item is not None:
             self.fields['item'].initial = self.single_item.pk
         self.item_prices = {
             str(item.pk): str(item.price) if item.price is not None else None

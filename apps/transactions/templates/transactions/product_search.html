@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Поиск товара — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3" style="min-height: calc(100vh - 140px);">
+    <div class="w-100" style="max-width: 600px;">
+        <h1 class="fw-normal h3 text-center mb-4 text-body">Поиск товара</h1>
+
+        <label for="item-search" class="form-label">Название товара</label>
+        <input type="search" id="item-search" class="form-control" placeholder="Начните вводить название" autocomplete="off" value="{% if selected_item %}{{ selected_item.name }}{% endif %}" aria-describedby="item-search-hint" aria-controls="item-suggestions">
+        <div id="item-search-hint" class="form-text mb-2">Выберите товар из подсказок.</div>
+        <div id="item-suggestions" class="list-group mb-3" role="listbox" aria-label="Подходящие товары" hidden>
+            {% for item in items %}
+                <a href="?item={{ item.pk }}" class="list-group-item list-group-item-action" data-name="{{ item.name }}" role="option" hidden>
+                    {{ item.name }} <span class="text-secondary">— {{ item.item_type.name }}</span>
+                </a>
+            {% endfor %}
+            <div id="no-item-matches" class="list-group-item text-secondary" hidden>Подходящие товары не найдены.</div>
+        </div>
+
+        {% if selected_item %}
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h2 class="h5 card-title mb-3">Информация о товаре</h2>
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Категория</dt>
+                        <dd class="col-sm-8">{{ selected_item.item_type.name }}</dd>
+                        <dt class="col-sm-4">Название</dt>
+                        <dd class="col-sm-8">{{ selected_item.name }}</dd>
+                        <dt class="col-sm-4">Цена</dt>
+                        <dd class="col-sm-8">{{ selected_item_price }}</dd>
+                    </dl>
+                </div>
+            </div>
+            <a href="{% url 'transactions:transaction_create' selected_item.item_type_id %}?item={{ selected_item.pk }}" class="btn btn-primary w-100 py-2 mt-3 text-uppercase">
+                Создать транзакцию
+            </a>
+        {% endif %}
+
+        <a href="{% url 'transactions:item_type_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
+    </div>
+</div>
+<script>
+    const itemSearch = document.getElementById('item-search');
+    const itemSuggestions = document.getElementById('item-suggestions');
+    const noItemMatches = document.getElementById('no-item-matches');
+    const itemOptions = [...itemSuggestions.querySelectorAll('a')];
+
+    itemSearch.addEventListener('input', () => {
+        const searchTerm = itemSearch.value.trim().toLocaleLowerCase();
+        if (!searchTerm && window.location.search) {
+            window.location.assign(window.location.pathname);
+            return;
+        }
+
+        let visibleOptions = 0;
+        for (const option of itemOptions) {
+            option.hidden = !searchTerm || !option.dataset.name.toLocaleLowerCase().includes(searchTerm);
+            if (!option.hidden) {
+                visibleOptions += 1;
+            }
+        }
+        noItemMatches.hidden = !searchTerm || visibleOptions > 0;
+        itemSuggestions.hidden = !searchTerm;
+    });
+</script>
+{% endblock %}

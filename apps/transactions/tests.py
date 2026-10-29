@@ -890,6 +890,10 @@ class TransactionViewsTests(TestCase):
             response,
             f'href="{reverse("transactions:product_group_select")}"',
         )
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:product_search")}"',
+        )
         self.assertContains(response, 'Товары')
         self.assertNotContains(response, product_group.name)
 
@@ -902,6 +906,98 @@ class TransactionViewsTests(TestCase):
         )
         self.assertNotContains(response, f'href="{reverse("transactions:product_group_select")}"')
         self.assertNotContains(response, self.item_type.name)
+
+    def test_product_search_lists_only_active_product_group_items_and_selects_item(self):
+        product_group = ItemType.objects.create(
+            name='Товары для поиска',
+            handle='searchable-products',
+            is_product_group=True,
+        )
+        item = Item.objects.create(
+            item_type=product_group,
+            name='Икона для поиска',
+            handle='searchable-icon',
+            price=Decimal('80.00'),
+        )
+        Item.objects.create(
+            item_type=product_group,
+            name='Другая икона',
+            handle='other-searchable-icon',
+            price=Decimal('45.00'),
+        )
+        inactive_item = Item.objects.create(
+            item_type=product_group,
+            name='Неактивный товар',
+            handle='inactive-search-product',
+            is_active=False,
+        )
+
+        response = self.client.get(reverse('transactions:product_search'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, item.name)
+        self.assertNotContains(response, inactive_item.name)
+        self.assertNotContains(response, self.item.name)
+
+        response = self.client.get(
+            reverse('transactions:product_search'),
+            {'item': item.pk},
+        )
+
+        self.assertContains(response, product_group.name)
+        self.assertContains(response, item.name)
+        self.assertContains(response, '80.00 руб.')
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_create", args=[product_group.pk])}?item={item.pk}"',
+        )
+
+        response = self.client.get(
+            reverse('transactions:transaction_create', args=[product_group.pk]),
+            {'item': item.pk},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'value="{item.pk}" selected')
+
+    def test_product_search_cannot_select_inactive_or_non_product_items(self):
+        product_group = ItemType.objects.create(
+            name='Группа для проверки',
+            handle='product-group-check',
+            is_product_group=True,
+        )
+        inactive_item = Item.objects.create(
+            item_type=product_group,
+            name='Неактивный товар для проверки',
+            handle='inactive-product-check',
+            is_active=False,
+        )
+
+        response = self.client.get(
+            reverse('transactions:product_search'),
+            {'item': inactive_item.pk},
+        )
+
+        self.assertRedirects(response, reverse('welcome_landing'))
+
+        response = self.client.get(
+            reverse('transactions:product_search'),
+            {'item': self.item.pk},
+        )
+
+        self.assertRedirects(response, reverse('welcome_landing'))
+
+        active_product = Item.objects.create(
+            item_type=product_group,
+            name='Активный товар из другой категории',
+            handle='active-product-other-category',
+        )
+        response = self.client.get(
+            reverse('transactions:transaction_create', args=[self.item_type.pk]),
+            {'item': active_product.pk},
+        )
+
+        self.assertRedirects(response, reverse('welcome_landing'))
 
     def test_product_group_page_has_new_product_button_after_item_types(self):
         response = self.client.get(reverse('transactions:product_group_select'))

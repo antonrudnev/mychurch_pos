@@ -5,6 +5,7 @@ from .views import (
     NewOpenListItemView,
     NewProductTransactionView,
     ProductGroupSelectView,
+    ProductSearchView,
     TransactionCreateView,
     TransactionHomeView,
     TransactionListView,
@@ -23,6 +24,11 @@ urlpatterns = [
     ),
     path('types/', ItemTypeSelectView.as_view(), name='item_type_select'),
     path('types/products/', ProductGroupSelectView.as_view(), name='product_group_select'),
+    path(
+        'types/products/search/',
+        ProductSearchView.as_view(),
+        name='product_search',
+    ),
     path(
         'types/<int:item_type_id>/new-item/',
         NewOpenListItemView.as_view(),

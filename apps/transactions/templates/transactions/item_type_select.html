@@ -5,15 +5,21 @@
 {% block content %}
 <div class="d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 800px;">
-        <h1 class="fw-normal h3 mb-4 text-body d-none d-md-block">Выберите тип транзакции</h1> 
+        <h1 class="fw-normal h3 mb-4 text-body d-none d-md-block">{% if not is_product_group_page %}Выберите тип транзакции{% else %}Выберите категорию товара{% endif %}</h1>
         <div class="border-top border-subtle my-4 d-none d-md-block"></div>
 
         <div class="row row-cols-1 row-cols-sm-2 g-3 my-4">
             {% if not is_product_group_page %}
                 <div class="col">
-                    <a href="{% url 'transactions:product_group_select' %}" class="btn btn-success w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
-                        Товары
-                    </a>
+                    <div class="btn-group hstack gap-1 w-100 h-100 shadow-sm" role="group" aria-label="Действия с товарами">
+                        <a href="{% url 'transactions:product_search' %}" class="btn btn-success w-20 h-100 py-3 d-flex align-items-center justify-content-center " aria-label="Найти товар" title="Найти товар">
+                            <i class="bi bi-search" aria-hidden="true"></i>
+                        </a>
+                        <div class="vr"></div>
+                        <a href="{% url 'transactions:product_group_select' %}" class="btn btn-success w-75 h-100 py-3 d-flex align-items-center justify-content-center fs-5">
+                            Товары
+                        </a>
+                    </div>
                 </div>
             {% endif %}
             {% for item_type in item_types %}
