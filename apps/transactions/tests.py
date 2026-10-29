@@ -1181,6 +1181,32 @@ class TransactionViewsTests(TestCase):
             'quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);',
         )
 
+    def test_create_button_is_shown_only_when_an_item_is_selected(self):
+        Item.objects.create(
+            item_type=self.item_type,
+            name='Дополнительная позиция',
+            handle='additional-item-for-selection',
+            price=Decimal('15.00'),
+            order_number=2,
+        )
+        create_url = reverse(
+            'transactions:transaction_create',
+            args=[self.item_type.id],
+        )
+
+        response = self.client.get(create_url)
+        self.assertContains(
+            response,
+            'id="create-transaction-button" class="btn btn-primary w-100 py-2 text-uppercase" hidden',
+        )
+
+        response = self.client.get(create_url, {'item': self.item.id})
+        self.assertContains(
+            response,
+            'createTransactionButton.hidden = !hasSelectedItem;',
+        )
+        self.assertContains(response, f'value="{self.item.id}" selected')
+
     def test_zero_price_item_hides_quantity_field(self):
         self.item.price = Decimal('0.00')
         self.item.save(update_fields=['price'])

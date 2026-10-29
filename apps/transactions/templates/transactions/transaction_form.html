@@ -30,7 +30,7 @@
                 <div class="alert alert-danger">{{ error }}</div>
             {% endfor %}
             <div class="border-top border-subtle my-4"></div>
-            <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Создать транзакцию</button>
+            <button type="submit" id="create-transaction-button" class="btn btn-primary w-100 py-2 text-uppercase" hidden>Создать транзакцию</button>
         </form>
 
         {% if request.GET.item %}
@@ -51,6 +51,7 @@
 {{ form.item_prices|json_script:"item-prices" }}
 <script>
     const itemSelect = document.getElementById('id_item');
+    const createTransactionButton = document.getElementById('create-transaction-button');
     const priceInput = document.getElementById('id_price');
     const priceDisplay = document.getElementById('price-display');
     const priceContainer = document.getElementById('price-field-container');
@@ -61,6 +62,7 @@
         const itemPrice = itemPrices[itemSelect.value];
         const hasSelectedItem = itemSelect.value !== '';
         const hasItemPrice = itemPrice !== null && itemPrice !== undefined;
+        createTransactionButton.hidden = !hasSelectedItem;
         priceContainer.hidden = itemPrice === null || itemPrice === undefined;
         quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);
 
