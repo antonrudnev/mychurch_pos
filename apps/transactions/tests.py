@@ -734,6 +734,7 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, f'>{self.item.name}</p>')
         self.assertContains(response, f'type="hidden" name="item" value="{self.item.id}"')
         self.assertNotContains(response, '<select name="item"')
+        self.assertNotContains(response, reverse('transactions:product_search'))
 
     def test_open_list_type_opens_name_and_price_form_even_without_active_items(self):
         self.item_type.is_open_list = True
@@ -959,6 +960,10 @@ class TransactionViewsTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'value="{item.pk}" selected')
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:product_search")}?item={item.pk}"',
+        )
 
     def test_product_search_cannot_select_inactive_or_non_product_items(self):
         product_group = ItemType.objects.create(

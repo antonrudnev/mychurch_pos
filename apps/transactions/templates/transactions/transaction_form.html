@@ -33,7 +33,11 @@
             <button type="submit" class="btn btn-primary w-100 py-2 text-uppercase">Создать транзакцию</button>
         </form>
 
-        {% if item_type.is_product_group %}
+        {% if request.GET.item %}
+            <a href="{% url 'transactions:product_search' %}?item={{ request.GET.item }}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        {% elif item_type.is_product_group %}
             <a href="{% url 'transactions:product_group_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
                 <i class="bi bi-arrow-left me-1"></i> Вернуться
             </a>
