@@ -48,9 +48,27 @@
         }
 
         .report-footer {
+            width: 100%;
             margin-top: 40px;
             color: #7f8c8d;
             font-size: 12px;
+        }
+
+        .report-footer p {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .report-footer .footer-name {
+            white-space: nowrap;
+        }
+
+        .report-footer .footer-details {
+            margin-left: auto;
+            text-align: right;
+            white-space: nowrap;
         }
 
         .footer-line {
@@ -140,6 +158,7 @@
             }
 
             .report-footer {
+                width: 100%;
                 margin: 0;
                 font-size: 8pt;
             }
@@ -195,12 +214,15 @@
         <footer class="report-footer">
             <div class="footer-line"></div>
             <p>
-                Документ создан: <strong>{{ current_time|date:"d.m.Y в H:i" }}</strong>
-                {% if current_user.is_authenticated %}
-                    | Пользователь: <strong>{{ current_user.get_full_name|default:current_user.username }}</strong>
-                {% else %}
-                    | Пользователь: <strong>Система (Анонимно)</strong>
-                {% endif %}
+                <span class="footer-name">Православный Храм святой блаженной Ксении Петербургской г.Новокузнецк</span>
+                <span class="footer-details">
+                    Документ создан:&nbsp;<strong>{{ current_time|date:"d.m.Y в H:i" }}</strong>
+                    {% if current_user.is_authenticated %}
+                        &nbsp;| Пользователь:&nbsp;<strong>{{ current_user.get_full_name|default:current_user.username }}</strong>
+                    {% else %}
+                        &nbsp;| Пользователь:&nbsp;<strong>Система (Анонимно)</strong>
+                    {% endif %}
+                </span>
             </p>
         </footer>
     </main>
