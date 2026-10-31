@@ -33,7 +33,7 @@ from .forms import ReportDateRangeForm, ReportNameForm
 from .models import Report, ReportType
 
 
-def render_cash_report_document(html, base_url):
+def render_report_document(html, base_url):
     stylesheet = CSS(string="""
         @page { size: A4 portrait; margin: 10mm; }
         html, body { height: auto !important; margin: 0 !important; color: black !important; }
@@ -62,15 +62,38 @@ def render_cash_report_document(html, base_url):
     )
 
 
-class CashReportView(PermissionRequiredMixin, TemplateView):
+def create_pdf_response(request, html, filename):
+    document = render_report_document(
+        html,
+        base_url=request.build_absolute_uri('/'),
+    )
+    response = HttpResponse(
+        document.write_pdf(),
+        content_type='application/pdf',
+    )
+    safe_filename = re.sub(r'[\x00-\x1f\x7f/\\"]', '-', filename).strip(' .')
+    if not safe_filename:
+        safe_filename = 'report'
+    if not safe_filename.lower().endswith('.pdf'):
+        safe_filename = f'{safe_filename}.pdf'
+    response['Content-Disposition'] = content_disposition_header(
+        False,
+        safe_filename,
+    )
+    return response
+
+
+class BaseReportView(PermissionRequiredMixin, TemplateView):
     template_name = 'reports/report_date_range.html'
-    report_handle = 'cash-report'
-    report_template_name = 'reports/cash_report.html'
-    report_type_name = 'Кассовый отчет'
-    report_name_prefix = 'Кассовый отчет за'
-    pdf_url_name = 'reports:cash_report_pdf'
     permission_required = 'reports.add_report'
     raise_exception = False
+
+    def get_date_range_form_context(self, form):
+        return {
+            'form': form,
+            'report_handle': self.report_handle,
+            'report_type_name': self.report_type_name,
+        }
 
     def get(self, request, *args, **kwargs):
         if request.GET.get('select_period') == '1':
@@ -84,31 +107,26 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             preset = request.GET.get('preset', 'custom')
             if preset not in {'week', 'last-week', '3', '5', 'custom'}:
                 preset = 'custom'
-            return self.render_to_response({
-                'form': ReportDateRangeForm(initial=initial),
+            context = self.get_date_range_form_context(
+                ReportDateRangeForm(initial=initial),
+            )
+            context.update({
                 'application_today': timezone.localdate(),
                 'selected_preset': preset,
                 'preserve_date_values': request.GET.get('preserve_dates') == '1',
-                'report_handle': self.report_handle,
-                'report_type_name': self.report_type_name,
             })
+            return self.render_to_response(context)
 
         has_date_range = 'date_from' in request.GET or 'date_to' in request.GET
         form = ReportDateRangeForm(request.GET if has_date_range else None)
         if not has_date_range:
-            return self.render_to_response({
-                'form': form,
-                'application_today': timezone.localdate(),
-                'report_handle': self.report_handle,
-                'report_type_name': self.report_type_name,
-            })
+            context = self.get_date_range_form_context(form)
+            context['application_today'] = timezone.localdate()
+            return self.render_to_response(context)
         if not form.is_valid():
-            return self.render_to_response({
-                'form': form,
-                'application_today': timezone.localdate(),
-                'report_handle': self.report_handle,
-                'report_type_name': self.report_type_name,
-            }, status=400)
+            context = self.get_date_range_form_context(form)
+            context['application_today'] = timezone.localdate()
+            return self.render_to_response(context, status=400)
 
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
@@ -139,11 +157,10 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         form = ReportDateRangeForm(request.POST)
         if not form.is_valid():
-            return self.render_to_response({
-                'form': form,
-                'report_handle': self.report_handle,
-                'report_type_name': self.report_type_name,
-            }, status=400)
+            return self.render_to_response(
+                self.get_date_range_form_context(form),
+                status=400,
+            )
 
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
@@ -177,8 +194,18 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'date_from': date_from.isoformat(),
             'date_to': date_to.isoformat(),
             'preset': preset,
+            'report_handle': self.report_handle,
         })
         return f"{reverse('transactions:transaction_list')}?{query}"
+
+
+class CashReportView(BaseReportView):
+    report_handle = 'cash-report'
+    report_template_name = 'reports/cash_report.html'
+    report_type_name = 'Кассовый отчет'
+    report_name_prefix = 'Кассовый отчет за'
+    pdf_url_name = 'reports:cash_report_pdf'
+    pdf_filename_prefix = 'Кассовый отчёт за'
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -451,12 +478,13 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         return context
 
 
-class ProductReportView(CashReportView):
+class ProductReportView(BaseReportView):
     report_handle = 'product-report'
     report_template_name = 'reports/product_report.html'
     report_type_name = 'Товарная ведомость'
     report_name_prefix = 'Товарная ведомость за'
     pdf_url_name = 'reports:product_report_pdf'
+    pdf_filename_prefix = 'Товарная ведомость за'
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -492,42 +520,13 @@ class ProductReportView(CashReportView):
         }
 
 
-class ReportPrintView(CashReportView):
-    def get_permission_required(self):
-        if 'report_id' in self.kwargs:
-            return ('reports.view_report',)
-        return ('reports.add_report',)
-
-    def handle_no_permission(self):
-        if 'report_id' in self.kwargs:
-            raise PermissionDenied
-        return super().handle_no_permission()
-
+class ReportPrintMixin:
     def get(self, request, *args, **kwargs):
-        report_id = kwargs.get('report_id')
-        if report_id is not None:
-            report = get_object_or_404(Report, id=report_id)
-            if request.GET.get('format') == 'pdf':
-                return self.render_pdf_response(
-                    request,
-                    report.dump,
-                    report.name,
-                )
-            return HttpResponse(
-                report.dump,
-                content_type='text/html; charset=utf-8',
-            )
-
         form = ReportDateRangeForm(request.GET)
         if not form.is_valid():
-            return self.render_to_response(
-                {
-                    'form': form,
-                    'application_today': timezone.localdate(),
-                    'report_handle': self.report_handle,
-                },
-                status=400,
-            )
+            context = self.get_date_range_form_context(form)
+            context['application_today'] = timezone.localdate()
+            return self.render_to_response(context, status=400)
 
         context = self.get_report_context(form)
         context['is_saving'] = True
@@ -539,49 +538,42 @@ class ReportPrintView(CashReportView):
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
         filename = self.get_pdf_filename(date_from, date_to)
-        return self.render_pdf_response(request, html, filename)
+        return create_pdf_response(request, html, filename)
 
     def post(self, request, *args, **kwargs):
-        if 'report_id' in kwargs:
-            return HttpResponseNotAllowed(['GET'])
         return super().post(request, *args, **kwargs)
 
-    def render_pdf_response(self, request, html, filename):
-        document = render_cash_report_document(
-            html,
-            base_url=request.build_absolute_uri('/'),
-        )
-        response = HttpResponse(
-            document.write_pdf(),
-            content_type='application/pdf',
-        )
-        safe_filename = re.sub(r'[\x00-\x1f\x7f/\\"]', '-', filename).strip(' .')
-        if not safe_filename:
-            safe_filename = 'report'
-        if not safe_filename.lower().endswith('.pdf'):
-            safe_filename = f'{safe_filename}.pdf'
-        response['Content-Disposition'] = content_disposition_header(
-            False,
-            safe_filename,
-        )
-        return response
-
     def get_pdf_filename(self, date_from, date_to):
-        return f'Кассовый отчёт за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+        return (
+            f'{self.pdf_filename_prefix} '
+            f'{date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+        )
 
 
-class ProductReportPrintView(ReportPrintView):
-    report_handle = ProductReportView.report_handle
-    report_template_name = ProductReportView.report_template_name
-    report_type_name = ProductReportView.report_type_name
-    report_name_prefix = ProductReportView.report_name_prefix
-    pdf_url_name = ProductReportView.pdf_url_name
+class SavedReportPrintView(PermissionRequiredMixin, View):
+    permission_required = 'reports.view_report'
+    raise_exception = True
 
-    def get_report_context(self, form):
-        return ProductReportView.get_report_context(self, form)
+    def get(self, request, report_id):
+        report = get_object_or_404(Report, id=report_id)
+        if request.GET.get('format') == 'pdf':
+            return create_pdf_response(
+                request,
+                report.dump,
+                report.name,
+            )
+        return HttpResponse(
+            report.dump,
+            content_type='text/html; charset=utf-8',
+        )
 
-    def get_pdf_filename(self, date_from, date_to):
-        return f'Товарная ведомость за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+
+class CashReportPrintView(ReportPrintMixin, CashReportView):
+    pass
+
+
+class ProductReportPrintView(ReportPrintMixin, ProductReportView):
+    pass
 
 
 class ReportManageView(PermissionRequiredMixin, View):

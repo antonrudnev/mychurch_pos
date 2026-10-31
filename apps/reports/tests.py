@@ -13,7 +13,7 @@ from transactions.models import Transaction
 
 from .forms import ReportDateRangeForm
 from .models import Report, ReportType
-from .views import render_cash_report_document
+from .views import render_report_document
 
 
 class ReportDateRangeFormTests(TestCase):
@@ -111,7 +111,7 @@ class CashReportDateRangeTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             response.url,
-            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-02&preset=custom",
+            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-02&preset=custom&report_handle=cash-report",
         )
         self.assertFalse(Report.objects.exists())
 
@@ -211,7 +211,7 @@ class CashReportDateRangeTests(TestCase):
         )
         self.assertRedirects(
             submit_response,
-            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-03&preset=last-week",
+            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-03&preset=last-week&report_handle=cash-report",
             fetch_redirect_response=False,
         )
 
@@ -264,7 +264,7 @@ class CashReportDateRangeTests(TestCase):
             self.generate_url,
             {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
         )
-        document = render_cash_report_document(
+        document = render_report_document(
             response.content.decode(response.charset),
             base_url='http://testserver/',
         )
@@ -401,6 +401,22 @@ class ProductReportTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Товарная ведомость')
+
+    def test_unverified_review_redirect_preserves_product_report_handle(self):
+        Transaction.objects.create(
+            item=self.product,
+            price=Decimal('10.00'),
+            quantity=1,
+            cashier=self.user,
+            created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+        )
+
+        response = self.client.get(self.generate_url, self.date_range)
+
+        self.assertEqual(
+            response.url,
+            f"{reverse('transactions:transaction_list')}?unverified=1&date_from=2025-01-02&date_to=2025-01-02&preset=custom&report_handle=product-report",
+        )
 
     def test_report_groups_active_product_sales_by_name_and_transaction_price(self):
         response = self.client.get(self.generate_url, self.date_range)
@@ -548,7 +564,7 @@ class ReportManagementTests(TestCase):
             f'href="{reverse("reports:print_report", args=[self.report.id])}?format=pdf"',
         )
 
-    def test_print_report_pdf_format_uses_cash_report_pdf_renderer(self):
+    def test_saved_report_print_pdf_returns_a_pdf(self):
         response = self.client.get(
             reverse('reports:print_report', args=[self.report.id]),
             {'format': 'pdf'},

@@ -123,6 +123,7 @@ class TransactionViewsTests(TestCase):
                 'date_from': '2025-01-02',
                 'date_to': '2025-01-02',
                 'preset': 'last-week',
+                'report_handle': 'product-report',
             },
         )
 
@@ -140,15 +141,15 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(response.context['paginator'].count, 2)
         self.assertContains(
             response,
-            f'href="{reverse("transactions:transaction_manage", args=[matching_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;page=1"',
+            f'href="{reverse("transactions:transaction_manage", args=[matching_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;report_handle=product-report&amp;page=1"',
         )
         self.assertContains(
             response,
-            'select_period=1&amp;preserve_dates=1&amp;preset=last-week&amp;date_from=2025-01-02&amp;date_to=2025-01-02',
+            'select_period=1&amp;preserve_dates=1&amp;preset=last-week&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;report_handle=product-report',
         )
         self.assertContains(
             response,
-            f'href="{reverse("reports:generate_report", args=["cash-report"])}?date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;skip_unverified_check=1"',
+            f'href="{reverse("reports:generate_report", args=["product-report"])}?date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;skip_unverified_check=1&amp;report_handle=product-report"',
         )
         self.assertContains(response, 'Продолжить без проверки')
 
@@ -162,12 +163,13 @@ class TransactionViewsTests(TestCase):
                 'date_from': '2025-01-02',
                 'date_to': '2025-01-02',
                 'preset': 'last-week',
+                'report_handle': 'product-report',
                 'page': '1',
             },
         )
         self.assertContains(
             manage_response,
-            f'href="{reverse("transactions:transaction_list")}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;page=1"',
+            f'href="{reverse("transactions:transaction_list")}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=last-week&amp;report_handle=product-report&amp;page=1"',
         )
     def test_verification_review_requires_verify_permission_and_valid_dates(self):
         url = reverse('transactions:transaction_list')
@@ -217,7 +219,7 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            f'href="{reverse("transactions:transaction_manage", args=[own_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=custom&amp;page=1"',
+            f'href="{reverse("transactions:transaction_manage", args=[own_transaction.pk])}?unverified=1&amp;date_from=2025-01-02&amp;date_to=2025-01-02&amp;preset=custom&amp;report_handle=cash-report&amp;page=1"',
         )
         self.assertNotContains(response, str(other_transaction.cashier.username))
         self.assertNotContains(response, 'Продолжить без проверки')

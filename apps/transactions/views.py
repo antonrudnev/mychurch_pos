@@ -40,6 +40,13 @@ def get_review_preset(request):
     return preset
 
 
+def get_review_report_handle(request):
+    report_handle = request.GET.get('report_handle', 'cash-report')
+    if report_handle not in {'cash-report', 'product-report'}:
+        return 'cash-report'
+    return report_handle
+
+
 class TransactionHomeView(PermissionRequiredMixin, TemplateView):
     template_name = 'transactions/transaction_home.html'
     permission_required = 'transactions.view_transaction'
@@ -107,6 +114,7 @@ class TransactionListView(PermissionRequiredMixin, ListView):
             context['date_from'] = self.date_from
             context['date_to'] = self.date_to
             context['period_preset'] = get_review_preset(self.request)
+            context['report_handle'] = get_review_report_handle(self.request)
             context['can_proceed_report'] = (
                 self.request.user.has_perm('transactions.verify_transaction')
                 and self.request.user.has_perm('reports.add_report')
@@ -116,17 +124,22 @@ class TransactionListView(PermissionRequiredMixin, ListView):
                 'date_to': self.date_to.isoformat(),
                 'preset': context['period_preset'],
                 'skip_unverified_check': '1',
+                'report_handle': context['report_handle'],
             })
             context['proceed_report_url'] = (
-                f"{reverse('reports:generate_report', args=['cash-report'])}?"
+                f"{reverse('reports:generate_report', args=[context['report_handle']])}?"
                 f"{proceed_report_query}"
             )
             context['report_return_url'] = (
-                f"{reverse('reports:generate_report', args=['cash-report'])}?"
-                f"select_period=1&preserve_dates=1"
-                f"&preset={context['period_preset']}"
-                f"&date_from={self.date_from:%Y-%m-%d}"
-                f"&date_to={self.date_to:%Y-%m-%d}"
+                f"{reverse('reports:generate_report', args=[context['report_handle']])}?"
+                f"{urlencode({
+                    'select_period': '1',
+                    'preserve_dates': '1',
+                    'preset': context['period_preset'],
+                    'date_from': self.date_from.isoformat(),
+                    'date_to': self.date_to.isoformat(),
+                    'report_handle': context['report_handle'],
+                })}"
             )
         return context
 
@@ -154,6 +167,7 @@ class TransactionManageView(TemplateView):
             'date_from': date_from.isoformat(),
             'date_to': date_to.isoformat(),
             'preset': get_review_preset(request),
+            'report_handle': get_review_report_handle(request),
         }
         page = request.GET.get('page')
         if page and page.isdecimal() and len(page) <= 9:
