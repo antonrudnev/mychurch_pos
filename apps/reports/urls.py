@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     DynamicReportRouterView,
+    ProductReportPrintView,
     ReportPrintView,
     ReportManageView,
     ReportListView,
@@ -19,6 +20,11 @@ urlpatterns = [
         'generate/cash-report/pdf/',
         ReportPrintView.as_view(),
         name='cash_report_pdf',
+    ),
+    path(
+        'generate/product-report/pdf/',
+        ProductReportPrintView.as_view(),
+        name='product_report_pdf',
     ),
     path('<int:report_id>/', ReportManageView.as_view(), name='manage_report'),
     path('<int:report_id>/print/', ReportPrintView.as_view(), name='print_report'),

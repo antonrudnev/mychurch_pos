@@ -4,84 +4,207 @@
     <meta charset="UTF-8">
     <title>Отчет кассовый</title>
     <style>
-        /* ОРИГИНАЛЬНЫЙ СТРОГИЙ ДИЗАЙН (Идет на печать) */
-        body { font-family: Arial, sans-serif; margin: 30px; color: #333; }
-        h1 { color: #2c3e50; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; margin-bottom: 20px; }
-        
-        table { width: 100%; border-collapse: collapse; box-shadow: 0 2px 3px rgba(0,0,0,0.1); margin-bottom: 25px; }
-        td { border: 1px solid #e0e0e0; padding: 12px 15px; text-align: left; }
-
-        .name-cell { width: 37%; }
-        .quantity-cell { font-weight: bold; color: #2980b9; width: 13%; text-align: center;}
-        .name-cell-center { width: 20%; text-align: center; }
-        .name-cell-tall { width: 20%; height: 55px; vertical-align: middle; text-align: center;}
-        .name-cell-right { width: 20%; text-align: right; font-weight: bold;}
-        .cash-cell { font-weight: bold; color: #2980b9; width: 30%; text-align: center;}
-        .cash-cell-tall { font-weight: bold; color: #2980b9; width: 80%; text-align: left;}
-        .empty-cell { background-color: #fbfbfb; color: #bdc3c7; font-style: italic; } 
-
-        
-        tr:nth-child(even) { background-color: #fdfdfe; }
-        tr:hover { background-color: #f5f6fa; }
-        
-        .report-footer { margin-top: 40px; font-size: 12px; color: #7f8c8d; }
-        .footer-line { border-top: 1px dashed #bdc3c7; margin-bottom: 10px; }
-
-        /* ИНТЕРФЕЙС УПРАВЛЕНИЯ (Ниже футера, не идет на печать) */
-        .report-actions { margin-top: 30px; display: flex; gap: 12px; align-items: center; }
-        
-        /* Кнопка сохранения в фирменном зеленом цвете Bootstrap 5 */
-        .btn-save { 
-            background-color: var(--bs-success, #198754); 
-            color: white; 
-            border: none; 
-            padding: 10px 20px; 
-            font-size: 14px; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: opacity 0.15s ease-in-out; 
+        body {
+            margin: 30px;
+            color: #333;
+            font-family: Arial, sans-serif;
         }
-        .btn-save:hover { opacity: 0.85; }
-        
-        /* Кнопка Назад в нейтральном сером цвете */
-        .btn-back { 
-            background-color: var(--bs-secondary, #6c757d); 
-            color: white; 
-            border: none; 
+
+        h2 {
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        table {
+            width: 100%;
+            margin-bottom: 25px;
+            border-collapse: collapse;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+        }
+
+        tr:nth-child(even) {
+            background-color: #fdfdfe;
+        }
+
+        tr:hover {
+            background-color: #f5f6fa;
+        }
+
+        .name-cell {
+            width: 37%;
+        }
+
+        .quantity-cell,
+        .cash-cell {
+            color: #2980b9;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .quantity-cell {
+            width: 13%;
+        }
+
+        .cash-cell {
+            width: 30%;
+        }
+
+        .name-cell-center,
+        .name-cell-tall {
+            width: 20%;
+            text-align: center;
+        }
+
+        .name-cell-tall {
+            height: 55px;
+            vertical-align: middle;
+        }
+
+        .name-cell-right {
+            width: 20%;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .cash-cell-tall {
+            width: 80%;
+            color: #2980b9;
+            font-weight: bold;
+            text-align: left;
+        }
+
+        .empty-cell {
+            background-color: #fbfbfb;
+            color: #bdc3c7;
+            font-style: italic;
+        }
+
+        .report-footer {
+            margin-top: 40px;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+
+        .footer-line {
+            margin-bottom: 10px;
+            border-top: 1px dashed #bdc3c7;
+        }
+
+        .report-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 30px;
+        }
+
+        .btn-save,
+        .btn-back {
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
             text-decoration: none;
-            padding: 10px 20px; 
-            font-size: 14px; 
-            border-radius: 4px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            transition: opacity 0.15s ease-in-out; 
+            cursor: pointer;
+            transition: opacity 0.15s ease-in-out;
         }
-        .btn-back:hover { opacity: 0.85; }
-        
-        .alert-success { 
-            color: var(--bs-success-text-emphasis, #155724); 
-            background-color: var(--bs-success-bg-subtle, #d4edda); 
-            border: 1px solid var(--bs-success-border-subtle, #c3e6cb); 
-            padding: 10px 15px; 
-            border-radius: 4px; 
-            font-size: 14px; 
+
+        .btn-save {
+            background-color: var(--bs-success, #198754);
         }
-        
-        /* Настройки для вывода на печать / PDF */
-        @page { margin: 10mm; }
+
+        .btn-back {
+            background-color: var(--bs-secondary, #6c757d);
+        }
+
+        .btn-save:hover,
+        .btn-back:hover {
+            opacity: 0.85;
+        }
+
+        .btn-save:focus-visible,
+        .btn-back:focus-visible {
+            outline: 3px solid #2c3e50;
+            outline-offset: 3px;
+        }
+
+        .alert-success {
+            border: 1px solid var(--bs-success-border-subtle, #c3e6cb);
+            border-radius: 4px;
+            padding: 10px 15px;
+            background-color: var(--bs-success-bg-subtle, #d4edda);
+            color: var(--bs-success-text-emphasis, #155724);
+            font-size: 14px;
+        }
+
+        @page {
+            margin: 10mm;
+        }
 
         @media print {
-            .report-actions, .alert-success { display: none !important; }
-            html, body { height: 100%; }
-            body { height: 100vh; margin: 0; }
-            .report-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-            h2 { flex: none; margin: 0 0 6mm; font-size: 16pt; }
-            table { flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none; }
-            tbody { height: 100%; }
-            tr { break-inside: avoid; }
-            td { padding: 4mm; }
-            .report-footer { position: static; flex: none; margin: 0; padding: 0; }
+            html,
+            body {
+                height: 100%;
+            }
+
+            body {
+                height: 100vh;
+                margin: 0;
+            }
+
+            .report-page {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                min-height: 0;
+            }
+
+            h2 {
+                flex: none;
+                margin: 0 0 6mm;
+                font-size: 16pt;
+            }
+
+            table {
+                flex: 1 1 0;
+                height: 0;
+                min-height: 0;
+                margin: 0 0 6mm;
+                box-shadow: none;
+            }
+
+            tbody {
+                height: 100%;
+            }
+
+            tr {
+                break-inside: avoid;
+            }
+
+            td {
+                padding: 4mm;
+            }
+
+            .report-footer {
+                position: static;
+                flex: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .report-actions,
+            .alert-success {
+                display: none !important;
+            }
         }
     </style>
 </head>
@@ -253,11 +376,10 @@
         </form>
         <a
             class="btn-save"
-            href="{% url 'reports:cash_report_pdf' %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
+            href="{% url pdf_url_name %}?date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}"
             target="_blank"
             rel="noopener"
         >Открыть PDF</a>
-        
         {% if messages %}
             {% for message in messages %}
                 <div class="alert-success">{{ message }}</div>

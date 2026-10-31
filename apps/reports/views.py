@@ -64,6 +64,11 @@ def render_cash_report_document(html, base_url):
 
 class CashReportView(PermissionRequiredMixin, TemplateView):
     template_name = 'reports/report_date_range.html'
+    report_handle = 'cash-report'
+    report_template_name = 'reports/cash_report.html'
+    report_type_name = 'Кассовый отчет'
+    report_name_prefix = 'Кассовый отчет за'
+    pdf_url_name = 'reports:cash_report_pdf'
     permission_required = 'reports.add_report'
     raise_exception = False
 
@@ -84,6 +89,8 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
                 'application_today': timezone.localdate(),
                 'selected_preset': preset,
                 'preserve_date_values': request.GET.get('preserve_dates') == '1',
+                'report_handle': self.report_handle,
+                'report_type_name': self.report_type_name,
             })
 
         has_date_range = 'date_from' in request.GET or 'date_to' in request.GET
@@ -92,11 +99,15 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             return self.render_to_response({
                 'form': form,
                 'application_today': timezone.localdate(),
+                'report_handle': self.report_handle,
+                'report_type_name': self.report_type_name,
             })
         if not form.is_valid():
             return self.render_to_response({
                 'form': form,
                 'application_today': timezone.localdate(),
+                'report_handle': self.report_handle,
+                'report_type_name': self.report_type_name,
             }, status=400)
 
         date_from = form.cleaned_data['date_from']
@@ -122,27 +133,32 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
                 )
             )
 
-        self.template_name = 'reports/cash_report.html'
+        self.template_name = self.report_template_name
         return self.render_to_response(self.get_report_context(form))
 
     def post(self, request, *args, **kwargs):
         form = ReportDateRangeForm(request.POST)
         if not form.is_valid():
-            return self.render_to_response({'form': form}, status=400)
+            return self.render_to_response({
+                'form': form,
+                'report_handle': self.report_handle,
+                'report_type_name': self.report_type_name,
+            }, status=400)
 
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
-        self.template_name = 'reports/cash_report.html'
+        self.template_name = self.report_template_name
         context = self.get_report_context(form)
         context['is_saving'] = True
         html_dump = render_to_string(self.template_name, context, request=request)
 
         report_name = (
-            f"Кассовый отчет за {date_from:%d.%m.%Y}{f' - {date_to:%d.%m.%Y}' if date_from != date_to else ''}"
+            f"{self.report_name_prefix} {date_from:%d.%m.%Y}"
+            f"{f' - {date_to:%d.%m.%Y}' if date_from != date_to else ''}"
         )
         report_type_obj, _created = ReportType.objects.get_or_create(
-            handle='cash-report',
-            defaults={'name': 'Кассовый отчет'}
+            handle=self.report_handle,
+            defaults={'name': self.report_type_name}
         )
         Report.objects.create(
             name=report_name,
@@ -403,6 +419,8 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
         )
 
         context = {
+            'report_handle': self.report_handle,
+            'pdf_url_name': self.pdf_url_name,
             'treby_data': treby_data,
             'product_total': product_total,
             'candle_total': candle_total,
@@ -431,6 +449,47 @@ class CashReportView(PermissionRequiredMixin, TemplateView):
             'is_saving': False,
         }
         return context
+
+
+class ProductReportView(CashReportView):
+    report_handle = 'product-report'
+    report_template_name = 'reports/product_report.html'
+    report_type_name = 'Товарная ведомость'
+    report_name_prefix = 'Товарная ведомость за'
+    pdf_url_name = 'reports:product_report_pdf'
+
+    def get_report_context(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        transactions = Transaction.objects.filter(
+            item__item_type__is_product_group=True,
+            is_deleted=False,
+            created_at__date__range=(date_from, date_to),
+        )
+        rows = (
+            transactions
+            .values('item__name', 'price')
+            .annotate(
+                total_quantity=Sum('quantity'),
+                total_cost=Sum(F('quantity') * F('price')),
+            )
+            .order_by('item__name', 'price')
+        )
+        total_cost = transactions.aggregate(
+            total_cost=Sum(F('quantity') * F('price')),
+        )['total_cost']
+
+        return {
+            'report_handle': self.report_handle,
+            'pdf_url_name': self.pdf_url_name,
+            'rows': rows,
+            'overall_total_cost': total_cost or Decimal('0.00'),
+            'date_from': date_from,
+            'date_to': date_to,
+            'current_time': timezone.now(),
+            'current_user': self.request.user,
+            'is_saving': False,
+        }
 
 
 class ReportPrintView(CashReportView):
@@ -462,20 +521,24 @@ class ReportPrintView(CashReportView):
         form = ReportDateRangeForm(request.GET)
         if not form.is_valid():
             return self.render_to_response(
-                {'form': form, 'application_today': timezone.localdate()},
+                {
+                    'form': form,
+                    'application_today': timezone.localdate(),
+                    'report_handle': self.report_handle,
+                },
                 status=400,
             )
 
         context = self.get_report_context(form)
         context['is_saving'] = True
         html = render_to_string(
-            'reports/cash_report.html',
+            self.report_template_name,
             context,
             request=request,
         )
         date_from = form.cleaned_data['date_from']
         date_to = form.cleaned_data['date_to']
-        filename = f'Кассовый отчёт за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+        filename = self.get_pdf_filename(date_from, date_to)
         return self.render_pdf_response(request, html, filename)
 
     def post(self, request, *args, **kwargs):
@@ -502,6 +565,23 @@ class ReportPrintView(CashReportView):
             safe_filename,
         )
         return response
+
+    def get_pdf_filename(self, date_from, date_to):
+        return f'Кассовый отчёт за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
+
+
+class ProductReportPrintView(ReportPrintView):
+    report_handle = ProductReportView.report_handle
+    report_template_name = ProductReportView.report_template_name
+    report_type_name = ProductReportView.report_type_name
+    report_name_prefix = ProductReportView.report_name_prefix
+    pdf_url_name = ProductReportView.pdf_url_name
+
+    def get_report_context(self, form):
+        return ProductReportView.get_report_context(self, form)
+
+    def get_pdf_filename(self, date_from, date_to):
+        return f'Товарная ведомость за {date_from:%Y-%m-%d}-{date_to:%Y-%m-%d}'
 
 
 class ReportManageView(PermissionRequiredMixin, View):
@@ -560,6 +640,7 @@ class ReportManageView(PermissionRequiredMixin, View):
 
 REPORT_CLASSES_REGISTRY = {
     'cash-report': CashReportView,
+    'product-report': ProductReportView,
 }
 
 

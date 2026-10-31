@@ -283,6 +283,7 @@ class CashReportDateRangeTests(TestCase):
             response.context_data['application_today'],
             date(2025, 1, 2),
         )
+        self.assertContains(response, 'Кассовый отчет')
         self.assertContains(response, 'data-application-today="2025-01-02"')
 
     def test_staff_data_displays_transaction_totals(self):
@@ -317,6 +318,137 @@ class CashReportDateRangeTests(TestCase):
         )
         self.assertEqual(staff_row['total_cost'], Decimal('51'))
         self.assertContains(response, '51')
+
+
+class ProductReportTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='product-reporter',
+            password='test-password',
+        )
+        permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename='add_report',
+        )
+        self.user.user_permissions.add(permission)
+
+        product_type = ItemType.objects.create(
+            name='Товарная группа',
+            handle='product-group',
+            is_product_group=True,
+        )
+        self.product = Item.objects.create(
+            item_type=product_type,
+            name='Тестовый товар',
+            handle='product-report-test-item',
+            price=Decimal('10.00'),
+            is_active=False,
+        )
+        non_product_type = ItemType.objects.create(
+            name='Услуги',
+            handle='product-report-non-products',
+        )
+        self.non_product = Item.objects.create(
+            item_type=non_product_type,
+            name='Не товар',
+            handle='product-report-non-product',
+            price=Decimal('20.00'),
+        )
+
+        for price, quantity in (
+            (Decimal('10.00'), 2),
+            (Decimal('10.00'), 3),
+            (Decimal('12.00'), 1),
+        ):
+            Transaction.objects.create(
+                item=self.product,
+                price=price,
+                quantity=quantity,
+                cashier=self.user,
+                created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+                is_verified=True,
+            )
+        Transaction.objects.create(
+            item=self.product,
+            price=Decimal('99.00'),
+            quantity=1,
+            cashier=self.user,
+            created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+            is_verified=True,
+            is_deleted=True,
+        )
+        Transaction.objects.create(
+            item=self.non_product,
+            price=Decimal('20.00'),
+            quantity=4,
+            cashier=self.user,
+            created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+            is_verified=True,
+        )
+        self.client.force_login(self.user)
+        self.generate_url = reverse(
+            'reports:generate_report',
+            kwargs={'handle_key': 'product-report'},
+        )
+        self.date_range = {
+            'date_from': '2025-01-02',
+            'date_to': '2025-01-02',
+        }
+
+    def test_date_picker_displays_report_name(self):
+        response = self.client.get(self.generate_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Товарная ведомость')
+
+    def test_report_groups_active_product_sales_by_name_and_transaction_price(self):
+        response = self.client.get(self.generate_url, self.date_range)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context_data['overall_total_cost'], Decimal('62.00'))
+        self.assertEqual(
+            list(response.context_data['rows']),
+            [
+                {
+                    'item__name': 'Тестовый товар',
+                    'price': Decimal('10.00'),
+                    'total_quantity': 5,
+                    'total_cost': Decimal('50.00'),
+                },
+                {
+                    'item__name': 'Тестовый товар',
+                    'price': Decimal('12.00'),
+                    'total_quantity': 1,
+                    'total_cost': Decimal('12.00'),
+                },
+            ],
+        )
+        self.assertContains(response, 'Товарная ведомость за')
+        self.assertContains(response, 'Количество')
+        self.assertContains(response, 'Итого')
+        self.assertContains(
+            response,
+            f'href="{reverse("reports:product_report_pdf")}?date_from=2025-01-02&amp;date_to=2025-01-02"',
+        )
+
+    def test_report_can_be_saved_and_rendered_as_pdf(self):
+        response = self.client.post(self.generate_url, self.date_range)
+
+        self.assertEqual(response.status_code, 302)
+        report = Report.objects.get()
+        self.assertEqual(report.name, 'Товарная ведомость за 02.01.2025')
+        self.assertEqual(report.report_type.handle, 'product-report')
+        self.assertIn('62', report.dump)
+        self.assertIn('Тестовый товар', report.dump)
+
+        pdf_response = self.client.get(
+            reverse('reports:product_report_pdf'),
+            self.date_range,
+        )
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
 
 
 class ReportManagementTests(TestCase):

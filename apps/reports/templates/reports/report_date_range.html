@@ -6,9 +6,9 @@
 <div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3 text-center" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
         <h1 class="fw-normal h3 mb-4 text-body">Задайте период отчета</h1>
-        <p class="text-secondary">Выберите период из списка или укажите даты</p>
+        <p class="text-secondary text-center text-uppercase small mb-3">{{ report_type_name }}</p>
 
-        <form method="get" action="{% url 'reports:generate_report' 'cash-report' %}" class="text-start" id="date-range-form">
+        <form method="get" action="{% url 'reports:generate_report' report_handle %}" class="text-start" id="date-range-form">
             <div class="mb-3">
                 <label for="date-preset" class="form-label">Выбрать период</label>
                 <select id="date-preset" name="preset" class="form-select" data-application-today="{{ application_today|date:'Y-m-d' }}" data-preserve-date-values="{{ preserve_date_values|yesno:'true,false' }}">
