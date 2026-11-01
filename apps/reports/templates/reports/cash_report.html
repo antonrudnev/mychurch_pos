@@ -374,8 +374,7 @@
     <footer class="report-footer">
         <div class="footer-line"></div>
         <p>
-            <span class="footer-name">&#10015; Православный Храм св. блж. Ксении Петербургской г.Новокузнецк &#10015;</span>
-            <span class="footer-details">
+            <span class="footer-name">
                 Документ создан:&nbsp;<strong>{{ current_time|date:"d.m.Y в H:i" }}</strong>
                 {% if current_user.is_authenticated %}
                     &nbsp;| Пользователь:&nbsp;<strong>{{ current_user.get_full_name|default:current_user.username }}</strong>
@@ -383,6 +382,7 @@
                     &nbsp;| Пользователь:&nbsp;<strong>Система (Анонимно)</strong>
                 {% endif %}
             </span>
+            <span class="footer-details">&#10015; Православный Храм св. блж. Ксении Петербургской г.Новокузнецк &#10015;</span>
         </p>
     </footer>
     </main>
