@@ -53,7 +53,7 @@ def render_report_document(html, base_url):
             font-size: 8pt !important;
         }
         .name-cell-tall { height: 100px !important; }
-        .report-footer { margin: 0 !important; font-size: 8pt !important; }
+        .report-footer { margin: 0 !important; font-size: 7pt !important; }
         .report-actions, .alert-success { display: none !important; }
     """)
 
