@@ -39,7 +39,7 @@ def render_report_document(html, base_url):
         html, body { height: auto !important; margin: 0 !important; color: black !important; }
         .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
         h2 { margin: 0 0 4mm !important; font-size: 12pt !important; }
-        h5 { font-size: 7pt !important; margin-bottom: 10px; }
+        h5 { font-size: 7pt !important; }
         table {
             flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none;
            
