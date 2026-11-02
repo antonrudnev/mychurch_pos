@@ -182,7 +182,7 @@ class TransactionManageView(TemplateView):
 
     def dispatch(self, request, *args, **kwargs):
         self.transaction = get_object_or_404(
-            Transaction.objects.select_related('item', 'item__item_type', 'cashier'),
+            Transaction.objects.select_related('item', 'item__item_type', 'cashier', 'verified_by'),
             pk=kwargs['transaction_id'],
         )
 
@@ -576,6 +576,7 @@ class TransactionCreateView(PermissionRequiredMixin, TemplateView):
         transaction = form.save(commit=False)
         transaction.cashier = request.user
         transaction.is_verified = bool(self.request.user.has_perm('transactions.verify'))
+        transaction.verified_by = request.user if transaction.is_verified else None
         transaction.save()
         messages.success(request, 'Транзакция успешно создана.')
         return redirect('transactions:item_type_select')
