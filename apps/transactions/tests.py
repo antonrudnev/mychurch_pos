@@ -45,6 +45,13 @@ class TransactionViewsTests(TestCase):
         )
         user.user_permissions.add(permission)
 
+    def grant_directory_permission(self, user, codename):
+        permission = Permission.objects.get(
+            content_type__app_label='directory',
+            codename=codename,
+        )
+        user.user_permissions.add(permission)
+
     def create_transaction(self, cashier, item=None):
         return Transaction.objects.create(
             cashier=cashier,
@@ -1009,13 +1016,38 @@ class TransactionViewsTests(TestCase):
     def test_product_group_page_has_new_product_button_after_item_types(self):
         response = self.client.get(reverse('transactions:product_group_select'))
 
+        self.assertNotContains(response, 'Новый товар')
+
+        self.grant_directory_permission(self.user, 'add_item')
+        response = self.client.get(reverse('transactions:product_group_select'))
+
         self.assertContains(
             response,
             f'href="{reverse("transactions:new_product_transaction")}"',
         )
         self.assertContains(response, 'Новый товар')
 
+    def test_new_product_requires_directory_add_item_permission(self):
+        create_url = reverse('transactions:new_product_transaction')
+
+        response = self.client.get(create_url)
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            create_url,
+            {
+                'name': 'Недоступный товар',
+                'price': '25.50',
+                'quantity': '1',
+                'keep_active': 'on',
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Item.objects.filter(name='Недоступный товар').exists())
+        self.assertFalse(Transaction.objects.exists())
+
     def test_new_product_creates_item_in_others_and_transaction(self):
+        self.grant_directory_permission(self.user, 'add_item')
         create_url = reverse('transactions:new_product_transaction')
 
         response = self.client.post(
@@ -1040,6 +1072,7 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(transaction.quantity, 2)
 
     def test_new_product_can_be_created_inactive(self):
+        self.grant_directory_permission(self.user, 'add_item')
         self.client.post(
             reverse('transactions:new_product_transaction'),
             {
@@ -1054,6 +1087,7 @@ class TransactionViewsTests(TestCase):
         self.assertTrue(Transaction.objects.filter(item=item).exists())
 
     def test_existing_item_name_is_reused_without_creating_duplicate(self):
+        self.grant_directory_permission(self.user, 'add_item')
         existing_item = Item.objects.create(
             item_type=self.item_type,
             name='Уже в справочнике',

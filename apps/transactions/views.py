@@ -481,7 +481,7 @@ class NewOpenListItemView(PermissionRequiredMixin, TemplateView):
 
 class NewProductTransactionView(PermissionRequiredMixin, TemplateView):
     template_name = 'transactions/new_product_transaction.html'
-    permission_required = 'transactions.add_transaction'
+    permission_required = ('transactions.add_transaction', 'directory.add_item')
     raise_exception = True
 
     def get(self, request, *args, **kwargs):
