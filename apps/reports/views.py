@@ -1,7 +1,5 @@
-import math
 import re
 from decimal import Decimal
-from turtle import left, right
 from urllib.parse import urlencode
 
 from directory.models import Item
