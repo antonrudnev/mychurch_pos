@@ -1,3 +1,4 @@
+import math
 import re
 from decimal import Decimal
 from urllib.parse import urlencode
@@ -17,7 +18,13 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Coalesce, StrIndex, Substr
+from django.db.models.functions import (
+    Coalesce,
+    ExtractDay,
+    ExtractMonth,
+    StrIndex,
+    Substr,
+)
 from django.http import HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
@@ -52,7 +59,8 @@ def render_report_document(html, base_url):
             color: black !important;
             font-size: 8pt !important;
         }
-        .name-cell-tall { height: 100px !important; }
+        .name-cell-tall { height: 85px !important; }
+        .name-cell-medium { height: 70px !important; }
         .report-footer { margin: 0 !important; font-size: 7pt !important; }
         .report-actions, .alert-success { display: none !important; }
     """)
@@ -280,29 +288,48 @@ class CashReportView(BaseReportView):
             .get('total_cost')
         )
 
-        prefix = "bank-terminal"
+        prefix = "bank-receipt"
         bank_terminal_total = (
         Transaction.objects
         .filter(
             item__handle__iexact=prefix,
             is_deleted=False,
             created_at__date__range=date_range,
-                )
+            )
                 .aggregate(total_cost=Sum('price'))
                 .get('total_cost')
             )
-
-        prefix = "bank-receipt"
-        bank_receipt_total = (
+        bank_terminal_data = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
                 is_deleted=False,
                 created_at__date__range=date_range,
             )
-            .aggregate(total_cost=Sum('price'))
-            .get('total_cost')
+            .annotate(
+                day_of_month=ExtractDay('created_at'),
+                month=ExtractMonth('created_at'),
+            )
+            .order_by('created_at')
+            .values('day_of_month', 'month', 'price')
         )
+
+        data_list = list(bank_terminal_data)
+        total_items = len(data_list)
+
+        if total_items > 0:
+            half = math.ceil(total_items / 2)
+            
+            left_column = data_list[:half]  
+            right_column = data_list[half:] 
+            
+            bank_terminal_data_sorted = []
+            for i in range(half):
+                bank_terminal_data_sorted.append(left_column[i])
+                if i < len(right_column):
+                    bank_terminal_data_sorted.append(right_column[i])
+        else:
+            bank_terminal_data_sorted = []
 
         prefix = "cash-register"
         cash_register_last = (
@@ -454,8 +481,8 @@ class CashReportView(BaseReportView):
             'debt_lend_total': debt_lend_total,
             'debt_repay_total': debt_repay_total,
             'bank_terminal_total': bank_terminal_total,
+            'bank_terminal_data': bank_terminal_data_sorted,
             'bank_terminal_sales': bank_terminal_sales,
-            'bank_receipt_total': bank_receipt_total,
             'staff_total': staff_total,
             'staff_data': staff_data,
             'cash_register_last': cash_register_last,

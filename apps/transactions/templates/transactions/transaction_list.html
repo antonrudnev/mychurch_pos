@@ -97,9 +97,15 @@
 
         <div class="border-top border-subtle my-4"></div>
         {% if can_proceed_report %}
-            <a href="{{ proceed_report_url }}" class="btn btn-warning w-100 py-2 mb-3 text-uppercase">
-                Продолжить без проверки
-            </a>
+            {% if not transactions and perms.transactions.view_transaction_all %}
+                <a href="{{ proceed_report_url }}" class="btn btn-success w-100 py-2 mb-3 text-uppercase">
+                    Продолжить
+                </a>
+            {% else %}
+                <a href="{{ proceed_report_url }}" class="btn btn-warning w-100 py-2 mb-3 text-uppercase">
+                    Продолжить без проверки
+                </a>
+            {% endif %}
         {% endif %}
         <a href="{% if is_verification_review %}{{ report_return_url }}{% else %}{% url 'transactions:home' %}{% endif %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
             <i class="bi bi-arrow-left me-1"></i> Вернуться
