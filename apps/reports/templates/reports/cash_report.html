@@ -328,11 +328,17 @@
                 <td class="name-cell-medium">Чековая проверка</td>
                 <td class="cash-cell-tall" style="padding: 5px; margin: 0; vertical-align: center;">
                     {% if bank_terminal_data is not None %}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0px 10px; width: 100%; justify-items: start;">
+                    <div style="column-count: 2; column-gap: 10px; width: 100%;">
                         {% for row in bank_terminal_data %}
-                            <div style="white-space: nowrap; font-size: inherit; color: inherit;">
+                            {% if row %}
+                            <div style="white-space: nowrap; font-size: inherit; color: inherit; break-inside: avoid;">
                                 <span style="font-weight: normal;">{{ row.day_of_month|stringformat:"02d" }} - </span>{{ row.price|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381;</span>
                             </div>
+                            {% else %}
+                                <div style="text-align: center; white-space: nowrap; font-size: inherit; color: inherit; break-inside: avoid;">
+                                    <span style="font-weight: normal;">. . . . . . . . .</span>
+                                </div>
+                            {% endif %}
                         {% endfor %}
                     </div>
                     {% endif %}

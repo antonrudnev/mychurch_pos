@@ -1,6 +1,7 @@
 import math
 import re
 from decimal import Decimal
+from turtle import left, right
 from urllib.parse import urlencode
 
 from directory.models import Item
@@ -299,7 +300,7 @@ class CashReportView(BaseReportView):
                 .aggregate(total_cost=Sum('price'))
                 .get('total_cost')
             )
-        bank_terminal_data = (
+        bank_terminal_data_query = (
             Transaction.objects
             .filter(
                 item__handle__iexact=prefix,
@@ -314,22 +315,12 @@ class CashReportView(BaseReportView):
             .values('day_of_month', 'month', 'price')
         )
 
-        data_list = list(bank_terminal_data)
-        total_items = len(data_list)
-
-        if total_items > 0:
-            half = math.ceil(total_items / 2)
-            
-            left_column = data_list[:half]  
-            right_column = data_list[half:] 
-            
-            bank_terminal_data_sorted = []
-            for i in range(half):
-                bank_terminal_data_sorted.append(left_column[i])
-                if i < len(right_column):
-                    bank_terminal_data_sorted.append(right_column[i])
+        if bank_terminal_data_query.count() > 8:
+            first_two = list(bank_terminal_data_query[:2])
+            last_five = list(bank_terminal_data_query.reverse()[:5])[::-1]
+            bank_terminal_data = first_two + [None] + last_five
         else:
-            bank_terminal_data_sorted = []
+            bank_terminal_data = list(bank_terminal_data_query)
 
         prefix = "cash-register"
         cash_register_last = (
@@ -481,7 +472,7 @@ class CashReportView(BaseReportView):
             'debt_lend_total': debt_lend_total,
             'debt_repay_total': debt_repay_total,
             'bank_terminal_total': bank_terminal_total,
-            'bank_terminal_data': bank_terminal_data_sorted,
+            'bank_terminal_data': bank_terminal_data,
             'bank_terminal_sales': bank_terminal_sales,
             'staff_total': staff_total,
             'staff_data': staff_data,
