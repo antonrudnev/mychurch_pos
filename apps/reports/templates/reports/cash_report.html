@@ -332,9 +332,9 @@
                             {% for row in bank_terminal_data %}
                                 {% if row %}
                                 <div style="display: flex; justify-content: flex-start; align-items: center; white-space: nowrap; font-size: inherit; color: inherit; break-inside: avoid;">
-                                    <span style="font-weight: normal; width: 20%;">{{ row.day_of_month|stringformat:"02d" }}</span>
+                                    <span style="font-weight: normal; width: 10%;">{{ row.day_of_month|stringformat:"02d" }}</span>
                                     <span style="font-weight: normal; width: 10%;">-</span>
-                                    <span style="display: inline-block; width: 70%; text-align: right;">{{ row.price|floatformat:"2g" }} &#8381;</span>
+                                    <span style="display: inline-block; width: 80%; text-align: right;">{{ row.price|floatformat:"2g" }} &#8381;</span>
                                 </div>
                                 {% else %}
                                     <div style="text-align: center; white-space: nowrap; font-size: inherit; color: inherit; break-inside: avoid;">
