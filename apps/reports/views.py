@@ -314,9 +314,9 @@ class CashReportView(BaseReportView):
         )
 
         if bank_terminal_data_query.count() > 8:
-            first_two = list(bank_terminal_data_query[:2])
-            last_five = list(bank_terminal_data_query.reverse()[:5])[::-1]
-            bank_terminal_data = first_two + [None] + last_five
+            first = list(bank_terminal_data_query[:3])
+            last = list(bank_terminal_data_query.reverse()[:4])[::-1]
+            bank_terminal_data = first + [None] + last
         else:
             bank_terminal_data = list(bank_terminal_data_query)
 
