@@ -328,7 +328,7 @@
                 <td class="name-cell-medium">Чековая проверка</td>
                 <td class="cash-cell-tall" style="padding: 5px; margin: 0; vertical-align: center;">
                     {% if bank_terminal_data is not None %}
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0px 0px; width: 100%; justify-items: start;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0px 10px; width: 100%; justify-items: start;">
                         {% for row in bank_terminal_data %}
                             <div style="white-space: nowrap; font-size: inherit; color: inherit;">
                                 <span style="font-weight: normal;">{{ row.day_of_month|stringformat:"02d" }} - </span>{{ row.price|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381;</span>
