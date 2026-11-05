@@ -17,6 +17,10 @@
                 <span class="text-warning text-uppercase">Транзакция не подтверждена</span>
             {% endif %}
         </p>        
+        {% if can_change_transaction %}
+            <form method="post" action="{{ request.get_full_path }}" class="mb-4">
+                {% csrf_token %}
+        {% endif %}
         <table class="table w-100 table-borderless m-0">
             <tbody>
                 <tr>
@@ -28,8 +32,21 @@
                     </td>
                     <td class="text-end">
                         <div>
-                            <div>Дата и время:</div>
-                            <div class="form-control-plaintext fw-bold">{{ transaction.created_at|date:"d.m.Y H:i" }}</div>
+                            <div class="text-end">Дата и время:</div>
+                            {% if can_edit_transaction_datetime %}
+                                <button type="button" id="created-at-display" class="form-control-plaintext fw-bold text-end w-100 border-0 bg-transparent" aria-label="Изменить дату и время">
+                                        {{ transaction.created_at|date:"d.m.Y H:i" }}
+                                </button>
+                                <div id="created-at-editor" class="text-end" hidden>
+                                    <label for="{{ form.created_at.id_for_label }}" class="visually-hidden">{{ form.created_at.label }}</label>
+                                    {{ form.created_at }}
+                                    {% for error in form.created_at.errors %}
+                                            <div class="invalid-feedback d-block">{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="form-control-plaintext fw-bold text-end">{{ transaction.created_at|date:"d.m.Y H:i" }}</div>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -37,9 +54,8 @@
         </table>
 
         {% if can_change_transaction %}
-            <form method="post" action="{{ request.get_full_path }}" class="mb-4">
-                {% csrf_token %}
                 {% for field in form %}
+                    {% if field.name != 'created_at' %}
                     <div class="mb-3">
                         <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                         {{ field }}
@@ -47,6 +63,7 @@
                             <div class="invalid-feedback d-block">{{ error }}</div>
                         {% endfor %}
                     </div>
+                    {% endif %}
                 {% endfor %}
                 {% for error in form.non_field_errors %}
                     <div class="alert alert-danger">{{ error }}</div>
@@ -112,4 +129,17 @@
         </a>
     </div>
 </div>
+{% if can_edit_transaction_datetime %}
+<script>
+    const createdAtDisplay = document.getElementById('created-at-display');
+    const createdAtEditor = document.getElementById('created-at-editor');
+    const createdAtInput = document.getElementById('id_created_at');
+
+    createdAtDisplay.addEventListener('click', () => {
+        createdAtDisplay.hidden = true;
+        createdAtEditor.hidden = false;
+        createdAtInput.focus();
+    });
+</script>
+{% endif %}
 {% endblock %}

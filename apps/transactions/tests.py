@@ -323,6 +323,70 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(transaction.price, Decimal('20.75'))
         self.assertEqual(transaction.quantity, 4)
 
+    def test_manage_page_edits_bank_receipt_datetime_with_change_permission(self):
+        self.grant_permission(self.user, 'change_transaction')
+        bank_receipt = Item.objects.get(handle='bank-receipt')
+        transaction = self.create_transaction(self.user, item=bank_receipt)
+        transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12, 30))
+        transaction.save(update_fields=['created_at'])
+        manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[transaction.pk],
+        )
+
+        response = self.client.get(manage_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="created-at-display"')
+        self.assertContains(response, 'id="created-at-editor" class="text-end" hidden')
+        self.assertContains(response, 'type="datetime-local" name="created_at"')
+        self.assertContains(response, 'value="2025-01-02T12:30"')
+        self.assertContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="save_created_at"')
+
+        response = self.client.post(
+            manage_url,
+            {
+                'action': 'save',
+                'created_at': '2025-02-03T14:45',
+                'price': '12.50',
+                'quantity': '1',
+            },
+        )
+
+        self.assertRedirects(response, reverse('transactions:transaction_list'))
+        transaction.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(transaction.created_at),
+            timezone.make_aware(datetime(2025, 2, 3, 14, 45)),
+        )
+
+    def test_bank_receipt_datetime_edit_requires_change_permission(self):
+        bank_receipt = Item.objects.get(handle='bank-receipt')
+        transaction = self.create_transaction(self.user, item=bank_receipt)
+        manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[transaction.pk],
+        )
+
+        response = self.client.get(manage_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="created-at-display"')
+        self.assertNotContains(response, 'name="created_at"')
+
+        response = self.client.post(
+            manage_url,
+            {
+                'action': 'save',
+                'created_at': '2025-02-03T14:45',
+                'price': '12.50',
+                'quantity': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     def test_list_links_keep_the_current_page_when_opening_a_transaction(self):
         transaction = self.create_transaction(self.user)
         transaction.created_at = timezone.now() - timedelta(days=1)
@@ -879,6 +943,69 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, f'>{self.item.name}</option>')
         self.assertContains(response, f'>{additional_item.name}</option>')
         self.assertNotContains(response, 'type="hidden" name="item"')
+
+    def test_bank_receipt_transaction_date_is_displayed_and_saved(self):
+        bank_receipt = Item.objects.get(handle='bank-receipt')
+
+        response = self.client.get(
+            reverse(
+                'transactions:transaction_create',
+                args=[bank_receipt.item_type_id],
+            )
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="created-at-field-container" hidden')
+        self.assertContains(response, '["bank-receipt"]')
+        self.assertContains(response, f'"{bank_receipt.pk}": "bank-receipt"')
+        self.assertContains(response, 'type="datetime-local" name="created_at"')
+        initial_created_at = timezone.make_aware(
+            response.context['form']['created_at'].value()
+        )
+        current_time = timezone.localtime()
+        self.assertLess(
+            abs((initial_created_at - current_time).total_seconds()),
+            60,
+        )
+
+        response = self.client.post(
+            reverse(
+                'transactions:transaction_create',
+                args=[bank_receipt.item_type_id],
+            ),
+            {
+                'item': bank_receipt.pk,
+                'price': '5.00',
+                'quantity': '1',
+                'created_at': '2026-10-31T14:37',
+            },
+        )
+
+        self.assertRedirects(response, reverse('transactions:item_type_select'))
+        transaction = Transaction.objects.get(item=bank_receipt)
+        self.assertEqual(timezone.localtime(transaction.created_at).year, 2026)
+        self.assertEqual(timezone.localtime(transaction.created_at).month, 10)
+        self.assertEqual(timezone.localtime(transaction.created_at).day, 31)
+        self.assertEqual(timezone.localtime(transaction.created_at).hour, 14)
+        self.assertEqual(timezone.localtime(transaction.created_at).minute, 37)
+
+    def test_transaction_date_is_not_saved_for_other_item_handles(self):
+        response = self.client.post(
+            reverse('transactions:transaction_create', args=[self.item_type.id]),
+            {
+                'item': self.item.pk,
+                'price': '',
+                'quantity': '1',
+                'created_at': '2026-10-31T14:37',
+            },
+        )
+
+        self.assertRedirects(response, reverse('transactions:item_type_select'))
+        transaction = Transaction.objects.get(item=self.item)
+        self.assertNotEqual(
+            timezone.localtime(transaction.created_at).date(),
+            datetime(2026, 10, 31).date(),
+        )
 
     def test_products_button_opens_product_group_types(self):
         product_group = ItemType.objects.create(

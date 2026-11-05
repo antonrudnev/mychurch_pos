@@ -14,6 +14,7 @@ from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
 from .forms import (
+    DATE_FIELD_ITEM_HANDLES,
     NewOpenListItemForm,
     NewProductTransactionForm,
     TransactionForm,
@@ -306,6 +307,10 @@ class TransactionManageView(TemplateView):
         raise PermissionDenied
 
     def render_page(self, request, form, status=200):
+        can_change_transaction = (
+            request.user.has_perm('transactions.change_transaction')
+            and not self.transaction.is_verified
+        )
         return render(
             request,
             self.template_name,
@@ -313,9 +318,10 @@ class TransactionManageView(TemplateView):
                 'transaction': self.transaction,
                 'form': form,
                 'transaction_list_url': self.get_transaction_list_url(request),
-                'can_change_transaction': (
-                    request.user.has_perm('transactions.change_transaction')
-                    and not self.transaction.is_verified
+                'can_change_transaction': can_change_transaction,
+                'can_edit_transaction_datetime': (
+                    can_change_transaction
+                    and self.transaction.item.handle in DATE_FIELD_ITEM_HANDLES
                 ),
                 'can_view_all_transactions': request.user.has_perm(
                     'transactions.view_all_transactions'

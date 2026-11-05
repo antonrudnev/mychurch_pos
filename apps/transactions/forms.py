@@ -3,8 +3,18 @@ from decimal import Decimal
 from directory.models import Item, ItemType
 from django import forms
 from django.core.validators import MinValueValidator
+from django.utils import timezone
 
 from .models import Transaction
+
+DATE_FIELD_ITEM_HANDLES = ('bank-receipt',)
+
+
+def transaction_datetime_widget():
+    return forms.DateTimeInput(
+        attrs={'class': 'form-control', 'type': 'datetime-local'},
+        format='%Y-%m-%dT%H:%M',
+    )
 
 
 class NewProductTransactionForm(forms.Form):
@@ -79,9 +89,18 @@ class NewOpenListItemForm(forms.Form):
 
 
 class TransactionManageForm(forms.ModelForm):
+    created_at = forms.DateTimeField(
+        label='Дата и время',
+        input_formats=['%Y-%m-%dT%H:%M'],
+        widget=forms.DateTimeInput(
+            attrs={'class': 'form-control text-end', 'type': 'datetime-local'},
+            format='%Y-%m-%dT%H:%M',
+        ),
+    )
+
     class Meta:
         model = Transaction
-        fields = ('price', 'quantity')
+        fields = ('price', 'quantity', 'created_at')
         widgets = {
             'price': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -101,12 +120,21 @@ class TransactionManageForm(forms.ModelForm):
             self.fields.pop('price')
         elif item_price == 0:
             self.fields.pop('quantity')
+        if self.instance.item.handle not in DATE_FIELD_ITEM_HANDLES:
+            self.fields.pop('created_at')
 
 
 class TransactionForm(forms.ModelForm):
+    created_at = forms.DateTimeField(
+        label='Дата и время',
+        required=False,
+        initial=timezone.localtime,
+        widget=transaction_datetime_widget(),
+    )
+
     class Meta:
         model = Transaction
-        fields = ('item', 'price', 'quantity')
+        fields = ('item', 'price', 'quantity', 'created_at')
         widgets = {
             'item': forms.Select(attrs={'class': 'form-select'}),
             'price': forms.NumberInput(attrs={
@@ -135,12 +163,23 @@ class TransactionForm(forms.ModelForm):
             str(item.pk): str(item.price) if item.price is not None else None
             for item in items
         }
+        self.item_handles = {
+            str(item.pk): item.handle
+            for item in items
+        }
+        self.date_field_item_handles = DATE_FIELD_ITEM_HANDLES
 
     def clean(self):
         cleaned_data = super().clean()
         item = cleaned_data.get('item')
         if item is None:
             return cleaned_data
+
+        if item.handle in DATE_FIELD_ITEM_HANDLES:
+            if cleaned_data.get('created_at') is None:
+                cleaned_data['created_at'] = timezone.now()
+        else:
+            cleaned_data.pop('created_at', None)
 
         if item.price is None:
             cleaned_data['price'] = Decimal('0.00')
