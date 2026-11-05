@@ -25,6 +25,9 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+TEST_ENVIRONMENT = os.environ.get(
+    'TEST_ENVIRONMENT', 'false'
+).lower() in ('true', '1', 'yes')
 
 SECRET_KEY = os.environ.get('SECRET_KEY', '')
 if not SECRET_KEY:
@@ -85,6 +88,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.tz',
+                'config.context_processors.environment',
 
                 'directory.context_processors.global_data',
                 'reports.context_processors.global_data',

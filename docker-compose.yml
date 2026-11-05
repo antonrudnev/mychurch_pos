@@ -66,6 +66,7 @@ services:
       TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
       TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
       DEBUG: "False"
+      TEST_ENVIRONMENT: ${TEST_ENVIRONMENT:-false}
       SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
       ALLOWED_HOSTS: ${DOMAIN:?Set DOMAIN in .env}
       CSRF_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}

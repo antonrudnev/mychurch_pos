@@ -34,12 +34,15 @@
 <body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
 
 <!-- Единый адаптивный Navigation Bar с поддержкой динамических стилей тем Bootstrap 5 -->
-<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom border-subtle">
+<nav class="navbar navbar-expand-lg {% if is_test_environment %}bg-warning-subtle border-warning{% else %}bg-body-tertiary border-subtle{% endif %} border-bottom">
     <div class="container-fluid px-3">
         <!-- Логотип / Ссылка на главную -->
         <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">
             <img src="{% static 'images/favicon.png' %}" width="25" height="25" class="d-inline-block align-text-center me-2">
             Ксения Петербургская
+            {% if is_test_environment %}
+                <span class="badge text-bg-warning ms-2" title="Тестовая среда">ТЕСТ</span>
+            {% endif %}
         </a>
 
         <!-- Кнопка-гамбургер для mobile -->

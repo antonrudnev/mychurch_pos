@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 
@@ -69,3 +69,19 @@ class PasswordChangeTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('New-strong-password-456!'))
         self.assertEqual(int(self.client.session['_auth_user_id']), self.user.pk)
+
+
+class TestEnvironmentIndicatorTests(TestCase):
+    @override_settings(TEST_ENVIRONMENT=True)
+    def test_test_environment_uses_warning_navigation_and_label(self):
+        response = self.client.get(reverse('welcome_landing'))
+
+        self.assertContains(response, 'bg-warning-subtle border-warning')
+        self.assertContains(response, 'title="Тестовая среда">ТЕСТ</span>')
+
+    @override_settings(TEST_ENVIRONMENT=False)
+    def test_production_environment_keeps_default_navigation_without_label(self):
+        response = self.client.get(reverse('welcome_landing'))
+
+        self.assertContains(response, 'bg-body-tertiary border-subtle')
+        self.assertNotContains(response, 'title="Тестовая среда">ТЕСТ</span>')
