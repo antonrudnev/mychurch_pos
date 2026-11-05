@@ -1,0 +1,99 @@
+<div class="d-flex flex-nowrap gap-1 align-items-center justify-content-end datetime-picker" data-datetime-picker>
+    {{ field }}
+    <div class="flex-grow-1 min-w-0">
+        <label class="visually-hidden" data-date-label>Дата</label>
+        <input type="date" class="form-control px-1 datetime-picker-date" data-date>
+    </div>
+    <div>
+        <label class="visually-hidden" data-hour-label>Часы</label>
+        <select class="form-select px-1 datetime-picker-time" data-hour></select>
+    </div>
+    <div class="px-0" aria-hidden="true">:</div>
+    <div>
+        <label class="visually-hidden" data-minute-label>Минуты</label>
+        <select class="form-select px-1 datetime-picker-time" data-minute></select>
+    </div>
+</div>
+<style>
+    .datetime-picker {
+        min-width: 0;
+    }
+
+    .datetime-picker-date {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .datetime-picker-time {
+        width: 3.25rem;
+    }
+</style>
+<script>
+    document.querySelectorAll('[data-datetime-picker]').forEach((picker, index) => {
+        const datetimeInput = picker.querySelector('input[type="hidden"]');
+        const dateInput = picker.querySelector('[data-date]');
+        const hourSelect = picker.querySelector('[data-hour]');
+        const minuteSelect = picker.querySelector('[data-minute]');
+        const dateLabel = picker.querySelector('[data-date-label]');
+        const hourLabel = picker.querySelector('[data-hour-label]');
+        const minuteLabel = picker.querySelector('[data-minute-label]');
+
+        dateInput.id = `created-at-date-${index}`;
+        hourSelect.id = `created-at-hour-${index}`;
+        minuteSelect.id = `created-at-minute-${index}`;
+        dateLabel.htmlFor = dateInput.id;
+        hourLabel.htmlFor = hourSelect.id;
+        minuteLabel.htmlFor = minuteSelect.id;
+
+        function addOptions(select, start, end) {
+            const emptyOption = document.createElement('option');
+            emptyOption.value = '';
+            emptyOption.textContent = '--';
+            select.append(emptyOption);
+            for (let value = start; value <= end; value += 1) {
+                const option = document.createElement('option');
+                option.value = String(value).padStart(2, '0');
+                option.textContent = option.value;
+                select.append(option);
+            }
+        }
+
+        addOptions(hourSelect, 0, 23);
+        addOptions(minuteSelect, 0, 59);
+
+        function syncDateTime() {
+            datetimeInput.value = dateInput.value && hourSelect.value && minuteSelect.value
+                ? `${dateInput.value}T${hourSelect.value}:${minuteSelect.value}`
+                : '';
+        }
+
+        const value = datetimeInput.value;
+        if (value) {
+            const [date, time] = value.split('T');
+            const [hour, minute] = time.split(':');
+            dateInput.value = date;
+            hourSelect.value = hour;
+            minuteSelect.value = minute;
+        } else {
+            const now = new Date();
+            dateInput.value = [
+                now.getFullYear(),
+                String(now.getMonth() + 1).padStart(2, '0'),
+                String(now.getDate()).padStart(2, '0'),
+            ].join('-');
+            hourSelect.value = String(now.getHours()).padStart(2, '0');
+            minuteSelect.value = String(now.getMinutes()).padStart(2, '0');
+            syncDateTime();
+        }
+
+        dateInput.addEventListener('change', syncDateTime);
+        hourSelect.addEventListener('change', syncDateTime);
+        minuteSelect.addEventListener('change', syncDateTime);
+    });
+
+    window.syncTransactionDateTimePickers = () => {
+        document.querySelectorAll('[data-datetime-picker]').forEach((picker) => {
+            picker.querySelector('[data-date]').dispatchEvent(new Event('change'));
+        });
+    };
+</script>

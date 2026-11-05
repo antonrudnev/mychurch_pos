@@ -8,12 +8,13 @@ from django.utils import timezone
 from .models import Transaction
 
 DATE_FIELD_ITEM_HANDLES = ('bank-receipt',)
+TRANSACTION_DATETIME_FORMAT = '%Y-%m-%dT%H:%M'
 
 
 def transaction_datetime_widget():
     return forms.DateTimeInput(
-        attrs={'class': 'form-control', 'type': 'datetime-local'},
-        format='%Y-%m-%dT%H:%M',
+        attrs={'type': 'hidden'},
+        format=TRANSACTION_DATETIME_FORMAT,
     )
 
 
@@ -91,10 +92,14 @@ class NewOpenListItemForm(forms.Form):
 class TransactionManageForm(forms.ModelForm):
     created_at = forms.DateTimeField(
         label='Дата и время',
-        input_formats=['%Y-%m-%dT%H:%M'],
+        input_formats=[TRANSACTION_DATETIME_FORMAT],
         widget=forms.DateTimeInput(
-            attrs={'class': 'form-control text-end', 'type': 'datetime-local'},
-            format='%Y-%m-%dT%H:%M',
+            attrs={
+                'class': 'form-control text-end',
+                'type': 'datetime-local',
+                'lang': 'ru',
+            },
+            format=TRANSACTION_DATETIME_FORMAT,
         ),
     )
 
@@ -129,6 +134,7 @@ class TransactionForm(forms.ModelForm):
         label='Дата и время',
         required=False,
         initial=timezone.localtime,
+        input_formats=[TRANSACTION_DATETIME_FORMAT],
         widget=transaction_datetime_widget(),
     )
 

@@ -339,7 +339,9 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="created-at-display"')
         self.assertContains(response, 'id="created-at-editor" class="text-end" hidden')
-        self.assertContains(response, 'type="datetime-local" name="created_at"')
+        self.assertContains(response, 'type="datetime-local"')
+        self.assertContains(response, 'lang="ru"')
+        self.assertContains(response, 'name="created_at"')
         self.assertContains(response, 'value="2025-01-02T12:30"')
         self.assertContains(response, 'name="action" value="save"')
         self.assertNotContains(response, 'name="action" value="save_created_at"')
@@ -958,9 +960,19 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, 'id="created-at-field-container" hidden')
         self.assertContains(response, '["bank-receipt"]')
         self.assertContains(response, f'"{bank_receipt.pk}": "bank-receipt"')
-        self.assertContains(response, 'type="datetime-local" name="created_at"')
+        self.assertContains(response, 'type="hidden" name="created_at"')
+        self.assertContains(response, 'type="date"')
+        self.assertContains(response, 'data-hour')
+        self.assertContains(response, 'data-minute')
+        self.assertContains(response, 'flex-nowrap')
+        self.assertContains(response, 'lang="ru"')
+        self.assertContains(response, 'name="created_at"')
         initial_created_at = timezone.make_aware(
             response.context['form']['created_at'].value()
+        )
+        self.assertContains(
+            response,
+            f'value="{initial_created_at.strftime("%Y-%m-%dT%H:%M")}"',
         )
         current_time = timezone.localtime()
         self.assertLess(
