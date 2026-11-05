@@ -94,6 +94,18 @@ class CashReportDateRangeTests(TestCase):
         self.assertEqual(response.context_data['date_from'], date(2025, 1, 2))
         self.assertEqual(response.context_data['date_to'], date(2025, 1, 2))
 
+        response = self.client.get(
+            self.generate_url,
+            {**date_range, 'preset': 'last-week'},
+        )
+        self.assertContains(
+            response,
+            'href="'
+            f'{self.generate_url}?select_period=1&amp;preserve_dates=1'
+            '&amp;preset=last-week&amp;date_from=2025-01-02'
+            '&amp;date_to=2025-01-02"',
+        )
+
         response = self.client.post(self.generate_url, date_range)
 
         self.assertEqual(response.status_code, 302)
@@ -446,6 +458,17 @@ class ProductReportTests(TestCase):
         self.assertContains(
             response,
             f'href="{reverse("reports:product_report_pdf")}?date_from=2025-01-02&amp;date_to=2025-01-02"',
+        )
+
+        response = self.client.get(
+            self.generate_url,
+            {**self.date_range, 'preset': '5'},
+        )
+        self.assertContains(
+            response,
+            'href="'
+            f'{self.generate_url}?select_period=1&amp;preserve_dates=1'
+            '&amp;preset=5&amp;date_from=2025-01-02&amp;date_to=2025-01-02"',
         )
 
     def test_report_can_be_saved_and_rendered_as_pdf(self):

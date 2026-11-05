@@ -404,8 +404,7 @@
     <!-- Блок действий перенесен НАПРАВЛЯЮЩУЮ НИЖЕ ФУТЕРА -->
     {% if not is_saving %}
     <div class="report-actions">
-        <!-- Кнопка Назад (ведет в архив отчетов) -->
-        <a href="{% url 'reports:generate_report' 'cash-report' %}" class="btn-back">⬅ Вернуться</a>
+        <a href="{{ date_range_return_url }}" class="btn-back">⬅ Вернуться</a>
 
         <!-- Форма сохранения -->
         <form method="post" style="margin: 0;" id="save-date-form"> 

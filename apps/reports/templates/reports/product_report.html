@@ -229,7 +229,7 @@
 
     {% if not is_saving %}
         <div class="report-actions">
-            <a href="{% url 'reports:generate_report' report_handle %}" class="btn-back">⬅ Вернуться</a>
+            <a href="{{ date_range_return_url }}" class="btn-back">⬅ Вернуться</a>
             <form method="post" style="margin: 0;">
                 {% csrf_token %}
                 <input type="hidden" name="date_from" value="{{ date_from|date:'Y-m-d' }}">

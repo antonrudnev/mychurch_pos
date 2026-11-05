@@ -102,6 +102,19 @@ class BaseReportView(PermissionRequiredMixin, TemplateView):
             'report_type_name': self.report_type_name,
         }
 
+    def get_date_range_return_url(self, date_from, date_to):
+        preset = self.request.GET.get('preset', 'custom')
+        if preset not in {'week', 'last-week', '3', '5', 'custom'}:
+            preset = 'custom'
+        query = urlencode({
+            'select_period': '1',
+            'preserve_dates': '1',
+            'preset': preset,
+            'date_from': date_from.isoformat(),
+            'date_to': date_to.isoformat(),
+        })
+        return f"{reverse('reports:generate_report', args=[self.report_handle])}?{query}"
+
     def get(self, request, *args, **kwargs):
         if request.GET.get('select_period') == '1':
             date_from = parse_date(request.GET.get('date_from', ''))
@@ -464,6 +477,10 @@ class CashReportView(BaseReportView):
         context = {
             'report_handle': self.report_handle,
             'pdf_url_name': self.pdf_url_name,
+            'date_range_return_url': self.get_date_range_return_url(
+                date_from,
+                date_to,
+            ),
             'treby_data': treby_data,
             'product_total': product_total,
             'candle_total': candle_total,
@@ -526,6 +543,10 @@ class ProductReportView(BaseReportView):
         return {
             'report_handle': self.report_handle,
             'pdf_url_name': self.pdf_url_name,
+            'date_range_return_url': self.get_date_range_return_url(
+                date_from,
+                date_to,
+            ),
             'rows': rows,
             'overall_total_cost': total_cost or Decimal('0.00'),
             'date_from': date_from,
