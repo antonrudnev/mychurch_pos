@@ -960,11 +960,7 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, 'id="created-at-field-container" hidden')
         self.assertContains(response, '["bank-receipt"]')
         self.assertContains(response, f'"{bank_receipt.pk}": "bank-receipt"')
-        self.assertContains(response, 'type="hidden" name="created_at"')
-        self.assertContains(response, 'type="date"')
-        self.assertContains(response, 'data-hour')
-        self.assertContains(response, 'data-minute')
-        self.assertContains(response, 'flex-nowrap')
+        self.assertContains(response, 'type="datetime-local"')
         self.assertContains(response, 'lang="ru"')
         self.assertContains(response, 'name="created_at"')
         initial_created_at = timezone.make_aware(

@@ -10,14 +10,6 @@ from .models import Transaction
 DATE_FIELD_ITEM_HANDLES = ('bank-receipt',)
 TRANSACTION_DATETIME_FORMAT = '%Y-%m-%dT%H:%M'
 
-
-def transaction_datetime_widget():
-    return forms.DateTimeInput(
-        attrs={'type': 'hidden'},
-        format=TRANSACTION_DATETIME_FORMAT,
-    )
-
-
 class NewProductTransactionForm(forms.Form):
     name = forms.CharField(
         label='Название товара',
@@ -135,7 +127,14 @@ class TransactionForm(forms.ModelForm):
         required=False,
         initial=timezone.localtime,
         input_formats=[TRANSACTION_DATETIME_FORMAT],
-        widget=transaction_datetime_widget(),
+        widget=forms.DateTimeInput(
+            attrs={
+                'class': 'form-control',
+                'type': 'datetime-local',
+                'lang': 'ru',
+            },
+            format=TRANSACTION_DATETIME_FORMAT,
+        ),
     )
 
     class Meta:

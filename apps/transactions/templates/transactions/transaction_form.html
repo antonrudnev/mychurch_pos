@@ -17,7 +17,7 @@
                 <div class="mb-3" {% if field.name == 'price' %}id="price-field-container" hidden{% elif field.name == 'quantity' %}id="quantity-field-container" hidden{% elif field.name == 'created_at' %}id="created-at-field-container" hidden{% endif %}>
                     <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                     {% if field.name == 'created_at' %}
-                        {% include "transactions/includes/datetime_picker.html" with field=field %}
+                        {{ field }}
                     {% else %}
                         {{ field }}
                     {% endif %}
@@ -79,8 +79,6 @@
         createdAtContainer.hidden = !showCreatedAt;
         if (resetManualPrice && !showCreatedAt) {
             createdAtInput.value = '';
-        } else if (resetManualPrice && showCreatedAt && !createdAtInput.value) {
-            window.syncTransactionDateTimePickers();
         }
 
         if (!hasItemPrice) {
