@@ -60,9 +60,13 @@ services:
   web:
     build: .
     restart: always
+    mem_limit: 380m
+    memswap_limit: 800m
     volumes:
       - ./db_volume:/app/db_volume
     environment:
+      PYTHONUNBUFFERED: "1"
+      MALLOC_ARENA_MAX: "2"
       TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
       TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
       DEBUG: "False"
@@ -81,7 +85,7 @@ services:
       sh -c "python manage.py migrate &&
              python scripts/data_upload.py &&
              python scripts/ensure_superuser.py &&
-             exec gunicorn --workers 5 --bind 0.0.0.0:8000 config.wsgi:application"
+             exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --max-requests 500 --max-requests-jitter 50"
 
 volumes:
   certs:
