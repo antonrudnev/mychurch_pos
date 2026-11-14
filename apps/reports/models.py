@@ -1,4 +1,5 @@
 from django.contrib.auth.models import User
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -14,10 +15,16 @@ class ReportType(models.Model):
         verbose_name="Дескриптор",
         help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
+    order_number = models.PositiveIntegerField(
+                default=1, 
+                validators=[MinValueValidator(1)],
+                verbose_name="Порядок сортировки"
+        )
 
     class Meta:
         verbose_name = "Тип отчета"
         verbose_name_plural = "Типы отчетов"
+        ordering = ['order_number', 'name']  # Сначала сортировка по порядковому номеру, затем по имени
 
     def __str__(self):
         return self.name

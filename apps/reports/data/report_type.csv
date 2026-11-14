@@ -1,3 +1,4 @@
-name,handle
-Кассовый отчет,cash-report
-Товарная ведомость,product-report
+name,handle,order_number
+Кассовый отчет,cash-report,1
+Свечная ведомость,candle-report,2
+Товарная ведомость,product-report,3

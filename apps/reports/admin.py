@@ -7,7 +7,7 @@ from .models import Report, ReportType
 
 @admin.register(ReportType)
 class ReportTypeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'handle')
+    list_display = ('name', 'handle', 'order_number')
     prepopulated_fields = {'handle': ('name',)}
     
 
