@@ -539,6 +539,99 @@ class ProductReportTests(TestCase):
         self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
 
 
+class CandleReportTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username='candle-reporter',
+            password='test-password',
+        )
+        permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename='add_report',
+        )
+        self.user.user_permissions.add(permission)
+        self.client.force_login(self.user)
+        self.generate_url = reverse(
+            'reports:generate_report',
+            kwargs={'handle_key': 'candle-report'},
+        )
+        self.date_range = {
+            'date_from': '2025-01-02',
+            'date_to': '2025-01-02',
+        }
+
+    def test_report_filters_candle_item_type_and_supports_saving_and_pdf(self):
+        candle_type = ItemType.objects.get(handle='candle')
+        other_type = ItemType.objects.create(
+            name='Другая категория',
+            handle='candle-other',
+            is_product_group=True,
+        )
+        candle = Item.objects.create(
+            item_type=candle_type,
+            name='Тестовая свеча',
+            handle='candle-report-test-item',
+        )
+        other_item = Item.objects.create(
+            item_type=other_type,
+            name='Не свеча',
+            handle='candle-report-other-item',
+        )
+        for item, price, quantity in (
+            (candle, Decimal('5.00'), 2),
+            (other_item, Decimal('50.00'), 3),
+        ):
+            Transaction.objects.create(
+                item=item,
+                price=price,
+                quantity=quantity,
+                cashier=self.user,
+                created_at=timezone.make_aware(datetime(2025, 1, 2, 12)),
+                is_verified=True,
+            )
+
+        response = self.client.get(self.generate_url, self.date_range)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            list(response.context_data['rows']),
+            [{
+                'item__name': 'Тестовая свеча',
+                'price': Decimal('5.00'),
+                'total_quantity': 2,
+                'total_cost': Decimal('10.00'),
+            }],
+        )
+        self.assertEqual(
+            response.context_data['overall_total_cost'],
+            Decimal('10.00'),
+        )
+        self.assertContains(response, 'Свечная ведомость за')
+        self.assertContains(response, 'Тестовая свеча')
+        self.assertNotContains(response, 'Не свеча')
+        self.assertContains(
+            response,
+            f'href="{reverse("reports:candle_report_pdf")}?date_from=2025-01-02&amp;date_to=2025-01-02"',
+        )
+
+        save_response = self.client.post(self.generate_url, self.date_range)
+
+        self.assertEqual(save_response.status_code, 302)
+        report = Report.objects.get()
+        self.assertEqual(report.name, 'Свечная ведомость за 02.01.2025')
+        self.assertEqual(report.report_type.handle, 'candle-report')
+        self.assertIn('Тестовая свеча', report.dump)
+        self.assertNotIn('Не свеча', report.dump)
+
+        pdf_response = self.client.get(
+            reverse('reports:candle_report_pdf'),
+            self.date_range,
+        )
+        self.assertEqual(pdf_response.status_code, 200)
+        self.assertEqual(pdf_response['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
+
+
 class ReportManagementTests(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create_user(

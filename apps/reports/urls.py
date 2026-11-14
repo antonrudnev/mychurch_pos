@@ -1,6 +1,7 @@
 from django.urls import path
 
 from .views import (
+    CandleReportPrintView,
     CashReportPrintView,
     DynamicReportRouterView,
     ProductReportPrintView,
@@ -29,6 +30,11 @@ urlpatterns = [
         'generate/product-report/pdf/',
         ProductReportPrintView.as_view(),
         name='product_report_pdf',
+    ),
+    path(
+        'generate/candle-report/pdf/',
+        CandleReportPrintView.as_view(),
+        name='candle_report_pdf',
     ),
     path(
         '<int:report_id>/',

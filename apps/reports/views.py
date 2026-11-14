@@ -529,14 +529,17 @@ class ProductReportView(BaseReportView):
     report_template_name = 'reports/product_report.html'
     pdf_url_name = 'reports:product_report_pdf'
 
-    def get_report_context(self, form):
-        date_from = form.cleaned_data['date_from']
-        date_to = form.cleaned_data['date_to']
-        transactions = Transaction.objects.filter(
+    def get_report_transactions(self, date_from, date_to):
+        return Transaction.objects.filter(
             item__item_type__is_product_group=True,
             is_deleted=False,
             created_at__date__range=(date_from, date_to),
         )
+
+    def get_report_context(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        transactions = self.get_report_transactions(date_from, date_to)
         rows = (
             transactions
             .values('item__name', 'price')
@@ -566,6 +569,19 @@ class ProductReportView(BaseReportView):
             'current_user': self.request.user,
             'is_saving': False,
         }
+
+
+class CandleReportView(ProductReportView):
+    report_handle = 'candle-report'
+    report_template_name = 'reports/candle_report.html'
+    pdf_url_name = 'reports:candle_report_pdf'
+
+    def get_report_transactions(self, date_from, date_to):
+        return Transaction.objects.filter(
+            item__item_type__handle='candle',
+            is_deleted=False,
+            created_at__date__range=(date_from, date_to),
+        )
 
 
 class ReportPrintMixin:
@@ -621,6 +637,10 @@ class CashReportPrintView(ReportPrintMixin, CashReportView):
 
 
 class ProductReportPrintView(ReportPrintMixin, ProductReportView):
+    pass
+
+
+class CandleReportPrintView(ReportPrintMixin, CandleReportView):
     pass
 
 
@@ -680,6 +700,7 @@ class ReportManageView(PermissionRequiredMixin, View):
 
 REPORT_CLASSES_REGISTRY = {
     'cash-report': CashReportView,
+    'candle-report': CandleReportView,
     'product-report': ProductReportView,
 }
 
