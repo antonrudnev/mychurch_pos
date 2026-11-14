@@ -18,7 +18,7 @@
                     {% with handle=r_type.handle %}
                         <!-- Активная крупная кнопка с контурным цветом Bootstrap -->
                         <a href="{% url 'reports:generate_report' r_type.handle %}" 
-                        class="btn w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center {% if handle == 'cash-report' %}btn-success{% elif handle == 'candle-report' %}btn-warning{% elif handle == 'product-report' %}btn-info{% else %}btn-primary{% endif %}">
+                        class="btn w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center {% if handle == 'cash-report' %}btn-info{% elif handle == 'candle-report' %}btn-warning{% elif handle == 'product-report' %}btn-success{% else %}btn-primary{% endif %}">
                             <span class="fs-5 fw-normal mb-1">{{ r_type.name }}</span>
                             <span class="fw-light text-uppercase small opacity-75" style="font-size: 0.75rem;">Сформировать документ</span>
                         </a>
@@ -38,9 +38,6 @@
                 </p>
             {% endfor %}
         </div>
-
-
-        
         <!-- Тонкий адаптивный разделитель Bootstrap -->
         <div class="border-top border-subtle my-4"></div>
         

@@ -23,15 +23,13 @@
             {% endif %}
             {% for item_type in item_types %}
                 <div class="col">
-                    {% if item_type.is_open_list %}
-                        <a href="{% url 'transactions:new_open_list_item' item_type.id %}" class="btn btn-primary w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
-                            {{ item_type.name }}
-                        </a>
-                    {% elif item_type.has_items %}
-                        <a href="{% url 'transactions:transaction_create' item_type.id %}" class="btn btn-primary w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
+                    {% if item_type.is_open_list or item_type.has_items %}
+                        <a href="{% if item_type.is_open_list %}{% url 'transactions:new_open_list_item' item_type.id %}{% else %}{% url 'transactions:transaction_create' item_type.id %}{% endif %}" 
+                        class="btn {% if item_type.handle == 'candle' %}btn-warning{% elif item_type.handle == 'money' %}btn-info{% else %}btn-primary{% endif %} w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
                             {{ item_type.name }}
                         </a>
                     {% else %}
+                        <!-- Серая неактивная кнопка-заглушка -->
                         <button class="btn btn-outline-secondary w-100 h-100 py-3 d-flex align-items-center justify-content-center fs-5" disabled>
                             {{ item_type.name }}
                         </button>
