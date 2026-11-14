@@ -30,62 +30,70 @@
         <!-- Контейнер списка в стиле лаконичных разделителей главной страницы -->
         <div class="my-4">
             {% for report in reports %}
-                <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2">
-                    
-                    <!-- Основная информация об отчете -->
-                    <div>
-                        <!-- Название отчета  -->
-                        <h4 class="fw-normal h5 mb-1 text-body">
-                            {% if perms.reports.change_report or perms.reports.delete_report %}
-                                <a href="{% url 'reports:manage_report' report.id %}" class="report-title-link">
-                                    {{ report.name }}
-                                </a>
-                            {% else %}
-                                {{ report.name }}
-                            {% endif %}
-                        </h4>
-                        
-                        <!-- Метаданные -->
-                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
-                            {% if report.report_type %}
-                                <span class="fw-normal text-muted small text-uppercase me-2">[{{ report.report_type.name }}]</span>
-                            {% endif %}
-                            от {{ report.created_at|date:"d.m.Y  H:i" }} 
-                        </p>
-                    </div>
-
-                    <!-- Действие -->
-                    <div class="d-flex flex-row flex-md-column justify-content-end align-items-sm-center align-items-md-end gap-3 gap-md-1 pt-1">
-                        <a href="{% url 'reports:print_report' report.id %}" 
-                        target="_blank" 
-                        class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
-                            Открыть <i class="bi bi-box-arrow-up-right small"></i>
-                        </a>
-                        
-                        <a href="{% url 'reports:print_report' report.id %}?format=pdf"
-                        target="_blank"
-                        rel="noopener"
-                        class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-danger">
-                            Скачать <i class="bi bi-file-earmark-pdf small"></i>
-                        </a>
-                    </div>
-                    
-                </div>
-                
-                <!-- Адаптивный разделитель между строками отчетов -->
-                {% if not forloop.last %}
-                    <div class="border-top border-subtle my-2"></div>
+                {% if report.report_type %}
+                    {% with handle=report.report_type.handle %}
+                        <!-- Сохраняем вашу структуру, добавляя левую цветную границу и отступ слева (ps-3) -->
+                        <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if handle == 'cash-report' %}border-success{% elif handle == 'candle-report' %}border-warning{% else %}border-info{% endif %} ps-3">
+                    {% endwith %}
+                {% else %}
+                    <!-- Резервный вариант с серой границей, если тип отчета не задан -->
+                    <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 border-secondary ps-3">
                 {% endif %}
+                            
+                            <!-- Основная информация об отчете -->
+                            <div>
+                                <!-- Название отчета  -->
+                                <h4 class="fw-normal h5 mb-1 text-body">
+                                    {% if perms.reports.change_report or perms.reports.delete_report %}
+                                        <a href="{% url 'reports:manage_report' report.id %}" class="report-title-link">
+                                            {{ report.name }}
+                                        </a>
+                                    {% else %}
+                                        {{ report.name }}
+                                    {% endif %}
+                                </h4>
+                                
+                                <!-- Метаданные (Точка удалена, так как цвет теперь задан границей слева) -->
+                                <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                                    {% if report.report_type %}
+                                        <span class="fw-normal text-muted small text-uppercase me-2">[{{ report.report_type.name }}]</span>
+                                    {% endif %}
+                                    от {{ report.created_at|date:"d.m.Y  H:i" }} 
+                                </p>
+                            </div>
 
-            {% empty %}
-                <!-- Состояние, когда архив пуст  -->
-                <div class="text-center py-5">
-                    <h5 class="fw-light text-uppercase small text-muted mb-2">Здесь хранятся кассовые отчеты и ведомости</h5>
-                    <p class="text-secondary fs-5 italic mb-0">
-                        Создайте новый отчет, чтобы он появился здесь.
-                    </p>
-                </div>
-            {% endfor %}
+                            <!-- Действие -->
+                            <div class="d-flex flex-row flex-md-column justify-content-end align-items-sm-center align-items-md-end gap-3 gap-md-1 pt-1">
+                                <a href="{% url 'reports:print_report' report.id %}" 
+                                target="_blank" 
+                                class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
+                                    Открыть <i class="bi bi-box-arrow-up-right small"></i>
+                                </a>
+                                
+                                <a href="{% url 'reports:print_report' report.id %}?format=pdf"
+                                target="_blank"
+                                rel="noopener"
+                                class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-danger">
+                                    Скачать <i class="bi bi-file-earmark-pdf small"></i>
+                                </a>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Адаптивный разделитель между строками отчетов (Полностью сохранен) -->
+                        {% if not forloop.last %}
+                            <div class="border-top border-subtle my-2"></div>
+                        {% endif %}
+
+                    {% empty %}
+                        <!-- Состояние, когда архив пуст  -->
+                        <div class="text-center py-5">
+                            <h5 class="fw-light text-uppercase small text-muted mb-2">Здесь хранятся кассовые отчеты и ведомости</h5>
+                            <p class="text-secondary fs-5 italic mb-0">
+                                Создайте новый отчет, чтобы он появился здесь.
+                            </p>
+                        </div>
+                    {% endfor %}
         </div>
 
         <!-- БЛОК ПАГИНАЦИИ (Показывается только если страниц больше одной) -->
