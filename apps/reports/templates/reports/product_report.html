@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Товарная ведомость</title>
+    <title>{{ report_type_name }}</title>
     <style>
         body {
             margin: 30px;
@@ -173,7 +173,7 @@
 <body>
     <main class="report-page">
         <h2>
-            Товарная ведомость за
+            {{ report_type_name }} за
             {% if date_from == date_to %}
                 <strong>{{ date_from|date:"d.m.Y" }}</strong>
             {% else %}

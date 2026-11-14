@@ -13,7 +13,11 @@ from transactions.models import Transaction
 
 from .forms import ReportDateRangeForm
 from .models import Report, ReportType
-from .views import render_report_document
+from .views import (
+    CashReportView,
+    ProductReportView,
+    render_report_document,
+)
 
 
 class ReportDateRangeFormTests(TestCase):
@@ -33,6 +37,47 @@ class ReportDateRangeFormTests(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('date_to', form.errors)
+
+
+class ReportTypeDrivenNameTests(TestCase):
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username='report-type-name-tester',
+            password='test-password',
+        )
+        permission = Permission.objects.get(
+            content_type__app_label='reports',
+            codename='add_report',
+        )
+        self.user.user_permissions.add(permission)
+        self.client.force_login(self.user)
+
+    def test_report_names_and_prefixes_use_report_type_names(self):
+        cases = (
+            (CashReportView, 'cash-report', 'DB кассовый отчет'),
+            (ProductReportView, 'product-report', 'DB товарная ведомость'),
+        )
+        for view_class, handle, name in cases:
+            with self.subTest(handle=handle):
+                ReportType.objects.filter(handle=handle).update(name=name)
+
+                view = view_class()
+
+                self.assertEqual(view.report_type_name, name)
+                self.assertEqual(view.report_name_prefix, f'{name} за')
+                self.assertEqual(view.pdf_filename_prefix, f'{name} за')
+
+                response = self.client.get(
+                    reverse(
+                        'reports:generate_report',
+                        kwargs={'handle_key': handle},
+                    ),
+                    {'date_from': '2025-01-02', 'date_to': '2025-01-02'},
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, f'<title>{name}</title>')
+                self.assertContains(response, f'{name} за')
 
 
 class CashReportDateRangeTests(TestCase):
@@ -240,7 +285,11 @@ class CashReportDateRangeTests(TestCase):
         self.assertTrue(pdf_response['Content-Disposition'].startswith('inline;'))
         self.assertEqual(
             pdf_response['Content-Disposition'],
-            'inline; filename="cas-report-2025-01-02-2025-01-02.pdf"',
+            content_disposition_header(
+                False,
+                f'{ReportType.objects.get(handle="cash-report").name} за '
+                '2025-01-02-2025-01-02.pdf',
+            ),
         )
         self.assertTrue(pdf_response.content.startswith(b'%PDF-'))
         self.assertContains(

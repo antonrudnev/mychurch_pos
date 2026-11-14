@@ -30,6 +30,7 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.dateparse import parse_date
+from django.utils.functional import cached_property
 from django.utils.http import content_disposition_header
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
@@ -94,6 +95,20 @@ class BaseReportView(PermissionRequiredMixin, TemplateView):
     template_name = 'reports/report_date_range.html'
     permission_required = 'reports.add_report'
     raise_exception = False
+
+    @cached_property
+    def report_type_name(self):
+        return ReportType.objects.values_list('name', flat=True).get(
+            handle=self.report_handle,
+        )
+
+    @property
+    def report_name_prefix(self):
+        return f'{self.report_type_name} за'
+
+    @property
+    def pdf_filename_prefix(self):
+        return self.report_name_prefix
 
     def get_date_range_form_context(self, form):
         return {
@@ -222,10 +237,7 @@ class BaseReportView(PermissionRequiredMixin, TemplateView):
 class CashReportView(BaseReportView):
     report_handle = 'cash-report'
     report_template_name = 'reports/cash_report.html'
-    report_type_name = 'Кассовый отчет'
-    report_name_prefix = 'Кассовый отчет за'
     pdf_url_name = 'reports:cash_report_pdf'
-    pdf_filename_prefix = 'Кассовый отчёт за'
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -476,6 +488,7 @@ class CashReportView(BaseReportView):
 
         context = {
             'report_handle': self.report_handle,
+            'report_type_name': self.report_type_name,
             'pdf_url_name': self.pdf_url_name,
             'date_range_return_url': self.get_date_range_return_url(
                 date_from,
@@ -514,10 +527,7 @@ class CashReportView(BaseReportView):
 class ProductReportView(BaseReportView):
     report_handle = 'product-report'
     report_template_name = 'reports/product_report.html'
-    report_type_name = 'Товарная ведомость'
-    report_name_prefix = 'Товарная ведомость за'
     pdf_url_name = 'reports:product_report_pdf'
-    pdf_filename_prefix = 'Товарная ведомость за'
 
     def get_report_context(self, form):
         date_from = form.cleaned_data['date_from']
@@ -542,6 +552,7 @@ class ProductReportView(BaseReportView):
 
         return {
             'report_handle': self.report_handle,
+            'report_type_name': self.report_type_name,
             'pdf_url_name': self.pdf_url_name,
             'date_range_return_url': self.get_date_range_return_url(
                 date_from,
