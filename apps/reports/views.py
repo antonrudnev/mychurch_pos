@@ -426,24 +426,12 @@ class CashReportView(BaseReportView):
         donate_total = (
             Transaction.objects
             .filter(
-                item__item_type__handle__iexact=prefix,
+                item__handle__iexact=prefix,
                 is_deleted=False,
                 created_at__date__range=date_range,
             )
             .aggregate(total_cost=Sum('price'))
             .get('total_cost')
-        )
-        donate_data = (
-            Transaction.objects
-            .filter(
-                item__item_type__handle__iexact=prefix,
-                is_deleted=False,
-                created_at__date__range=date_range,
-            )
-            .values('item__name',
-                    'item__handle')
-            .annotate(total_cost=Sum('price'))
-            .order_by('item__handle')
         )
 
         prefix = "other-treby"
@@ -507,7 +495,6 @@ class CashReportView(BaseReportView):
             'cash_register_last': cash_register_last,
             'cash_deposit_last': cash_deposit_last,
             'donate_total': donate_total,
-            'donate_data': donate_data,
             'other_treby_data': other_treby_data,
             'other_expense_data': other_expense_data,
             'not_verified_status':not_verified_status,

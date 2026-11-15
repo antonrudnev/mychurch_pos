@@ -12,8 +12,9 @@ def import_report_types(apps, schema_editor):
     with csv_path.open(encoding="utf-8-sig", newline="") as csv_file:
         for row in csv.DictReader(csv_file):
             ReportType.objects.using(database).get_or_create(
+                name=row["name"],
                 handle=row["handle"],
-                defaults={"name": row["name"]},
+                order_number=int(row["order_number"]),
             )
 
 

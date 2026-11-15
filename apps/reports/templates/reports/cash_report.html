@@ -286,11 +286,9 @@
             <tr>
                 <td class="name-cell-tall">Прочие требы:</td>
                 <td class="cash-cell-tall" colspan="3">
-                    {% if donate_data is not None %}
-                        {% for row in donate_data %}
-                            {{ row.item__name }} {{ row.total_cost|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381;</span>{% if not forloop.last %}; {% endif %}
-                        {% endfor %}
-                        {% if donate_data and other_treby_data is not None and other_treby_data %}
+                    {% if donate_total is not None %}
+                        Пожертвование {{ donate_total|floatformat:"2g" }}<span style="font-weight: normal;"> &#8381;</span>
+                        {% if donate_total and other_treby_data is not None and other_treby_data %}
                             <br>
                         {% endif%}
                     {% endif %}

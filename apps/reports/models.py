@@ -16,15 +16,15 @@ class ReportType(models.Model):
         help_text="Системный идентификатор. Изменение параметра может нарушить логику обработки данных.",
     )
     order_number = models.PositiveIntegerField(
-                default=1, 
-                validators=[MinValueValidator(1)],
-                verbose_name="Порядок сортировки"
-        )
+        default=1, 
+        validators=[MinValueValidator(1)],
+        verbose_name="Порядок сортировки"
+    )
 
     class Meta:
         verbose_name = "Тип отчета"
         verbose_name_plural = "Типы отчетов"
-        ordering = ['order_number', 'name']  # Сначала сортировка по порядковому номеру, затем по имени
+        ordering = ['order_number']
 
     def __str__(self):
         return self.name

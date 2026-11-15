@@ -1,10 +1,9 @@
 name,handle,is_product_group,is_open_list,order_number
 Таинства,treby-1,0,0,3
-Записки,treby-2,0,0,1
+Записки,treby-2,0,0,2
 Освящение,treby-3,0,0,5
-Свечи,candle,0,0,2
-Пожертвования,donate,0,0,4
+Свечи,candle,0,0,1
 Люди,staff,0,0,6
-Деньги,money,0,0,7
-Прочие требы,other-treby,0,1,8
-Прочие расходы,other-expense,0,1,9
+Прочие требы,other-treby,0,1,7
+Прочие расходы,other-expense,0,1,8
+Деньги,money,0,0,9
