@@ -558,7 +558,7 @@ class ProductReportView(BaseReportView):
         }
 
 
-class CandleReportView(ProductReportView):
+class CandleReportView(BaseReportView):
     report_handle = 'candle-report'
     report_template_name = 'reports/candle_report.html'
     pdf_url_name = 'reports:candle_report_pdf'
@@ -569,6 +569,40 @@ class CandleReportView(ProductReportView):
             is_deleted=False,
             created_at__date__range=(date_from, date_to),
         )
+
+    def get_report_context(self, form):
+        date_from = form.cleaned_data['date_from']
+        date_to = form.cleaned_data['date_to']
+        transactions = self.get_report_transactions(date_from, date_to)
+        rows = (
+            transactions
+            .values('item__name', 'price')
+            .annotate(
+                total_quantity=Sum('quantity'),
+                total_cost=Sum(F('quantity') * F('price')),
+            )
+            .order_by('item__order_number', 'price')
+        )
+        total_cost = transactions.aggregate(
+            total_cost=Sum(F('quantity') * F('price')),
+        )['total_cost']
+
+        return {
+            'report_handle': self.report_handle,
+            'report_type_name': self.report_type_name,
+            'pdf_url_name': self.pdf_url_name,
+            'date_range_return_url': self.get_date_range_return_url(
+                date_from,
+                date_to,
+            ),
+            'rows': rows,
+            'overall_total_cost': total_cost or Decimal('0.00'),
+            'date_from': date_from,
+            'date_to': date_to,
+            'current_time': timezone.now(),
+            'current_user': self.request.user,
+            'is_saving': False,
+        }
 
 
 class ReportPrintMixin:
