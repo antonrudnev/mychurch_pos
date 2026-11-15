@@ -273,6 +273,24 @@
         })
     })()
 </script>
+<!-- Автоматическое закрытие мобильного меню при скролле -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const navbarMenu = document.getElementById('navbarNav');
+        
+        if (navbarMenu) {
+            // Инициализируем компонент Bootstrap Collapse (без переключения)
+            const bsCollapse = new bootstrap.Collapse(navbarMenu, { toggle: false });
+
+            window.addEventListener('scroll', function () {
+                // Если меню открыто (содержит класс 'show'), плавно закрываем его
+                if (navbarMenu.classList.contains('show')) {
+                    bsCollapse.hide();
+                }
+            }, { passive: true }); // passive ускоряет работу скролла в браузере
+        }
+    });
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
