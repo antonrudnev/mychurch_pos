@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Категория номенклатуры',
                 'verbose_name_plural': 'Категории номенклатуры',
-                'ordering': ('name',),
+                'ordering': ('is_product_group', 'order_number', 'name'),
             },
         ),
         migrations.CreateModel(
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
             options={
                 'verbose_name': 'Позиция реестра',
                 'verbose_name_plural': 'Реестр товаров и услуг',
-                'ordering': ('item_type__name', 'name'),
+                'ordering': ('item_type__name', 'order_number', 'name'),
                 'permissions': [('change_item_price', 'Can change Позиция реестра price')],
             },
         ),

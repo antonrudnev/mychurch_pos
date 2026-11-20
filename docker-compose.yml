@@ -64,6 +64,7 @@ services:
     memswap_limit: 800m
     volumes:
       - ./db_volume:/app/db_volume
+      - ./media:/app/media
     environment:
       PYTHONUNBUFFERED: "1"
       MALLOC_ARENA_MAX: "2"
@@ -75,6 +76,7 @@ services:
       ALLOWED_HOSTS: ${DOMAIN:?Set DOMAIN in .env}
       CSRF_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
       VIRTUAL_HOST: ${DOMAIN:?Set DOMAIN in .env}
+      VIRTUAL_PATH: /
       HTTPS_METHOD: redirect
       LETSENCRYPT_HOST: ${DOMAIN:?Set DOMAIN in .env}
       DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:?Set DJANGO_SUPERUSER_USERNAME in .env}
@@ -86,6 +88,26 @@ services:
              python scripts/data_upload.py &&
              python scripts/ensure_superuser.py &&
              exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --max-requests 500 --max-requests-jitter 50"
+
+  docscanner:
+    build: ./docscanner
+    restart: always
+    mem_limit: 64m
+    volumes:
+      - ./db_volume:/app/db_volume
+      - ./media/dropbox:/app/downloads
+    environment:
+      PORT: "8080"
+      DB_PATH: /app/db_volume/db.sqlite3
+      DOWNLOAD_DIR: /app/downloads
+      TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
+      DROPBOX_APP_KEY: ${DROPBOX_APP_KEY:?Set DROPBOX_APP_KEY in .env}
+      DROPBOX_APP_SECRET: ${DROPBOX_APP_SECRET:?Set DROPBOX_APP_SECRET in .env}
+      DROPBOX_REFRESH_TOKEN: ${DROPBOX_REFRESH_TOKEN:?Set DROPBOX_REFRESH_TOKEN in .env}
+      VIRTUAL_HOST: ${DOMAIN:?Set DOMAIN in .env}
+      VIRTUAL_PATH: /webhook
+      VIRTUAL_DEST: /webhook
+      VIRTUAL_PORT: "8080"
 
 volumes:
   certs:

@@ -1,5 +1,5 @@
 # === База данных ===
-db_store/
+db_volume/
 *.sqlite3
 
 # === Виртуальное окружение Python ===
@@ -47,3 +47,14 @@ Thumbs.db
 .env
 .env.[a-zA-Oq-z]*
 !.env.example
+
+# === Медиафайлы и загрузки ===
+media/
+
+# === Бинарные файлы Go (docscanner) ===
+docscanner/docscanner
+docscanner/docscanner.exe
+docscanner/main.exe
+*.exe
+*.test
+*.out
