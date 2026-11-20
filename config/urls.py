@@ -14,13 +14,36 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.conf.urls.static import static
+from pathlib import Path
+
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import include, path, reverse_lazy
+from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404, HttpResponseForbidden
+from django.urls import include, path, re_path, reverse_lazy
+from django.utils._os import safe_join
 
 from config import settings
 from config.views import register_view, welcome_landing_view
+
+
+@login_required
+def protected_media(request, path):
+    # Проверяем, что пользователь — сотрудник и имеет право просматривать входящие документы
+    if not (request.user.is_staff and request.user.has_perm("transactions.view_incomingdocument")):
+        return HttpResponseForbidden("You do not have permission to access this file.")
+
+    # Защита от выхода за пределы MEDIA_ROOT (Path Traversal)
+    try:
+        full_path = Path(safe_join(settings.MEDIA_ROOT, path))
+    except ValueError:
+        raise Http404("Invalid file path.")
+
+    if not full_path.is_file():
+        raise Http404("File not found.")
+
+    return FileResponse(open(full_path, "rb"))
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -47,6 +70,7 @@ urlpatterns = [
     path('directory/', include('directory.urls')),
     path('transactions/', include('transactions.urls')),
     path('reports/', include('reports.urls')),
+    re_path(r"^media/(?P<path>.*)$", protected_media),
 ]
 
 admin.site.site_header = "Администрирование церковной лавки"
@@ -54,6 +78,3 @@ admin.site.site_title = "Церковная лавка"
 admin.site.index_title = "Управление приходом и торговлей"
 
 handler404 = 'config.views.custom_page_not_found_view'
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
