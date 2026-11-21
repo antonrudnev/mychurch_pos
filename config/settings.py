@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'directory',
     'transactions',
     'reports',
+    'apps.integrations',
 ]
 
 MIDDLEWARE = [

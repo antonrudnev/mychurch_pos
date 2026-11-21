@@ -65,7 +65,7 @@ func (r *Repository) Close() error {
 func (r *Repository) ActiveSyncStates(ctx context.Context) ([]SyncState, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, document_type, folder_path, cursor
-		FROM transactions_document_sync_state
+		FROM integrations_documentsyncstate
 		WHERE is_active = 1
 		ORDER BY id
 	`)
@@ -100,7 +100,7 @@ func (r *Repository) UpdateSyncSuccess(
 	syncedAt time.Time,
 ) error {
 	_, err := r.db.ExecContext(ctx, `
-		UPDATE transactions_document_sync_state
+		UPDATE integrations_documentsyncstate
 		SET cursor = ?, last_synced_at = ?, last_error = ''
 		WHERE id = ?
 	`, cursor, syncedAt.UTC().Format(time.RFC3339Nano), id)
@@ -112,7 +112,7 @@ func (r *Repository) UpdateSyncSuccess(
 
 func (r *Repository) UpdateSyncError(ctx context.Context, id int64, syncErr error) error {
 	_, err := r.db.ExecContext(ctx, `
-		UPDATE transactions_document_sync_state
+		UPDATE integrations_documentsyncstate
 		SET last_error = ?
 		WHERE id = ?
 	`, syncErr.Error(), id)
@@ -130,7 +130,7 @@ func (r *Repository) InsertIncomingDocument(
 		return false, fmt.Errorf("invalid file size %d", document.FileSize)
 	}
 	result, err := r.db.ExecContext(ctx, `
-		INSERT OR IGNORE INTO transactions_incoming_document (
+		INSERT OR IGNORE INTO integrations_incomingdocument (
 			document_type,
 			dropbox_file_id,
 			content_hash,
@@ -152,7 +152,7 @@ func (r *Repository) InsertIncomingDocument(
 		document.CreatedAt.UTC().Format(time.RFC3339Nano),
 	)
 	if err != nil {
-		return false, fmt.Errorf("insert transactions_incoming document %q: %w", document.DropboxID, err)
+		return false, fmt.Errorf("insert incoming document %q: %w", document.DropboxID, err)
 	}
 	inserted, err := result.RowsAffected()
 	if err != nil {
