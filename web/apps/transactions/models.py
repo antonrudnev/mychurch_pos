@@ -1,4 +1,5 @@
 from directory.models import Item
+from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -193,9 +194,30 @@ class IncomingTransaction(models.Model):
         return self.price * self.quantity if self.price is not None and self.quantity else 0
 
     @property
+    @admin.display(boolean=True, description="Автопроверка")
     def is_matched(self) -> bool:
-        """Сопоставлена ли строка с реальным товаром из справочника"""
-        return self.item_id is not None
+        """
+        Проверяет корректность строки по 3 условиям:
+        1. Позиция найдена в справочнике (item_id is not None).
+        2. Сумма элементов в raw_counts равна quantity.
+        3. Цена в строке (price) совпадает с актуальной ценой в справочнике (item.price).
+        """
+        if self.item_id is None or self.item is None:
+            return False
+
+        if not isinstance(self.raw_counts, list) or not self.raw_counts:
+            return False
+
+        try:
+            if sum(int(x) for x in self.raw_counts) != self.quantity:
+                return False
+        except (TypeError, ValueError):
+            return False
+
+        if self.item.price is None or self.price != self.item.price:
+            return False
+
+        return True
 
     @property
     def is_processed(self) -> bool:

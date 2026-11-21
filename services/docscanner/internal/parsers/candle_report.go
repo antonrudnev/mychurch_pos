@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"docscanner/internal/storage"
+
 	"google.golang.org/genai"
 )
 
@@ -28,12 +29,19 @@ func (CandleReportParser) SystemInstruction(catalog []storage.CatalogItem) strin
 			denominations = append(denominations, fmt.Sprintf("%s (%.2f)", item.Handle, item.Price))
 		}
 	}
-	return "Ты распознаёшь свечную ведомость на изображении или PDF. Верни report_date в формате " +
-		"YYYY-MM-DD, для диапазона используй конечную дату, а если дата не читается — пустую строку. " +
-		"Для каждой непустой строки верни denomination (печатный номинал свечи), counts (массив " +
-		"отдельных чисел продаж из ячейки справа; разделители могут быть ; , / или пробелы, " +
-		"возможны несколько строк; не включай промежуточные/итоговые суммы) и reported_total " +
-		"(итог в конечной ячейке строки или 0, если её нет). Не включай пустые строки.\n" +
+	return "Ты распознаёшь свечную ведомость на изображении или PDF.\n" +
+		"1. Верни report_date в формате YYYY-MM-DD (для диапазона дат вроде '15-20 ноябрь 2026' " +
+		"используй конечную дату '2026-11-20', если дата не читается — пустую строку).\n" +
+		"2. Структура таблицы: слева указан печатный номинал свечи (denomination), в центре записаны " +
+		"отдельные количества проданных свечей (через запятую, точку с запятой, пробел или в несколько строк), " +
+		"а справа находятся ДВЕ итоговые колонки:\n" +
+		"   - предпоследняя колонка: итоговое КОЛИЧЕСТВО свечей в штуках (reported_total);\n" +
+		"   - самая последняя (крайняя правая) колонка: итоговая СУММА В РУБЛЯХ (количество × номинал) — " +
+		"ЭТУ КОЛОНКУ ИГНОРИРУЙ, не записывай сумму в рублях ни в reported_total, ни в counts!\n" +
+		"3. В массив counts включай только отдельные единичные числа продаж (не включай промежуточные итоги " +
+		"после дефиса вроде '-6' или '-49', а также печатные цифры в пустых строках без продаж).\n" +
+		"4. Если на бланке не заполнен столбец с итоговым количеством штук, верни reported_total = 0. " +
+		"Пустые строки без продаж не включай.\n" +
 		"Доступные номиналы из активного справочника: " + fmt.Sprint(denominations)
 }
 
@@ -47,9 +55,9 @@ func (CandleReportParser) ResponseSchema() *genai.Schema {
 				Items: &genai.Schema{
 					Type: genai.TypeObject,
 					Properties: map[string]*genai.Schema{
-						"denomination":   {Type: genai.TypeInteger},
-						"counts":         {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeInteger}},
-						"reported_total": {Type: genai.TypeInteger},
+						"denomination":   {Type: genai.TypeInteger, Description: "Номинал свечи (цена за 1 шт.)"},
+						"counts":         {Type: genai.TypeArray, Items: &genai.Schema{Type: genai.TypeInteger}, Description: "Отдельные числа продаж в штуках"},
+						"reported_total": {Type: genai.TypeInteger, Description: "Итоговое количество свечей в ШТУКАХ из предпоследней колонки (НЕ сумма в рублях!) или 0"},
 					},
 					Required: []string{"denomination", "counts", "reported_total"},
 				},

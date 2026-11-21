@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"docscanner/internal/storage"
+
 	"google.golang.org/genai"
 )
 
@@ -113,7 +114,7 @@ func (ProductReportParser) Parse(
 		if price < 0 || math.IsNaN(price) || math.IsInf(price, 0) {
 			price = 0
 		}
-		rawCounts, err := json.Marshal([]any{row.Counts, price})
+		rawCounts, err := json.Marshal(row.Counts)
 		if err != nil {
 			return nil, fmt.Errorf("encode product raw counts: %w", err)
 		}

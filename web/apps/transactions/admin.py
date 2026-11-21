@@ -173,18 +173,20 @@ class IncomingTransactionAdmin(admin.ModelAdmin):
         'id',
         'document',
         'row_number',
+        'report_date',
         'item',
         'raw_name',
         'price',
         'quantity',
         'get_total_cost',
+        'is_matched',
         'transaction',
         'is_deleted',
         'created_at',
     )
-    list_display_links = ('id', 'document', 'row_number')
-    list_filter = ('is_deleted', 'created_at')
-    search_fields = ('raw_name__icontains', 'item__name__icontains')
+    list_display_links = ('id', 'row_number')
+    list_filter = ('is_deleted', 'report_date', 'created_at')
+    search_fields = ('raw_name__icontains', 'item__name__icontains', 'document__original_name__icontains')
     readonly_fields = ('get_total_cost', 'created_at')
 
     @admin.display(description='Итого (руб.)')
@@ -192,4 +194,4 @@ class IncomingTransactionAdmin(admin.ModelAdmin):
         return obj.total_cost
 
     def get_queryset(self, request):
-        return IncomingTransaction.objects.all_with_deleted()
+        return IncomingTransaction.objects.all_with_deleted().select_related('document', 'item')
