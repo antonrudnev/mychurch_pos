@@ -40,25 +40,31 @@ A web-based accounting and Point of Sale (POS) system for a parish store (church
 
 ```text
 mychurch_pos/
-├── apps/
-│   ├── directory/         # Models and catalog for categories (ItemType) and items (Item)
-│   ├── transactions/      # Transaction journal (Transaction), soft-delete, and auditing
-│   └── reports/           # Report types (ReportType) and HTML snapshot archive (Report)
-├── config/                # Django project configuration (settings, urls, views, wsgi)
+├── web/
+│   ├── apps/
+│   │   ├── directory/     # Models and catalog for categories and items
+│   │   ├── integrations/  # External service integrations and document models
+│   │   ├── reports/       # Report types and HTML snapshot archive
+│   │   └── transactions/  # Transaction journal, soft-delete, and auditing
+│   ├── config/            # Django project configuration
+│   ├── scripts/           # Seed and superuser setup scripts
+│   ├── static/            # Static assets
+│   ├── templates/         # HTML templates
+│   ├── Dockerfile
+│   ├── manage.py
+│   └── requirements.txt
+├── services/
+│   └── docscanner/        # Go Dropbox synchronization microservice
 ├── docker/
 │   ├── acme-dynu/         # SSL certificate container using DNS-01 challenge (Dynu API)
 │   └── default-cert/      # Initial self-signed certificate generator for nginx-proxy
-├── scripts/
-│   ├── data_upload.py     # Initial seed / sync for categories, items, and report types
-│   └── ensure_superuser.py# Automated superuser creation from .env credentials
-├── static/images/         # Static assets and images
-├── templates/             # HTML templates for UI, reports, and authentication
+├── db_volume/             # Persistent SQLite database
+├── media/                 # Uploaded and synchronized documents
 ├── .env.example           # Environment variables template
+├── .dockerignore
 ├── db_backup.sh.example   # Database backup script template
 ├── docker-compose.yml     # Service definitions and SSL profiles (http-01 / dns-01)
-├── Dockerfile             # Application container build instructions
-├── manage.py              # Django management CLI
-├── requirements.txt       # Python dependencies
+├── .gitignore
 └── start-compose.sh       # Stack startup script with automatic SSL profile detection
 ```
 
@@ -88,6 +94,9 @@ Key environment variables in `.env`:
 | `DJANGO_SUPERUSER_USERNAME` | Yes | Initial admin username (created on first startup). |
 | `DJANGO_SUPERUSER_EMAIL` | Yes | Initial admin email address. |
 | `DJANGO_SUPERUSER_PASSWORD` | Yes | Initial admin password (existing passwords are not overwritten). |
+| `DROPBOX_APP_KEY` | Yes | Dropbox application key for `docscanner`. |
+| `DROPBOX_APP_SECRET` | Yes | Dropbox application secret and webhook signature key. |
+| `DROPBOX_REFRESH_TOKEN` | Yes | Dropbox OAuth2 refresh token. |
 | `TIME_ZONE` | No | Server time zone (defaults to `Asia/Novokuznetsk`). |
 | `TEST_ENVIRONMENT` | No | `true` / `false` - displays a visible test environment indicator. |
 | `DYNU_CLIENT_ID` | No | Dynu API Client ID (enables the `dns-01` profile when paired with secret). |
@@ -118,14 +127,15 @@ On startup, the `web` container automatically runs:
    ```bash
    python3 -m venv venv
    source venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r web/requirements.txt
    ```
 2. Apply migrations, load initial directory data, and start the development server:
    ```bash
-   python manage.py migrate
-   python scripts/data_upload.py
-   python manage.py runserver
+   python web/manage.py migrate
+   python web/scripts/data_upload.py
+   python web/manage.py runserver
    ```
+   Run the Dropbox sync service separately with `cd services/docscanner && go run main.go`.
 
 ---
 

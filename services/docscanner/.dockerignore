@@ -1,0 +1,21 @@
+# Environment secrets; keep the example template available.
+.env
+.env.*
+!.env.example
+
+# Local downloads and database files.
+downloads/
+*.sqlite3*
+*.db
+
+# Local build and test artifacts.
+*.exe
+*.test
+*.out
+/docscanner
+
+# Git and IDE metadata.
+.git/
+.gitignore
+.vscode/
+.idea/

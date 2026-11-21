@@ -20,7 +20,7 @@ func TestRepositoryQueriesAndInsertsIdempotently(t *testing.T) {
 	}
 
 	_, err = repository.db.Exec(`
-		CREATE TABLE document_sync_state (
+		CREATE TABLE integrations_documentsyncstate (
 			id INTEGER PRIMARY KEY,
 			document_type TEXT NOT NULL,
 			folder_path TEXT NOT NULL,
@@ -29,7 +29,7 @@ func TestRepositoryQueriesAndInsertsIdempotently(t *testing.T) {
 			last_synced_at TEXT,
 			last_error TEXT NOT NULL DEFAULT ''
 		);
-		CREATE TABLE incoming_document (
+		CREATE TABLE integrations_incomingdocument (
 			id INTEGER PRIMARY KEY,
 			document_type TEXT NOT NULL,
 			dropbox_file_id TEXT NOT NULL UNIQUE,
@@ -41,7 +41,7 @@ func TestRepositoryQueriesAndInsertsIdempotently(t *testing.T) {
 			status TEXT NOT NULL DEFAULT 'downloaded',
 			created_at TEXT NOT NULL
 		);
-		INSERT INTO document_sync_state (
+		INSERT INTO integrations_documentsyncstate (
 			id, document_type, folder_path, is_active, cursor, last_error
 		) VALUES
 			(1, 'product_report', '/products', 1, NULL, ''),
@@ -90,7 +90,7 @@ func TestRepositoryQueriesAndInsertsIdempotently(t *testing.T) {
 	var cursor, lastSyncedAt, lastError string
 	if err := repository.db.QueryRow(`
 		SELECT cursor, last_synced_at, last_error
-		FROM document_sync_state WHERE id = 1
+		FROM integrations_documentsyncstate WHERE id = 1
 	`).Scan(&cursor, &lastSyncedAt, &lastError); err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func TestRepositoryQueriesAndInsertsIdempotently(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := repository.db.QueryRow(
-		"SELECT cursor, last_error FROM document_sync_state WHERE id = 1",
+		"SELECT cursor, last_error FROM integrations_documentsyncstate WHERE id = 1",
 	).Scan(&cursor, &lastError); err != nil {
 		t.Fatal(err)
 	}

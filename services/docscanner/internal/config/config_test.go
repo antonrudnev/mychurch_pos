@@ -8,7 +8,7 @@ import (
 
 func TestLoadDotEnvPrefersServiceEnvironmentFile(t *testing.T) {
 	root := t.TempDir()
-	serviceDir := filepath.Join(root, "docscanner")
+	serviceDir := filepath.Join(root, "services", "docscanner")
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -26,7 +26,7 @@ func TestLoadDotEnvPrefersServiceEnvironmentFile(t *testing.T) {
 
 func TestLoadDotEnvFallsBackToRepositoryEnvironmentFile(t *testing.T) {
 	root := t.TempDir()
-	serviceDir := filepath.Join(root, "docscanner")
+	serviceDir := filepath.Join(root, "services", "docscanner")
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestLoadUsesLocalDefaultsAndCreatesDownloadDirectory(t *testing.T) {
 	}
 
 	root := t.TempDir()
-	serviceDir := filepath.Join(root, "docscanner")
+	serviceDir := filepath.Join(root, "services", "docscanner")
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}

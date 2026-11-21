@@ -40,25 +40,31 @@
 
 ```text
 mychurch_pos/
-├── apps/
-│   ├── directory/         # Модели и справочники категорий (ItemType) и позиций (Item)
-│   ├── transactions/      # Журнал транзакций (Transaction), мягкое удаление и аудит
-│   └── reports/           # Типы отчётов (ReportType) и архив HTML-дампов отчётов (Report)
-├── config/                # Настройки Django (settings, urls, views, wsgi)
+├── web/
+│   ├── apps/
+│   │   ├── directory/     # Модели и справочники категорий и позиций
+│   │   ├── integrations/  # Интеграции и модели документов
+│   │   ├── reports/       # Типы отчётов и архив HTML-дампов
+│   │   └── transactions/  # Журнал транзакций, мягкое удаление и аудит
+│   ├── config/            # Настройки проекта Django
+│   ├── scripts/           # Загрузка данных и создание суперпользователя
+│   ├── static/            # Статические ресурсы
+│   ├── templates/         # HTML-шаблоны
+│   ├── Dockerfile
+│   ├── manage.py
+│   └── requirements.txt
+├── services/
+│   └── docscanner/        # Go-сервис синхронизации Dropbox
 ├── docker/
 │   ├── acme-dynu/         # Контейнер выпуска SSL-сертификатов по DNS-01 (Dynu API)
 │   └── default-cert/      # Генерация стартового самоподписанного сертификата для nginx-proxy
-├── scripts/
-│   ├── data_upload.py     # Инициализация справочников категорий, позиций и типов отчётов
-│   └── ensure_superuser.py# Автоматическое создание суперпользователя из .env
-├── static/images/         # Статические ресурсы и изображения
-├── templates/             # HTML-шаблоны интерфейса, отчётов и страниц авторизации
+├── db_volume/             # Постоянное хранилище SQLite
+├── media/                 # Загруженные и синхронизированные документы
 ├── .env.example           # Шаблон переменных окружения
+├── .dockerignore
 ├── db_backup.sh.example   # Пример скрипта резервного копирования базы данных
 ├── docker-compose.yml     # Описание сервисов и профилей SSL (http-01 / dns-01)
-├── Dockerfile             # Сборка образа приложения
-├── manage.py              # Утилита управления Django
-├── requirements.txt       # Зависимости Python
+├── .gitignore
 └── start-compose.sh       # Скрипт запуска стека с автовыбором профиля SSL
 ```
 
@@ -88,6 +94,9 @@ cp .env.example .env
 | `DJANGO_SUPERUSER_USERNAME` | Да | Логин начального администратора (создаётся при первом запуске). |
 | `DJANGO_SUPERUSER_EMAIL` | Да | Email начального администратора. |
 | `DJANGO_SUPERUSER_PASSWORD` | Да | Пароль начального администратора (существующий пароль не перезаписывается). |
+| `DROPBOX_APP_KEY` | Да | Ключ приложения Dropbox для `docscanner`. |
+| `DROPBOX_APP_SECRET` | Да | Секрет приложения и ключ проверки подписи webhook. |
+| `DROPBOX_REFRESH_TOKEN` | Да | Токен обновления OAuth2 Dropbox. |
 | `TIME_ZONE` | Нет | Часовой пояс (по умолчанию `Asia/Novokuznetsk`). |
 | `TEST_ENVIRONMENT` | Нет | `true` / `false` - визуальная пометка тестового окружения. |
 | `DYNU_CLIENT_ID` | Нет | Client ID от Dynu API (включает профиль `dns-01` при заполнении вместе с секретом). |
@@ -118,14 +127,15 @@ chmod +x start-compose.sh
    ```bash
    python3 -m venv venv
    source venv/bin/activate
-   pip install -r requirements.txt
+   pip install -r web/requirements.txt
    ```
 2. Примените миграции, загрузите начальные справочники и запустите сервер разработки:
    ```bash
-   python manage.py migrate
-   python scripts/data_upload.py
-   python manage.py runserver
+   python web/manage.py migrate
+   python web/scripts/data_upload.py
+   python web/manage.py runserver
    ```
+   Go-сервис синхронизации запускается отдельно: `cd services/docscanner && go run main.go`.
 
 ---
 

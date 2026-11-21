@@ -8,7 +8,7 @@ from typing import Any
 from django.core.exceptions import FieldDoesNotExist
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIRECTORY = PROJECT_ROOT / "sample_data" / "seeds"
+DATA_DIRECTORY = PROJECT_ROOT / "scripts" / "sample_data"
 TABLE_FILE_PATTERN = re.compile(r"^\d+_(?P<table>.+)$")
 
 sys.path.insert(0, str(PROJECT_ROOT))

@@ -58,7 +58,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
   web:
-    build: .
+    build: ./web
     restart: always
     mem_limit: 380m
     memswap_limit: 800m
@@ -90,7 +90,7 @@ services:
              exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --max-requests 500 --max-requests-jitter 50"
 
   docscanner:
-    build: ./docscanner
+    build: ./services/docscanner
     restart: always
     mem_limit: 64m
     volumes:

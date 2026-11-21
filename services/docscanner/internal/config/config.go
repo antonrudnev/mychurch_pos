@@ -39,7 +39,7 @@ func Load() (Config, error) {
 		if inDocker {
 			dbPath = "/app/db_volume/db.sqlite3"
 		} else {
-			dbPath = filepath.Join("..", "db_volume", "db.sqlite3")
+			dbPath = filepath.Join("..", "..", "db_volume", "db.sqlite3")
 		}
 	}
 
@@ -48,7 +48,7 @@ func Load() (Config, error) {
 		if inDocker {
 			downloadDir = "/app/downloads"
 		} else {
-			downloadDir = filepath.Join("..", "media", "dropbox")
+			downloadDir = filepath.Join("..", "..", "media", "dropbox")
 		}
 	}
 
@@ -99,9 +99,13 @@ func findServiceDir() (string, error) {
 		if filepath.Base(dir) == "docscanner" {
 			return filepath.Abs(dir)
 		}
-		candidate := filepath.Join(dir, "docscanner")
-		if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
-			return filepath.Abs(candidate)
+		for _, candidate := range []string{
+			filepath.Join(dir, "services", "docscanner"),
+			filepath.Join(dir, "docscanner"),
+		} {
+			if info, statErr := os.Stat(candidate); statErr == nil && info.IsDir() {
+				return filepath.Abs(candidate)
+			}
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
@@ -114,7 +118,7 @@ func findServiceDir() (string, error) {
 
 func loadDotEnv(serviceDir string) error {
 	localEnv := filepath.Join(serviceDir, ".env")
-	rootEnv := filepath.Join(serviceDir, "..", ".env")
+	rootEnv := filepath.Join(serviceDir, "..", "..", ".env")
 
 	for _, path := range []string{localEnv, rootEnv} {
 		_, err := os.Stat(path)

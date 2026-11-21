@@ -16,6 +16,7 @@ from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_ROOT = BASE_DIR.parent if BASE_DIR.name == 'web' else BASE_DIR
 
 sys.path.insert(0, os.path.join(BASE_DIR, 'apps'))
 
@@ -108,7 +109,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db_volume' / 'db.sqlite3',
+        'NAME': REPO_ROOT / 'db_volume' / 'db.sqlite3',
     }
 }
 
@@ -157,7 +158,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [BASE_DIR / "static", ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = REPO_ROOT / 'media'
 
 
 # Email
