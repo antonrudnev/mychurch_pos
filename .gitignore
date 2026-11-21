@@ -31,6 +31,7 @@ __pycache__/
 # === Настройки VS Code и редакторов кода ===
 .vscode/
 .idea/
+*.code-workspace
 *.suo
 *.ntvs*
 *.njsproj
