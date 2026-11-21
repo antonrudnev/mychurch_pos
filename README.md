@@ -97,6 +97,7 @@ Key environment variables in `.env`:
 | `DROPBOX_APP_KEY` | Yes | Dropbox application key for `docscanner`. |
 | `DROPBOX_APP_SECRET` | Yes | Dropbox application secret and webhook signature key. |
 | `DROPBOX_REFRESH_TOKEN` | Yes | Dropbox OAuth2 refresh token. |
+| `GEMINI_API_KEY` | No | Google Gemini API key used by `docscanner` to recognize reports. Without it, Dropbox synchronization continues and OCR is disabled. |
 | `TIME_ZONE` | No | Server time zone (defaults to `Asia/Novokuznetsk`). |
 | `TEST_ENVIRONMENT` | No | `true` / `false` - displays a visible test environment indicator. |
 | `DYNU_CLIENT_ID` | No | Dynu API Client ID (enables the `dns-01` profile when paired with secret). |

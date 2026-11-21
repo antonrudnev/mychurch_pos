@@ -12,15 +12,19 @@ func TestLoadDotEnvPrefersServiceEnvironmentFile(t *testing.T) {
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeEnvFile(t, filepath.Join(root, ".env"), "DOCSCANNER_TEST_VALUE=root\n")
+	writeEnvFile(t, filepath.Join(root, ".env"), "DOCSCANNER_TEST_VALUE=root\nROOT_ONLY_VALUE=root\n")
 	writeEnvFile(t, filepath.Join(serviceDir, ".env"), "DOCSCANNER_TEST_VALUE=service\n")
 
 	unsetEnv(t, "DOCSCANNER_TEST_VALUE")
+	unsetEnv(t, "ROOT_ONLY_VALUE")
 	if err := loadDotEnv(serviceDir); err != nil {
 		t.Fatal(err)
 	}
 	if got := os.Getenv("DOCSCANNER_TEST_VALUE"); got != "service" {
 		t.Fatalf("loaded value = %q, want service", got)
+	}
+	if got := os.Getenv("ROOT_ONLY_VALUE"); got != "root" {
+		t.Fatalf("root-only value = %q, want root", got)
 	}
 }
 
@@ -66,7 +70,7 @@ func TestLoadUsesLocalDefaultsAndCreatesDownloadDirectory(t *testing.T) {
 	if err := os.MkdirAll(serviceDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	writeEnvFile(t, filepath.Join(serviceDir, ".env"), "PORT=8123\n")
+	writeEnvFile(t, filepath.Join(serviceDir, ".env"), "PORT=8123\nGEMINI_API_KEY=test-key\n")
 
 	for _, key := range []string{
 		"DOCKER_CONTAINER",
@@ -76,6 +80,7 @@ func TestLoadUsesLocalDefaultsAndCreatesDownloadDirectory(t *testing.T) {
 		"DROPBOX_APP_KEY",
 		"DROPBOX_APP_SECRET",
 		"DROPBOX_REFRESH_TOKEN",
+		"GEMINI_API_KEY",
 	} {
 		unsetEnv(t, key)
 	}
@@ -99,6 +104,9 @@ func TestLoadUsesLocalDefaultsAndCreatesDownloadDirectory(t *testing.T) {
 	}
 	if cfg.Port != "8123" {
 		t.Fatalf("port = %q, want 8123", cfg.Port)
+	}
+	if cfg.GeminiAPIKey != "test-key" {
+		t.Fatalf("Gemini API key = %q, want configured key", cfg.GeminiAPIKey)
 	}
 	wantDB := filepath.Join(root, "db_volume", "db.sqlite3")
 	if cfg.DBPath != wantDB {

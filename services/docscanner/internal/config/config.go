@@ -17,6 +17,7 @@ type Config struct {
 	DropboxAppKey    string
 	DropboxAppSecret string
 	DropboxToken     string
+	GeminiAPIKey     string
 	ServiceDir       string
 	InDocker         bool
 }
@@ -76,6 +77,7 @@ func Load() (Config, error) {
 		DropboxAppKey:    strings.TrimSpace(os.Getenv("DROPBOX_APP_KEY")),
 		DropboxAppSecret: strings.TrimSpace(os.Getenv("DROPBOX_APP_SECRET")),
 		DropboxToken:     strings.TrimSpace(os.Getenv("DROPBOX_REFRESH_TOKEN")),
+		GeminiAPIKey:     strings.TrimSpace(os.Getenv("GEMINI_API_KEY")),
 		ServiceDir:       serviceDir,
 		InDocker:         inDocker,
 	}, nil
@@ -126,7 +128,7 @@ func loadDotEnv(serviceDir string) error {
 			if loadErr := godotenv.Load(path); loadErr != nil {
 				return fmt.Errorf("load environment file %q: %w", path, loadErr)
 			}
-			return nil
+			continue
 		}
 		if !errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("access environment file %q: %w", path, err)

@@ -56,6 +56,42 @@ class DocumentSyncState(models.Model):
         return f"{self.get_document_type_display()}: {self.folder_path}"
 
 
+class OcrIntegrationState(models.Model):
+    """Persist Gemini OCR integration state and the latest processing outcome."""
+
+    provider = models.CharField(
+        max_length=50,
+        unique=True,
+        default="gemini",
+        verbose_name="Провайдер OCR",
+        help_text="Идентификатор сервиса распознавания (например, gemini).",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Активна",
+        help_text="Включено ли автоматическое распознавание документов.",
+    )
+    last_processed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Последнее успешное распознавание",
+        help_text="Дата и время последнего успешного распознавания документа.",
+    )
+    last_error = models.TextField(
+        default="",
+        blank=True,
+        verbose_name="Последняя ошибка распознавания",
+        help_text="Описание последней системной ошибки интеграции, если она возникла.",
+    )
+
+    class Meta:
+        verbose_name = "Gemini OCR интеграция"
+        verbose_name_plural = "Gemini OCR интеграция"
+
+    def __str__(self) -> str:
+        return f"OCR ({self.provider})"
+
+
 class IncomingDocument(models.Model):
     """Track Dropbox files downloaded for processing by the application."""
 
@@ -115,6 +151,12 @@ class IncomingDocument(models.Model):
         default=Status.DOWNLOADED,
         verbose_name="Статус",
         help_text="Текущий статус загрузки и обработки документа.",
+    )
+    error_message = models.TextField(
+        default="",
+        blank=True,
+        verbose_name="Текст ошибки",
+        help_text="Описание ошибки обработки конкретного файла, если она возникла.",
     )
     created_at = models.DateTimeField(
         auto_now_add=True,

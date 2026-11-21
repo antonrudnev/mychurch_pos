@@ -97,6 +97,7 @@ cp .env.example .env
 | `DROPBOX_APP_KEY` | Да | Ключ приложения Dropbox для `docscanner`. |
 | `DROPBOX_APP_SECRET` | Да | Секрет приложения и ключ проверки подписи webhook. |
 | `DROPBOX_REFRESH_TOKEN` | Да | Токен обновления OAuth2 Dropbox. |
+| `GEMINI_API_KEY` | Нет | API-ключ Google Gemini для распознавания ведомостей. Без него синхронизация Dropbox продолжает работать, а OCR отключён. |
 | `TIME_ZONE` | Нет | Часовой пояс (по умолчанию `Asia/Novokuznetsk`). |
 | `TEST_ENVIRONMENT` | Нет | `true` / `false` - визуальная пометка тестового окружения. |
 | `DYNU_CLIENT_ID` | Нет | Client ID от Dynu API (включает профиль `dns-01` при заполнении вместе с секретом). |

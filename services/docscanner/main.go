@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"docscanner/internal/config"
+	"docscanner/internal/ocr"
 	"docscanner/internal/storage"
 	"docscanner/internal/syncer"
 )
@@ -62,9 +63,40 @@ func run() error {
 		}
 	}()
 
+	if err := repository.InitializeOCRState(rootCtx); err != nil {
+		return fmt.Errorf("initialize OCR integration state: %w", err)
+	}
+	var ocrWorker *ocr.OCRWorker
+	if cfg.GeminiAPIKey == "" {
+		if err := repository.SetMissingGeminiKeyError(rootCtx); err != nil {
+			logger.Error("Could not save missing Gemini API key state", "error", err)
+		}
+		logger.Warn("OCR worker is disabled because GEMINI_API_KEY is not configured")
+	} else {
+		if err := repository.ClearMissingGeminiKeyError(rootCtx); err != nil {
+			logger.Error("Could not clear missing Gemini API key state", "error", err)
+		}
+		ocrWorker, err = ocr.NewWorker(rootCtx, repository, cfg.GeminiAPIKey, cfg.DownloadDir, logger)
+		if err != nil {
+			logger.Error("Could not initialize OCR worker", "error", err)
+			if stateErr := repository.SetOCRIntegrationError(rootCtx, err.Error()); stateErr != nil {
+				logger.Error("Could not save Gemini client initialization error", "error", stateErr)
+			}
+		}
+	}
 	dropboxSyncer := syncer.New(repository, cfg, logger)
 	worker := startSyncWorker(rootCtx, dropboxSyncer, logger)
 	worker.Trigger()
+
+	ocrDone := make(chan struct{})
+	if ocrWorker == nil {
+		close(ocrDone)
+	} else {
+		go func() {
+			defer close(ocrDone)
+			ocrWorker.Run(rootCtx)
+		}()
+	}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) {
@@ -108,6 +140,12 @@ func run() error {
 	case <-shutdownCtx.Done():
 		logger.Warn("Timed out waiting for sync worker to stop")
 		<-worker.Done()
+	}
+	select {
+	case <-ocrDone:
+	case <-shutdownCtx.Done():
+		logger.Warn("Timed out waiting for OCR worker to stop")
+		<-ocrDone
 	}
 
 	if serverErr != nil {
@@ -228,7 +266,7 @@ func (w *syncWorker) run(
 			timerC = nil
 			logger.Info("Starting Dropbox synchronization")
 			if err := dropboxSyncer.SyncAll(ctx); err != nil {
-				logger.Error("Could not load Dropbox sync state; retrying", "error", err)
+				logger.Error("Dropbox synchronization failed; retrying", "error", err)
 				timer.Reset(syncRetryDelay)
 				timerC = timer.C
 			}

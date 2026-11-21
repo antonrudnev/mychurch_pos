@@ -2,6 +2,8 @@ package syncer
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -17,6 +19,7 @@ import (
 	"github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/files"
 	dropboxoauth "github.com/dropbox/dropbox-sdk-go-unofficial/v6/dropbox/oauth"
 	"golang.org/x/oauth2"
+	"golang.org/x/text/unicode/norm"
 
 	"docscanner/internal/config"
 	"docscanner/internal/storage"
@@ -62,19 +65,27 @@ func (s *Syncer) SyncAll(ctx context.Context) error {
 	}
 
 	var wg sync.WaitGroup
+	errorsCh := make(chan error, len(states))
 	for _, state := range states {
 		state := state
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			s.syncFolder(ctx, state)
+			if err := s.syncFolder(ctx, state); err != nil {
+				errorsCh <- err
+			}
 		}()
 	}
 	wg.Wait()
-	return nil
+	close(errorsCh)
+	var syncErrors []error
+	for err := range errorsCh {
+		syncErrors = append(syncErrors, err)
+	}
+	return errors.Join(syncErrors...)
 }
 
-func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) {
+func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) error {
 	cursor := ""
 	if state.Cursor.Valid {
 		cursor = state.Cursor.String
@@ -90,7 +101,10 @@ func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) {
 				"error", err,
 				"state_update_error", updateErr,
 			)
-			return
+			return errors.Join(
+				fmt.Errorf("sync Dropbox folder %q: %w", state.FolderPath, err),
+				updateErr,
+			)
 		}
 		s.logger.Error(
 			"Dropbox folder sync failed",
@@ -98,7 +112,7 @@ func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) {
 			"folder_path", state.FolderPath,
 			"error", err,
 		)
-		return
+		return fmt.Errorf("sync Dropbox folder %q: %w", state.FolderPath, err)
 	}
 
 	if err := s.repository.UpdateSyncSuccess(ctx, state.ID, newCursor, time.Now().UTC()); err != nil {
@@ -108,7 +122,7 @@ func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) {
 			"folder_path", state.FolderPath,
 			"error", err,
 		)
-		return
+		return fmt.Errorf("save Dropbox sync state for folder %q: %w", state.FolderPath, err)
 	}
 	s.logger.Info(
 		"Dropbox folder synchronized",
@@ -116,6 +130,7 @@ func (s *Syncer) syncFolder(ctx context.Context, state storage.SyncState) {
 		"document_type", state.DocumentType,
 		"folder_path", state.FolderPath,
 	)
+	return nil
 }
 
 func (s *Syncer) syncFolderContents(
@@ -137,7 +152,7 @@ func (s *Syncer) syncFolderContents(
 	var result *files.ListFolderResult
 	if cursor == "" {
 		result, err = client.ListFolderContext(ctx, &files.ListFolderArg{
-			Path:      state.FolderPath,
+			Path:      normalizedDropboxPath(state.FolderPath),
 			Recursive: true,
 		})
 	} else {
@@ -155,6 +170,17 @@ func (s *Syncer) syncFolderContents(
 			file, ok := entry.(*files.FileMetadata)
 			if !ok {
 				continue
+			}
+			entryPath := file.PathLower
+			if entryPath == "" {
+				entryPath = file.PathDisplay
+			}
+			if entryPath != "" && !isDropboxPathWithin(state.FolderPath, entryPath) {
+				return "", fmt.Errorf(
+					"Dropbox returned file %q outside folder %q",
+					file.Name,
+					state.FolderPath,
+				)
 			}
 			if err := s.downloadFile(ctx, client, state.DocumentType, file); err != nil {
 				return "", err
@@ -191,25 +217,31 @@ func (s *Syncer) downloadFile(
 		return fmt.Errorf("file %q is too large to store", file.Name)
 	}
 
-	remotePath := file.PathLower
-	if remotePath == "" {
-		remotePath = file.PathDisplay
+	displayPath := file.PathDisplay
+	if displayPath == "" {
+		displayPath = file.PathLower
 	}
-	if remotePath == "" {
-		return fmt.Errorf("Dropbox returned no path for file %q", file.Name)
+	if displayPath == "" {
+		displayPath = file.Name
 	}
 
-	_, content, err := client.DownloadContext(ctx, files.NewDownloadArg(remotePath))
+	_, content, err := client.DownloadContext(ctx, files.NewDownloadArg(file.Id))
 	if err != nil {
-		return fmt.Errorf("download Dropbox file %q: %w", file.Name, err)
+		return fmt.Errorf("download Dropbox file %q (%s): %w", file.Name, file.Id, err)
 	}
-	defer content.Close()
+	contentClosed := false
+	defer func() {
+		if !contentClosed {
+			_ = content.Close()
+		}
+	}()
 
 	targetDir := filepath.Join(s.config.DownloadDir, documentType)
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		return fmt.Errorf("create download directory for %q: %w", file.Name, err)
 	}
-	targetPath := filepath.Join(targetDir, file.Name)
+	localName := safeLocalFilename(file.Id, file.Name)
+	targetPath := filepath.Join(targetDir, localName)
 	tempFile, err := os.CreateTemp(targetDir, ".docscanner-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create temporary file for %q: %w", file.Name, err)
@@ -222,6 +254,12 @@ func (s *Syncer) downloadFile(
 		_ = tempFile.Close()
 		return fmt.Errorf("write downloaded file %q: %w", file.Name, copyErr)
 	}
+	if err := content.Close(); err != nil {
+		contentClosed = true
+		_ = tempFile.Close()
+		return fmt.Errorf("close downloaded content for %q: %w", file.Name, err)
+	}
+	contentClosed = true
 	if uint64(written) != file.Size {
 		_ = tempFile.Close()
 		return fmt.Errorf(
@@ -242,11 +280,7 @@ func (s *Syncer) downloadFile(
 		return fmt.Errorf("move downloaded file %q into place: %w", file.Name, err)
 	}
 
-	localFile := filepath.ToSlash(filepath.Join("dropbox", documentType, file.Name))
-	displayPath := file.PathDisplay
-	if displayPath == "" {
-		displayPath = remotePath
-	}
+	localFile := filepath.ToSlash(filepath.Join("dropbox", documentType, localName))
 	_, err = s.repository.InsertIncomingDocument(ctx, storage.IncomingDocument{
 		DocumentType: documentType,
 		DropboxID:    file.Id,
@@ -261,6 +295,46 @@ func (s *Syncer) downloadFile(
 		return err
 	}
 	return nil
+}
+
+func normalizedDropboxPath(path string) string {
+	path = norm.NFC.String(path)
+	path = strings.ToLower(path)
+	return norm.NFC.String(path)
+}
+
+func isDropboxPathWithin(folderPath, entryPath string) bool {
+	folder := strings.TrimRight(normalizedDropboxPath(folderPath), "/")
+	entry := strings.TrimRight(normalizedDropboxPath(entryPath), "/")
+	if folder == "" {
+		folder = "/"
+	}
+	if folder == "/" {
+		return strings.HasPrefix(entry, "/")
+	}
+	return entry == folder || strings.HasPrefix(entry, folder+"/")
+}
+
+func safeLocalFilename(fileID, originalName string) string {
+	digest := sha256.Sum256([]byte(fileID))
+	extension := strings.ToLower(filepath.Ext(originalName))
+	if !safeExtension(extension) {
+		extension = ""
+	}
+	return hex.EncodeToString(digest[:]) + extension
+}
+
+func safeExtension(extension string) bool {
+	if len(extension) < 2 || len(extension) > 16 {
+		return false
+	}
+	for _, character := range extension[1:] {
+		if !(character >= 'a' && character <= 'z') &&
+			!(character >= '0' && character <= '9') {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Syncer) filesClient(ctx context.Context) (contextFilesClient, error) {
