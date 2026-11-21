@@ -2,5 +2,5 @@ from django.apps import AppConfig
 
 
 class IntegrationsConfig(AppConfig):
-    name = "apps.integrations"
+    name = "integrations"
     verbose_name = "Интеграции"

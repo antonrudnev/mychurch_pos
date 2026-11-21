@@ -4,14 +4,12 @@ from django.contrib import admin
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
-from .models import Transaction
+from .models import IncomingTransaction, Transaction
 
 
 class TransactionDateFilter(admin.SimpleListFilter):
     title = 'Дата и время'
     parameter_name = 'date_range'
-
-    
 
     def lookups(self, request, model_admin):
         # Если в URL уже есть параметры точного дня/месяца/года от date_hierarchy,
@@ -117,7 +115,7 @@ class TransactionAdmin(admin.ModelAdmin):
         'id', 'created_at', 'get_item_clean_name', 'price', 'quantity',
         'get_total_cost', 'is_verified', 'cashier', 'get_status'
     )
-    list_display_links = ('id', 'created_at')
+    list_display_links = ('id', 'created_at', 'get_item_clean_name')
     list_filter = (TransactionDateFilter, 'item__item_type__name', 'is_verified', 'cashier', DeletedFilter)
     search_fields = ('item__name__icontains', 'cashier__username__icontains', 'item__item_type__name__icontains')
     date_hierarchy = 'created_at'
@@ -165,3 +163,33 @@ class TransactionAdmin(admin.ModelAdmin):
     class Media:
         # Подключаем кастомный JS-файл, который будет отвечать за подстановку на стороне клиента
         js = ('admin/js/autofill_price.js',)
+
+
+@admin.register(IncomingTransaction)
+class IncomingTransactionAdmin(admin.ModelAdmin):
+    """Простое отображение входящих транзакций в админке"""
+
+    list_display = (
+        'id',
+        'document',
+        'row_number',
+        'item',
+        'raw_name',
+        'price',
+        'quantity',
+        'get_total_cost',
+        'transaction',
+        'is_deleted',
+        'created_at',
+    )
+    list_display_links = ('id', 'document', 'row_number')
+    list_filter = ('is_deleted', 'created_at')
+    search_fields = ('raw_name__icontains', 'item__name__icontains')
+    readonly_fields = ('get_total_cost', 'created_at')
+
+    @admin.display(description='Итого (руб.)')
+    def get_total_cost(self, obj):
+        return obj.total_cost
+
+    def get_queryset(self, request):
+        return IncomingTransaction.objects.all_with_deleted()

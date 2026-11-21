@@ -128,7 +128,4 @@ class IncomingDocument(models.Model):
         verbose_name_plural = "Входящие документы"
 
     def __str__(self) -> str:
-        return (
-            f"{self.get_document_type_display()}: "
-            f"{self.original_name} ({self.get_status_display()})"
-        )
+        return (f"[{self.get_document_type_display()}] {self.original_name}")

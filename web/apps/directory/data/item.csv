@@ -35,14 +35,14 @@ money,Касса (остаток),cash-register,0,3,1
 money,Сейф (размен),cash-deposit,0,4,1
 money,Дано в долг,debt-lend,0,5,1
 money,Возврат долга,debt-repay,0,6,1
-candle,Свеча 20,candle-1,20,1,1
-candle,Свеча 35,candle-2,35,2,1
-candle,Свеча 45,candle-3,45,3,1
-candle,Свеча 55,candle-4,55,4,1
-candle,Свеча 100,candle-5,100,5,1
-candle,Свеча 150,candle-6,150,6,1
-candle,Свеча 200,candle-7,200,7,1
-candle,Свеча 250,candle-8,250,8,1
+candle,Свеча 20,candle-20,20,1,1
+candle,Свеча 35,candle-35,35,2,1
+candle,Свеча 45,candle-45,45,3,1
+candle,Свеча 55,candle-55,55,4,1
+candle,Свеча 100,candle-100,100,5,1
+candle,Свеча 150,candle-150,150,6,1
+candle,Свеча 200,candle-200,200,7,1
+candle,Свеча 250,candle-250,250,8,1
 staff,Певчий - Всенощное бдение,staff-choir-cantor-1,750,1,1
 staff,Певчий - Литургия,staff-choir-cantor-2,750,2,1
 staff,Певчий - Акафист,staff-choir-cantor-3,500,3,1
