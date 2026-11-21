@@ -1,0 +1,146 @@
+﻿├── [apps]
+├── [config]
+├── [db_volume]
+├── [docker]
+├── [docscanner]
+├── [scripts]
+├── [static]
+├── [templates]
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── db_backup.sh.example
+├── docker-compose.yml
+├── Dockerfile
+├── manage.py
+├── project_tree.txt
+├── README.md
+├── README.ru.md
+├── requirements.txt
+├── start-compose.sh
+│   ├── [data]
+│   ├── [directory]
+│   ├── [reports]
+│   ├── [transactions]
+│   │   ├── 01_directory_itemtype.csv
+│   │   ├── 02_directory_item.csv
+│   │   ├── [data]
+│   │   ├── [migrations]
+│   │   ├── [templates]
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── context_processors.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   ├── __init__.py
+│   │   │   ├── item.csv
+│   │   │   ├── item_type.csv
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_import_directory_data.py
+│   │   │   ├── __init__.py
+│   │   │   ├── [directory]
+│   │   │   │   ├── item_detail.html
+│   │   │   │   ├── item_type_detail.html
+│   │   │   │   ├── item_type_list.html
+│   │   ├── [data]
+│   │   ├── [migrations]
+│   │   ├── [templates]
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── context_processors.py
+│   │   ├── forms.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   ├── __init__.py
+│   │   │   ├── report_type.csv
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_import_report_types.py
+│   │   │   ├── __init__.py
+│   │   │   ├── [reports]
+│   │   │   │   ├── candle_report.html
+│   │   │   │   ├── cash_report.html
+│   │   │   │   ├── product_report.html
+│   │   │   │   ├── report_date_range.html
+│   │   │   │   ├── report_list.html
+│   │   │   │   ├── report_manage.html
+│   │   │   │   ├── report_type_select.html
+│   │   ├── [migrations]
+│   │   ├── [static]
+│   │   ├── [templates]
+│   │   ├── admin.py
+│   │   ├── apps.py
+│   │   ├── context_processors.py
+│   │   ├── forms.py
+│   │   ├── models.py
+│   │   ├── tests.py
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   ├── __init__.py
+│   │   │   ├── 0001_initial.py
+│   │   │   ├── 0002_documentsyncstate_incomingdocument.py
+│   │   │   ├── __init__.py
+│   │   │   ├── [admin]
+│   │   │   │   ├── [js]
+│   │   │   │   │   ├── autofill_price.js
+│   │   │   ├── [transactions]
+│   │   │   │   ├── [includes]
+│   │   │   │   ├── item_type_select.html
+│   │   │   │   ├── new_open_list_item.html
+│   │   │   │   ├── new_product_transaction.html
+│   │   │   │   ├── product_search.html
+│   │   │   │   ├── transaction_form.html
+│   │   │   │   ├── transaction_home.html
+│   │   │   │   ├── transaction_list.html
+│   │   │   │   ├── transaction_manage.html
+│   ├── asgi.py
+│   ├── authentication.py
+│   ├── context_processors.py
+│   ├── forms.py
+│   ├── settings.py
+│   ├── tests.py
+│   ├── urls.py
+│   ├── views.py
+│   ├── wsgi.py
+│   ├── __init__.py
+│   ├── db.sqlite3
+│   ├── db.sqlite3-shm
+│   ├── db.sqlite3-wal
+│   ├── [acme-dynu]
+│   ├── [default-cert]
+│   │   ├── Dockerfile
+│   │   ├── issue-dynu-cert.sh
+│   │   ├── Dockerfile
+│   │   ├── generate-default-cert.sh
+│   ├── [internal]
+│   ├── .env
+│   ├── .env.example
+│   ├── Dockerfile
+│   ├── go.mod
+│   ├── go.sum
+│   ├── main.go
+│   ├── main_test.go
+│   │   ├── [config]
+│   │   ├── [storage]
+│   │   ├── [syncer]
+│   │   │   ├── config.go
+│   │   │   ├── config_test.go
+│   │   │   ├── sqlite.go
+│   │   │   ├── sqlite_test.go
+│   │   │   ├── dropbox.go
+│   ├── data_upload.py
+│   ├── ensure_superuser.py
+│   ├── [images]
+│   │   ├── favicon.png
+│   │   ├── testicon.png
+│   ├── [registration]
+│   ├── [welcome]
+│   ├── base.html
+│   │   ├── login.html
+│   │   ├── password_change_done.html
+│   │   ├── password_change_form.html
+│   │   ├── register.html
+│   │   ├── landing.html
