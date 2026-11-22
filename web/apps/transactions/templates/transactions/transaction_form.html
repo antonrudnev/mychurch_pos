@@ -8,8 +8,20 @@
         <h1 class="fw-normal h3 text-center mb-4 text-body">Новая транзакция</h1>
         <p class="text-secondary text-center text-uppercase">{% if form.single_item %}{{ form.single_item.name }}{% else %}{{ item_type.name }}{% endif %}</p>
 
+        {% if incoming_transaction %}
+            <div class="alert alert-info" role="status">
+                Транзакция создаётся на основе входящего документа
+                <strong>{{ incoming_transaction.document.original_name }}</strong>,
+                строка №{{ incoming_transaction.row_number }}:
+                «{{ incoming_transaction.raw_name }}».
+            </div>
+        {% endif %}
+
         <form method="post">
             {% csrf_token %}
+            {% if incoming_transaction %}
+                <input type="hidden" name="incoming_transaction" value="{{ incoming_transaction.pk }}">
+            {% endif %}
             {% for field in form %}
                 {% if field.name == 'item' and form.single_item %}
                     {{ field.as_hidden }}
@@ -37,19 +49,9 @@
             <button type="submit" id="create-transaction-button" class="btn btn-primary w-100 py-2 text-uppercase" hidden>Создать транзакцию</button>
         </form>
 
-        {% if request.GET.item %}
-            <a href="{% url 'transactions:product_search' %}?item={{ request.GET.item }}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-                <i class="bi bi-arrow-left me-1"></i> Вернуться
-            </a>
-        {% elif item_type.is_product_group %}
-            <a href="{% url 'transactions:product_group_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-                <i class="bi bi-arrow-left me-1"></i> Вернуться
-            </a>
-        {% else %}
-            <a href="{% url 'transactions:item_type_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-                <i class="bi bi-arrow-left me-1"></i> Вернуться
-            </a>
-        {% endif %}
+        <a href="{{ return_url }}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+            <i class="bi bi-arrow-left me-1"></i> Вернуться
+        </a>
     </div>
 </div>
 {{ form.item_prices|json_script:"item-prices" }}
@@ -67,18 +69,31 @@
     const dateFieldItemHandles = JSON.parse(document.getElementById('date-field-item-handles').textContent);
     const createdAtContainer = document.getElementById('created-at-field-container');
     const createdAtInput = document.getElementById('id_created_at');
+    const allowManualPrice = {{ form.allow_manual_price|yesno:"true,false" }};
 
     function updatePriceField(resetManualPrice = true) {
         const itemPrice = itemPrices[itemSelect.value];
-        const showCreatedAt = dateFieldItemHandles.includes(itemHandles[itemSelect.value]);
+        const showCreatedAt = allowManualPrice || dateFieldItemHandles.includes(itemHandles[itemSelect.value]);
         const hasSelectedItem = itemSelect.value !== '';
         const hasItemPrice = itemPrice !== null && itemPrice !== undefined;
         createTransactionButton.hidden = !hasSelectedItem;
-        priceContainer.hidden = itemPrice === null || itemPrice === undefined;
-        quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);
+        priceContainer.hidden = !allowManualPrice && (itemPrice === null || itemPrice === undefined);
+        if (allowManualPrice) {
+            quantityContainer.hidden = !hasSelectedItem;
+        } else {
+            quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);
+        }
         createdAtContainer.hidden = !showCreatedAt;
-        if (resetManualPrice && !showCreatedAt) {
+        if (resetManualPrice && !showCreatedAt && !allowManualPrice) {
             createdAtInput.value = '';
+        }
+
+        if (allowManualPrice) {
+            priceInput.hidden = false;
+            priceDisplay.hidden = true;
+            priceInput.readOnly = false;
+            priceInput.required = false;
+            return;
         }
 
         if (!hasItemPrice) {

@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Входящие документы — Церковная лавка{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 1000px;">
+    <h1 class="fw-normal h3 text-center mb-4 text-body">Входящие документы</h1>
+
+    {% for document in documents %}
+        <a href="{% url 'transactions:incoming_document' document.pk %}" class="card text-decoration-none text-body shadow-sm mb-3">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                    <div>
+                        <h2 class="h5 mb-1">{{ document.original_name }}</h2>
+                        <span class="text-secondary">{{ document.get_document_type_display }}</span>
+                    </div>
+                    <div class="text-md-end">
+                        <div class="fw-semibold">{{ document.incoming_total|floatformat:2 }} ₽</div>
+                        <div class="small text-secondary">
+                            Всего строк: {{ document.incoming_total_count }} /
+                            необработано: {{ document.incoming_pending_count }} /
+                            ручная проверка: {{ document.incoming_manual_review_count }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </a>
+    {% empty %}
+        <p class="text-center text-secondary">Нет документов с необработанными строками.</p>
+    {% endfor %}
+
+    <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+        <i class="bi bi-arrow-left me-1"></i> Вернуться
+    </a>
+</div>
+{% endblock %}

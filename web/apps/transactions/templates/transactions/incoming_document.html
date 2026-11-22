@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}{{ document.original_name }} — входящие транзакции{% endblock %}
+
+{% block content %}
+<div class="mx-auto" style="max-width: 1100px;">
+    <h1 class="fw-normal h3 text-center mb-2 text-body">{{ document.original_name }}</h1>
+    <p class="text-secondary text-center">{{ document.get_document_type_display }}</p>
+    <p class="text-center fw-semibold">{{ document_total|floatformat:2 }} ₽</p>
+
+    <form method="post" class="mb-3">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_matched">
+        <button type="submit" class="btn btn-success w-100 py-2" {% if not matched_rows_count %}disabled{% endif %}>
+            Добавить все проверенные транзакции ({{ matched_rows_count }})
+        </button>
+    </form>
+
+    {% if incoming_rows %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Строка</th>
+                        <th>Наименование</th>
+                        <th>Количество</th>
+                        <th class="text-end">Цена</th>
+                        <th class="text-end">Сумма</th>
+                        <th>Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in incoming_rows %}
+                        <tr class="{% if not row.is_matched %}bg-warning-subtle border-warning border-start border-3{% endif %}">
+                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
+                                    {{ row.row_number }}
+                                </a>
+                            </td>
+                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body text-decoration-none">
+                                    {{ row.item.name|default:row.raw_name }}
+                                </a>
+                                {% if row.review_reasons %}
+                                    <div class="small text-warning-emphasis">
+                                        {% for reason in row.review_reasons %}{{ reason }}{% if not forloop.last %} {% endif %}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
+                                    {{ row.quantity }}
+                                </a>
+                            </td>
+                            <td class="text-end text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
+                                    {{ row.price|floatformat:2 }} ₽
+                                </a>
+                            </td>
+                            <td class="text-end text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
+                                    {{ row.total_cost|floatformat:2 }} ₽
+                                </a>
+                            </td>
+                            <td class="text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
+                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
+                                    {{ row.report_date|date:"d.m.Y"|default:"—" }}
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-center text-secondary">В документе нет необработанных строк.</p>
+    {% endif %}
+
+    <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+        <i class="bi bi-arrow-left me-1"></i> К входящим документам
+    </a>
+</div>
+{% endblock %}

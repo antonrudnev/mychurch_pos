@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 from directory.models import Item, ItemType
@@ -8,7 +8,9 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import Transaction
+from integrations.models import DocumentType, IncomingDocument
+
+from .models import IncomingTransaction, Transaction
 
 
 class TransactionViewsTests(TestCase):
@@ -58,6 +60,39 @@ class TransactionViewsTests(TestCase):
             item=item or self.item,
             price=Decimal('12.50'),
             quantity=1,
+        )
+
+    def create_incoming_document(self):
+        return IncomingDocument.objects.create(
+            document_type=DocumentType.PRODUCT_REPORT,
+            dropbox_file_id='incoming-test-file',
+            original_name='Ведомость.xlsx',
+            dropbox_path='/reports/Ведомость.xlsx',
+            local_file='dropbox/Ведомость.xlsx',
+        )
+
+    def create_incoming_transaction(
+        self,
+        document,
+        *,
+        item=None,
+        use_default_item=True,
+        raw_name='Распознанная позиция',
+        raw_counts=None,
+        quantity=1,
+        price=Decimal('12.50'),
+        report_date=None,
+        row_number=1,
+    ):
+        return IncomingTransaction.objects.create(
+            document=document,
+            item=self.item if use_default_item else item,
+            raw_name=raw_name,
+            raw_counts=[quantity] if raw_counts is None else raw_counts,
+            quantity=quantity,
+            price=price,
+            report_date=report_date,
+            row_number=row_number,
         )
 
     def test_home_page_shows_the_two_main_actions(self):
@@ -1458,3 +1493,310 @@ class TransactionViewsTests(TestCase):
 
         self.assertRedirects(response, reverse('transactions:transaction_list'))
         self.assertEqual(Transaction.objects.get().price, Decimal('0.01'))
+
+    def test_incoming_documents_list_only_shows_documents_with_pending_active_rows(self):
+        pending_document = self.create_incoming_document()
+        pending_row = self.create_incoming_transaction(pending_document)
+        processed_document = IncomingDocument.objects.create(
+            document_type=DocumentType.CANDLE_REPORT,
+            dropbox_file_id='processed-test-file',
+            original_name='Обработано.xlsx',
+            dropbox_path='/reports/Обработано.xlsx',
+            local_file='dropbox/Обработано.xlsx',
+        )
+        processed_row = self.create_incoming_transaction(processed_document)
+        processed_row.transaction = self.create_transaction(self.user)
+        processed_row.save(update_fields=['transaction'])
+        deleted_document = IncomingDocument.objects.create(
+            document_type=DocumentType.PRODUCT_REPORT,
+            dropbox_file_id='deleted-test-file',
+            original_name='Удалено.xlsx',
+            dropbox_path='/reports/Удалено.xlsx',
+            local_file='dropbox/Удалено.xlsx',
+        )
+        self.create_incoming_transaction(deleted_document).delete_soft()
+
+        response = self.client.get(reverse('transactions:incoming_documents'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, pending_document.original_name)
+        self.assertNotContains(response, processed_document.original_name)
+        self.assertNotContains(response, deleted_document.original_name)
+        self.assertEqual(response.context['documents'][0].incoming_pending_count, 1)
+        self.assertEqual(
+            response.context['documents'][0].incoming_manual_review_count,
+            0,
+        )
+        self.assertIsNone(pending_row.transaction_id)
+
+    def test_incoming_document_bulk_add_creates_only_matched_rows_and_links_them(self):
+        self.grant_permission(self.user, 'verify_transaction')
+        document = self.create_incoming_document()
+        matched = self.create_incoming_transaction(
+            document,
+            raw_counts=[1, 2],
+            quantity=3,
+            row_number=1,
+            report_date=date(2025, 3, 4),
+        )
+        needs_review = self.create_incoming_transaction(
+            document,
+            item=None,
+            use_default_item=False,
+            raw_counts=[1],
+            row_number=2,
+        )
+        self.assertTrue(matched.is_matched)
+        self.assertFalse(needs_review.is_matched)
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        response = self.client.post(url, {'action': 'add_matched'})
+
+        self.assertRedirects(response, url)
+        matched.refresh_from_db()
+        needs_review.refresh_from_db()
+        created = matched.transaction
+        self.assertIsNotNone(created)
+        self.assertEqual(created.item, self.item)
+        self.assertEqual(created.price, Decimal('12.50'))
+        self.assertEqual(created.quantity, 3)
+        self.assertEqual(created.cashier, self.user)
+        self.assertTrue(created.is_verified)
+        self.assertEqual(created.verified_by, self.user)
+        self.assertEqual(matched.processed_by, self.user)
+        self.assertIsNone(needs_review.transaction_id)
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_individual_incoming_creation_uses_transaction_form_values_and_report_date(self):
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(
+            document,
+            price=Decimal('9.75'),
+            quantity=2,
+            report_date=date(2025, 3, 4),
+        )
+        create_url = reverse(
+            'transactions:transaction_create',
+            args=[self.item_type.pk],
+        )
+        query = {'incoming_transaction': incoming.pk}
+
+        form_response = self.client.get(create_url, query)
+
+        self.assertEqual(form_response.status_code, 200)
+        self.assertContains(form_response, document.original_name)
+        self.assertContains(form_response, 'value="9.75"')
+        self.assertContains(form_response, 'value="2"')
+        self.assertContains(form_response, 'value="2025-03-04T12:00"')
+        self.assertContains(form_response, 'name="incoming_transaction"')
+
+        response = self.client.post(
+            f'{create_url}?incoming_transaction={incoming.pk}',
+            {
+                'item': self.item.pk,
+                'price': '9.75',
+                'quantity': '2',
+                'created_at': '2025-03-04T12:00',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:incoming_document', args=[document.pk]),
+        )
+        incoming.refresh_from_db()
+        self.assertIsNotNone(incoming.transaction_id)
+        self.assertEqual(incoming.processed_by, self.user)
+        self.assertEqual(incoming.transaction.price, Decimal('9.75'))
+        self.assertEqual(incoming.transaction.quantity, 2)
+        self.assertEqual(
+            timezone.localtime(incoming.transaction.created_at).date(),
+            date(2025, 3, 4),
+        )
+        self.assertFalse(incoming.transaction.is_verified)
+
+    def test_incoming_routes_require_login_and_review_permission(self):
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        self.client.logout()
+
+        response = self.client.get(reverse('transactions:incoming_documents'))
+
+        self.assertEqual(response.status_code, 302)
+
+        self.client.force_login(self.other_user)
+        response = self.client.get(reverse('transactions:incoming_documents'))
+        self.assertEqual(response.status_code, 403)
+
+        self.grant_permission(self.other_user, 'verify_transaction')
+        response = self.client.get(reverse('transactions:incoming_documents'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            self.client.get(reverse('transactions:home')).status_code,
+            200,
+        )
+
+        create_url = reverse(
+            'transactions:transaction_create',
+            args=[self.item_type.pk],
+        )
+        response = self.client.post(
+            f'{create_url}?incoming_transaction={incoming.pk}',
+            {
+                'item': self.item.pk,
+                'price': '12.50',
+                'quantity': '1',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:incoming_document', args=[document.pk]),
+        )
+        incoming.refresh_from_db()
+        self.assertTrue(incoming.transaction.is_verified)
+        self.assertEqual(incoming.transaction.verified_by, self.other_user)
+
+    def test_incoming_row_can_be_corrected_and_soft_deleted(self):
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(
+            document,
+            raw_counts=[1, 1],
+            quantity=1,
+        )
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'save',
+                'item': self.item.pk,
+                'report_date': '2025-03-04',
+                'price': '12.50',
+                'quantity': '2',
+            },
+        )
+
+        self.assertRedirects(response, detail_url)
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.report_date, date(2025, 3, 4))
+        self.assertEqual(incoming.quantity, 2)
+        self.assertTrue(incoming.is_matched)
+
+        response = self.client.post(detail_url, {'action': 'delete'})
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:incoming_document', args=[document.pk]),
+        )
+        self.assertFalse(IncomingTransaction.objects.filter(pk=incoming.pk).exists())
+        self.assertTrue(
+            IncomingTransaction.objects.all_with_deleted().filter(
+                pk=incoming.pk,
+                is_deleted=True,
+            ).exists()
+        )
+
+    def test_home_incoming_documents_button_is_active_only_when_pending_rows_exist(self):
+        response = self.client.get(reverse('transactions:home'))
+        self.assertContains(response, 'Входящие документы')
+        self.assertContains(response, 'disabled')
+
+        document = self.create_incoming_document()
+        self.create_incoming_transaction(document)
+        response = self.client.get(reverse('transactions:home'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:incoming_documents")}"',
+        )
+        self.assertContains(response, 'Документов: 1 / строк: 1')
+
+    def test_incoming_detail_displays_actual_raw_counts_sum_and_handles_invalid_values(self):
+        document = self.create_incoming_document()
+        mismatched = self.create_incoming_transaction(
+            document,
+            raw_counts=[1, 1, 4],
+            quantity=50,
+        )
+        mismatch_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[mismatched.pk],
+        )
+
+        response = self.client.get(mismatch_url)
+
+        self.assertContains(response, '[1, 1, 4] (сумма: 6)')
+        self.assertContains(
+            response,
+            'Сумма распознанных количеств (6) не совпадает с количеством (50)',
+        )
+        document_response = self.client.get(
+            reverse('transactions:incoming_document', args=[document.pk])
+        )
+        self.assertContains(
+            document_response,
+            '<tr class="bg-warning-subtle border-warning border-start border-3">',
+        )
+        self.assertContains(
+            document_response,
+            '<td class="text-end text-nowrap bg-warning-subtle">',
+        )
+        self.assertContains(
+            document_response,
+            '<td class="text-nowrap bg-warning-subtle">',
+        )
+        self.assertContains(document_response, 'class="small text-warning-emphasis"')
+        self.assertContains(
+            document_response,
+            'Сумма распознанных количеств (6) не совпадает с количеством (50).',
+        )
+
+        matched = self.create_incoming_transaction(
+            document,
+            raw_counts=[1, 1, 4],
+            quantity=6,
+            row_number=2,
+        )
+        response = self.client.get(
+            reverse(
+                'transactions:incoming_transaction_detail',
+                args=[matched.pk],
+            )
+        )
+        self.assertContains(response, 'Сумма распознанных количеств (6) совпадает с количеством (6)')
+
+        empty_counts = self.create_incoming_transaction(
+            document,
+            raw_counts=[],
+            quantity=1,
+            row_number=3,
+        )
+        response = self.client.get(
+            reverse(
+                'transactions:incoming_transaction_detail',
+                args=[empty_counts.pk],
+            )
+        )
+        self.assertContains(response, '[] (сумма: 0)')
+
+        invalid_counts = self.create_incoming_transaction(
+            document,
+            raw_counts=['not-a-number'],
+            quantity=1,
+            row_number=4,
+        )
+        response = self.client.get(
+            reverse(
+                'transactions:incoming_transaction_detail',
+                args=[invalid_counts.pk],
+            )
+        )
+        self.assertContains(response, 'сумма: не вычислена')
+        self.assertContains(
+            response,
+            'Сумма распознанных количеств (не вычислена) не совпадает с количеством (1)',
+        )

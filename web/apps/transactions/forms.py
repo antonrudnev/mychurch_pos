@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from decimal import Decimal
 
 from directory.models import Item, ItemType
@@ -5,7 +6,7 @@ from django import forms
 from django.core.validators import MinValueValidator
 from django.utils import timezone
 
-from .models import Transaction
+from .models import IncomingTransaction, Transaction
 
 DATE_FIELD_ITEM_HANDLES = ('bank-receipt',)
 TRANSACTION_DATETIME_FORMAT = '%Y-%m-%dT%H:%M'
@@ -149,7 +150,14 @@ class TransactionForm(forms.ModelForm):
             'quantity': forms.NumberInput(attrs={'class': 'form-control', 'min': '1'}),
         }
 
-    def __init__(self, *args, item_type: ItemType, selected_item=None, **kwargs):
+    def __init__(
+        self,
+        *args,
+        item_type: ItemType,
+        selected_item=None,
+        incoming_transaction: IncomingTransaction = None,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         items = Item.objects.filter(
             item_type=item_type,
@@ -173,6 +181,19 @@ class TransactionForm(forms.ModelForm):
             for item in items
         }
         self.date_field_item_handles = DATE_FIELD_ITEM_HANDLES
+        self.incoming_transaction = incoming_transaction
+        if incoming_transaction is not None:
+            if incoming_transaction.item_id:
+                self.fields['item'].initial = incoming_transaction.item_id
+            self.initial['price'] = incoming_transaction.price
+            self.initial['quantity'] = incoming_transaction.quantity
+            if incoming_transaction.report_date:
+                local_datetime = datetime.combine(
+                    incoming_transaction.report_date,
+                    time(hour=12),
+                )
+                self.initial['created_at'] = timezone.make_aware(local_datetime)
+        self.allow_manual_price = incoming_transaction is not None
 
     def clean(self):
         cleaned_data = super().clean()
@@ -180,12 +201,23 @@ class TransactionForm(forms.ModelForm):
         if item is None:
             return cleaned_data
 
-        if item.handle in DATE_FIELD_ITEM_HANDLES:
+        if self.incoming_transaction is not None:
+            if cleaned_data.get('created_at') is None:
+                report_date = self.incoming_transaction.report_date
+                if report_date is not None:
+                    cleaned_data['created_at'] = timezone.make_aware(
+                        datetime.combine(report_date, time(hour=12))
+                    )
+                else:
+                    cleaned_data['created_at'] = timezone.now()
+        elif item.handle in DATE_FIELD_ITEM_HANDLES:
             if cleaned_data.get('created_at') is None:
                 cleaned_data['created_at'] = timezone.now()
         else:
             cleaned_data.pop('created_at', None)
 
+        if self.incoming_transaction is not None:
+            return cleaned_data
         if item.price is None:
             cleaned_data['price'] = Decimal('0.00')
         elif item.price > 0:
@@ -194,3 +226,25 @@ class TransactionForm(forms.ModelForm):
             self.add_error('price', 'Введите цену больше нуля.')
 
         return cleaned_data
+
+
+class IncomingTransactionReviewForm(forms.ModelForm):
+    class Meta:
+        model = IncomingTransaction
+        fields = ('item', 'report_date', 'price', 'quantity')
+        widgets = {
+            'item': forms.Select(attrs={'class': 'form-select'}),
+            'report_date': forms.DateInput(
+                attrs={'class': 'form-control', 'type': 'date'},
+                format='%Y-%m-%d',
+            ),
+            'price': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0.00',
+                'step': '0.01',
+            }),
+            'quantity': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '1',
+            }),
+        }

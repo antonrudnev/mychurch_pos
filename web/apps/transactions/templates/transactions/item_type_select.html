@@ -12,10 +12,10 @@
             {% if not is_product_group_page %}
                 <div class="col position-relative">
                     <div class="btn-group hstack gap-1 w-100 h-100 shadow-sm" role="group" aria-label="Действия с товарами">
-                        <a href="{% url 'transactions:product_search' %}" class="btn btn-success w-20 h-100 py-3 d-flex align-items-center justify-content-center " aria-label="Найти товар" title="Найти товар">
+                        <a href="{% url 'transactions:product_search' %}{% if incoming_transaction_id %}?incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="btn btn-success w-20 h-100 py-3 d-flex align-items-center justify-content-center " aria-label="Найти товар" title="Найти товар">
                             <i class="bi bi-search" aria-hidden="true"></i>
                         </a>
-                        <a href="{% url 'transactions:product_group_select' %}" class="btn btn-success w-75 h-100 py-3 d-flex align-items-center justify-content-center fs-5" aria-label="Товары">
+                        <a href="{% url 'transactions:product_group_select' %}{% if incoming_transaction_id %}?incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="btn btn-success w-75 h-100 py-3 d-flex align-items-center justify-content-center fs-5" aria-label="Товары">
                         </a>
                     </div>
                     <span class="position-absolute top-50 start-50 translate-middle pe-none z-2 fs-5 text-white" aria-hidden="true">Товары</span>
@@ -24,7 +24,7 @@
             {% for item_type in item_types %}
                 <div class="col">
                     {% if item_type.is_open_list or item_type.has_items %}
-                        <a href="{% if item_type.is_open_list %}{% url 'transactions:new_open_list_item' item_type.id %}{% else %}{% url 'transactions:transaction_create' item_type.id %}{% endif %}" 
+                        <a href="{% if item_type.is_open_list and not incoming_transaction_id %}{% url 'transactions:new_open_list_item' item_type.id %}{% else %}{% url 'transactions:transaction_create' item_type.id %}{% if incoming_transaction_id %}?incoming_transaction={{ incoming_transaction_id }}{% endif %}{% endif %}"
                         class="btn {% if item_type.handle == 'candle' %}btn-warning{% elif item_type.handle == 'money' %}btn-info{% else %}btn-primary{% endif %} w-100 h-100 py-3 shadow-sm d-flex align-items-center justify-content-center fs-5">
                             {{ item_type.name }}
                         </a>
@@ -59,7 +59,7 @@
             </div>
         {% else %}
             <div class="w-100 mt-4">
-                <a href="{% url 'transactions:item_type_select' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <a href="{% url 'transactions:item_type_select' %}{% if incoming_transaction_id %}?incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
                     <i class="bi bi-arrow-left me-1"></i> Вернуться
                 </a>
             </div>
