@@ -75,3 +75,17 @@ def create_transactions_for_matched_incoming(document, user):
                 _create_transaction(incoming_transaction, user)
             )
     return created_transactions
+
+
+@transaction.atomic
+def delete_pending_incoming_for_document(document):
+    incoming_transactions = (
+        IncomingTransaction.objects.all_with_deleted()
+        .select_for_update()
+        .filter(
+            document=document,
+            transaction__isnull=True,
+            is_deleted=False,
+        )
+    )
+    return incoming_transactions.update(is_deleted=True)

@@ -24,40 +24,40 @@
 
         <div class="my-4">
             {% for document in documents %}
-                <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if document.document_type == 'product_report' %}border-success{% elif document.document_type == 'candle_report' %}border-warning{% else %}border-secondary{% endif %} ps-3">
-                    <div class="w-100">
-                        <h4 class="fw-normal h5 mb-1 text-body">
-                            <a href="{% url 'transactions:incoming_document' document.pk %}" class="report-title-link">
+                <a href="{% url 'transactions:incoming_document' document.pk %}" class="d-block text-body text-decoration-none">
+                    <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if document.document_type == 'product_report' %}border-success{% elif document.document_type == 'candle_report' %}border-warning{% else %}border-secondary{% endif %} ps-3">
+                        <div class="w-100">
+                            <h4 class="fw-normal h5 mb-1 text-body">
                                 {{ document.original_name }}                                
-                            </a>
-                        </h4>
-                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
-                            Строки: {{ document.incoming_total_count }} /
-                            {% if document.incoming_manual_review_count > 0 %}
-                                <span class="badge bg-warning-subtle text-warning-emphasis">
+                            </h4>
+                            <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                                Строки: {{ document.incoming_total_count }} /
+                                {% if document.incoming_manual_review_count > 0 %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis">
+                                        Конфликты: {{ document.incoming_manual_review_count }}
+                                    </span>
+                                {% else %}
                                     Конфликты: {{ document.incoming_manual_review_count }}
+                                {% endif %}
+                            </p>
+                            <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                                <span class="fw-normal small text-uppercase me-2">
+                                    [{{ document.get_document_type_display }}]
                                 </span>
+                            </p>
+                        </div>
+                        <div class="d-flex flex-row align-items-center justify-content-end fw-bold text-nowrap gap-1 pt-1 flex-shrink-0">
+                            {{ document.incoming_total|floatformat:2 }}&nbsp;
+                            {% if document.document_type == 'product_report' %}
+                                <i class="bi bi-box-seam text-success" aria-hidden="true"></i>
+                            {% elif document.document_type == 'candle_report' %}
+                                <i class="bi bi-fire text-warning-emphasis" aria-hidden="true"></i>
                             {% else %}
-                                Конфликты: {{ document.incoming_manual_review_count }}
+                                <span class="fw-bold">₽</span>
                             {% endif %}
-                        </p>
-                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
-                            <span class="fw-normal small text-uppercase me-2">
-                                [{{ document.get_document_type_display }}]
-                            </span>
-                        </p>
+                        </div>
                     </div>
-                    <div class="d-flex flex-row align-items-center justify-content-end text-nowrap gap-1 pt-1 flex-shrink-0">
-                        <a href="{% url 'transactions:incoming_document' document.pk %}" class="report-title-link fw-bold">{{ document.incoming_total|floatformat:2 }}&nbsp;</a>
-                        {% if document.document_type == 'product_report' %}
-                            <i class="bi bi-box-seam text-success" aria-hidden="true"></i>
-                        {% elif document.document_type == 'candle_report' %}
-                            <i class="bi bi-fire text-warning-emphasis" aria-hidden="true"></i>
-                        {% else %}
-                            <span class="fw-bold">₽</span>
-                        {% endif %}
-                    </div>
-                </div>
+                </a>
                 {% if not forloop.last %}
                     <div class="border-top border-subtle my-2"></div>
                 {% endif %}

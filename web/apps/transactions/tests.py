@@ -1553,6 +1553,7 @@ class TransactionViewsTests(TestCase):
         self.assertNotContains(response, 'Открыть')
 
     def test_incoming_document_bulk_add_creates_only_matched_rows_and_links_them(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
         self.grant_permission(self.user, 'verify_transaction')
         document = self.create_incoming_document()
         matched = self.create_incoming_transaction(
@@ -1589,6 +1590,91 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(matched.processed_by, self.user)
         self.assertIsNone(needs_review.transaction_id)
         self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_incoming_document_bulk_add_redirects_when_no_pending_rows_remain(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+
+        response = self.client.post(
+            reverse('transactions:incoming_document', args=[document.pk]),
+            {'action': 'add_matched'},
+        )
+
+        self.assertRedirects(response, reverse('transactions:incoming_documents'))
+        incoming.refresh_from_db()
+        self.assertIsNotNone(incoming.transaction_id)
+
+    def test_incoming_document_lists_pending_and_processed_rows(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        document = self.create_incoming_document()
+        pending = self.create_incoming_transaction(
+            document,
+            row_number=1,
+        )
+        processed = self.create_incoming_transaction(
+            document,
+            row_number=2,
+        )
+        transaction = self.create_transaction(self.user)
+        processed.transaction = transaction
+        processed.save(update_fields=['transaction'])
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:incoming_transaction_detail", args=[pending.pk])}"',
+        )
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:transaction_manage", args=[transaction.pk])}"',
+        )
+        self.assertContains(
+            response,
+            '<i class="bi bi-check-circle-fill text-primary" title="Транзакция создана"',
+        )
+        self.assertContains(response, 'text-body-secondary')
+        self.assertEqual(len(response.context['incoming_rows']), 2)
+        self.assertEqual(response.context['pending_rows_count'], 1)
+        self.assertEqual(response.context['matched_rows_count'], 1)
+
+    def test_incoming_document_delete_all_soft_deletes_only_unprocessed_rows(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        document = self.create_incoming_document()
+        pending = self.create_incoming_transaction(document, row_number=1)
+        processed = self.create_incoming_transaction(document, row_number=2)
+        processed.transaction = self.create_transaction(self.user)
+        processed.save(update_fields=['transaction'])
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'name="action" value="delete_all"')
+        self.assertNotContains(page, '<table')
+
+        response = self.client.post(url, {'action': 'delete_all'})
+
+        self.assertRedirects(response, reverse('transactions:incoming_documents'))
+        self.assertFalse(IncomingTransaction.objects.filter(pk=pending.pk).exists())
+        self.assertTrue(
+            IncomingTransaction.objects.all_with_deleted().filter(
+                pk=pending.pk,
+                is_deleted=True,
+            ).exists()
+        )
+        self.assertTrue(IncomingTransaction.objects.filter(pk=processed.pk).exists())
+        processed.refresh_from_db()
+        self.assertIsNotNone(processed.transaction_id)
+        self.assertTrue(
+            any(
+                'Содержимое документа удалено' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
 
     def test_individual_incoming_creation_uses_transaction_form_values_and_report_date(self):
         document = self.create_incoming_document()

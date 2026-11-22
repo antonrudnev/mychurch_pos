@@ -26,6 +26,7 @@ from integrations.models import IncomingDocument
 from .services.incoming_review import (
     create_transaction_for_incoming,
     create_transactions_for_matched_incoming,
+    delete_pending_incoming_for_document,
 )
 
 
@@ -156,29 +157,39 @@ class IncomingDocumentView(IncomingReviewPermissionMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         document = self.get_document()
         rows = list(
-            document.incoming_transactions.filter(
-                transaction__isnull=True,
-            )
-            .select_related('item', 'item__item_type')
+            document.incoming_transactions.filter(is_deleted=False)
+            .select_related('item', 'item__item_type', 'transaction')
             .order_by('row_number')
         )
         for row in rows:
-            row.review_reasons = get_incoming_review_reasons(row)
-        active_rows = document.incoming_transactions.all()
+            row.review_reasons = (
+                get_incoming_review_reasons(row) if not row.is_processed else []
+            )
         context.update({
             'document': document,
             'incoming_rows': rows,
             'document_total': sum(
-                (row.total_cost for row in active_rows),
+                (row.total_cost for row in rows),
                 start=0,
             ),
-            'matched_rows_count': sum(row.is_matched for row in rows),
+            'matched_rows_count': sum(
+                not row.is_processed and row.is_matched for row in rows
+            ),
+            'pending_rows_count': sum(not row.is_processed for row in rows),
         })
         return context
 
     def post(self, request, *args, **kwargs):
         document = self.get_document()
-        if request.POST.get('action') != 'add_matched':
+        action = request.POST.get('action')
+        if action == 'delete_all':
+            deleted_count = delete_pending_incoming_for_document(document)
+            messages.success(
+                request,
+                f'Содержимое документа удалено. Удалено строк: {deleted_count}.',
+            )
+            return redirect('transactions:incoming_documents')
+        if action != 'add_matched':
             raise PermissionDenied
         try:
             created = create_transactions_for_matched_incoming(
@@ -196,6 +207,7 @@ class IncomingDocumentView(IncomingReviewPermissionMixin, TemplateView):
         if IncomingTransaction.objects.filter(
             document=document,
             transaction__isnull=True,
+            is_deleted=False,
         ).exists():
             return redirect('transactions:incoming_document', document_id=document.pk)
         return redirect('transactions:incoming_documents')

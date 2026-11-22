@@ -3,81 +3,76 @@
 {% block title %}{{ document.original_name }} — входящие транзакции{% endblock %}
 
 {% block content %}
-<div class="mx-auto" style="max-width: 1100px;">
-    <h1 class="fw-normal h3 text-center mb-2 text-body">{{ document.original_name }}</h1>
-    <p class="text-secondary text-center">{{ document.get_document_type_display }}</p>
-    <p class="text-center fw-semibold">{{ document_total|floatformat:2 }} ₽</p>
-
-    <form method="post" class="mb-3" onsubmit="if (!confirm('Вы действительно хотите добавить все проверенные транзакции ({{ matched_rows_count }} шт.) в основной журнал?')) return false; this.querySelector('button[type=submit]').disabled = true;">
-        {% csrf_token %}
-        <input type="hidden" name="action" value="add_matched">
-        <button type="submit" class="btn btn-success w-100 py-2" {% if not matched_rows_count %}disabled{% endif %}>
-            Добавить все проверенные транзакции ({{ matched_rows_count }})
-        </button>
-    </form>
-
-    {% if incoming_rows %}
-        <div class="table-responsive">
-            <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Строка</th>
-                        <th>Наименование</th>
-                        <th>Количество</th>
-                        <th class="text-end">Цена</th>
-                        <th class="text-end">Сумма</th>
-                        <th>Дата</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for row in incoming_rows %}
-                        <tr class="{% if not row.is_matched %}bg-warning-subtle border-warning border-start border-3{% endif %}">
-                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
-                                    {{ row.row_number }}
-                                </a>
-                            </td>
-                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body text-decoration-none">
-                                    {{ row.item.name|default:row.raw_name }}
-                                </a>
-                                {% if row.review_reasons %}
-                                    <div class="small text-warning-emphasis">
-                                        {% for reason in row.review_reasons %}{{ reason }}{% if not forloop.last %} {% endif %}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </td>
-                            <td class="{% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
-                                    {{ row.quantity }}
-                                </a>
-                            </td>
-                            <td class="text-end text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
-                                    {{ row.price|floatformat:2 }} ₽
-                                </a>
-                            </td>
-                            <td class="text-end text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
-                                    {{ row.total_cost|floatformat:2 }} ₽
-                                </a>
-                            </td>
-                            <td class="text-nowrap {% if not row.is_matched %}bg-warning-subtle{% endif %}">
-                                <a href="{% url 'transactions:incoming_transaction_detail' row.pk %}" class="text-body">
-                                    {{ row.report_date|date:"d.m.Y"|default:"—" }}
-                                </a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 800px;">
+        <div class="text-center border-bottom border-subtle pb-4">
+            <h1 class="fw-normal h3 mb-1 text-body">{{ document.original_name }}</h1>
+            <p class="text-secondary text-uppercase small mb-1 fs-6 fw-light">{{ document.get_document_type_display }}</p>
+            <p class="fw-semibold mb-0 text-nowrap">Итог: {{ document_total|floatformat:2 }} ₽</p>
         </div>
-    {% else %}
-        <p class="text-center text-secondary">В документе нет необработанных строк.</p>
-    {% endif %}
 
-    <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-        <i class="bi bi-arrow-left me-1"></i> Вернуться
-    </a>
+        {% for row in incoming_rows %}
+            <a href="{% if row.is_processed %}{% url 'transactions:transaction_manage' row.transaction_id %}{% else %}{% url 'transactions:incoming_transaction_detail' row.pk %}{% endif %}"
+            class="d-block text-decoration-none {% if row.is_processed %}text-body-tertiary opacity-75{% else %}text-body{% endif %}">
+                <div class="py-3 d-flex flex-column flex-md-row justify-content-between gap-2 {% if not row.is_processed and not row.is_matched %}border-start border-3 border-warning bg-warning-subtle rounded-2 px-2 py-2{% endif %}">
+                    <div>
+                        <h2 class="fw-normal h5 mb-1 {% if row.is_processed %}text-body-tertiary{% else %}text-body{% endif %}">
+                            <span class="small">#{{ row.row_number }}</span> {{ row.item.name|default:row.raw_name }}
+                            {% if row.is_processed %}
+                                <i class="bi bi-check-circle-fill text-primary fs-6 ms-1" title="Транзакция создана" aria-label="Транзакция создана"></i>
+                            {% elif row.is_matched %}
+                                <i class="bi bi-check-circle-fill text-success fs-6 ms-1" aria-label="Сверено"></i>
+                            {% else %}
+                                <i class="bi bi-exclamation-circle-fill text-warning-emphasis fs-6 ms-1" aria-label="Требуется сверка"></i>
+                            {% endif %}
+                        </h2>
+                        <p class="mb-0 fs-6 fw-light text-uppercase {% if row.is_processed %}text-body-tertiary{% else %}text-secondary{% endif %}">
+                            <span class="fw-normal small me-2">[{% if row.item %}{{ row.item.item_type.name }}{% else %}Не сопоставлено{% endif %}]</span>
+                            {{ row.report_date|date:"d.m.Y"|default:"Дата отсутствует" }}
+                        </p>
+                        {% if row.review_reasons %}
+                            <div class="small text-warning-emphasis">
+                                {% for reason in row.review_reasons %}{{ reason }}{% if not forloop.last %} {% endif %}{% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="text-md-end text-nowrap {% if row.is_processed %}text-body-tertiary{% else %}text-body{% endif %}">
+                        {{ row.quantity }} × {{ row.price|floatformat:2 }} ₽ = {{ row.total_cost|floatformat:2 }} ₽
+                    </div>
+                </div>
+            </a>
+
+            {% if not forloop.last %}
+                <hr class="border-subtle my-2">
+            {% endif %}
+        {% empty %}
+            <div class="text-center py-5">
+                <h2 class="fw-light text-uppercase small text-muted mb-2">В документе нет строк.</h2>
+            </div>
+        {% endfor %}
+
+        <div class="border-top border-subtle my-4"></div>
+        <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
+            <form method="post" onsubmit="return confirm('Вы действительно хотите добавить все проверенные транзакции ({{ matched_rows_count }} шт.) в основной журнал?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_matched">
+                <button type="submit" class="btn btn-success w-100 py-2 text-uppercase" {% if not matched_rows_count %}disabled{% endif %}>
+                    Добавить все проверенные транзакции ({{ matched_rows_count }})
+                </button>
+            </form>
+            {% if pending_rows_count %}
+                <form method="post" onsubmit="return confirm('Вы действительно хотите удалить все необработанные строки этого документа? Это действие нельзя отменить.');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete_all">
+                    <button type="submit" class="btn btn-outline-danger w-100 py-2 text-uppercase">
+                        Удалить всё содержимое документа
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}
