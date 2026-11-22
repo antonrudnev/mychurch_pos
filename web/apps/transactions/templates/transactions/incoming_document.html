@@ -20,10 +20,10 @@
                             <span class="small">#{{ row.row_number }}</span> {{ row.item.name|default:row.raw_name }}
                             {% if row.is_processed %}
                                 <i class="bi bi-check-circle-fill text-primary fs-6 ms-1" title="Транзакция создана" aria-label="Транзакция создана"></i>
-                            {% elif row.is_matched %}
-                                <i class="bi bi-check-circle-fill text-success fs-6 ms-1" aria-label="Сверено"></i>
+                            {% elif not row.is_matched %}
+                                <i class="bi bi-exclamation-circle-fill text-warning-emphasis fs-6 ms-1" aria-label="Требуется сверка"></i>    
                             {% else %}
-                                <i class="bi bi-exclamation-circle-fill text-warning-emphasis fs-6 ms-1" aria-label="Требуется сверка"></i>
+                                <i class="bi-question-circle text-success fs-6 ms-1" aria-label="Сверено"></i>    
                             {% endif %}
                         </h2>
                         <p class="mb-0 fs-6 fw-light text-uppercase {% if row.is_processed %}text-body-tertiary{% else %}text-secondary{% endif %}">
