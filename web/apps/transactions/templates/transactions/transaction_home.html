@@ -10,13 +10,13 @@
         <div class="border-top border-subtle my-4"></div>
 
         <div class="d-flex flex-column justify-content-center gap-3 my-4 w-100">
-            {% if perms.transactions.view_transaction %}
+            {% if perms.transactions.view_transaction or perms.transactions.verify_transaction %}
                 <a href="{% url 'transactions:transaction_list' %}" class="btn btn-outline-primary w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
                     <span class="fs-5 fw-normal mb-1">{% if perms.transactions.view_all_transactions %}Все транзакции{% else %}Мои транзакции{% endif %}</span>
                     <span class="fw-light text-uppercase small opacity-75">Просмотреть журнал</span>
                 </a>
             {% endif %}
-            {% if perms.transactions.add_transaction or perms.transactions.verify_transaction %}
+            {% if perms.transactions.view_incomingtransaction %}
                 {% if incoming_transactions_count %}
                     <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-warning w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
                         <span class="fs-5 fw-normal mb-1">Входящие документы</span>

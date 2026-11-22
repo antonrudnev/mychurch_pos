@@ -91,8 +91,7 @@ class IncomingReviewPermissionMixin(LoginRequiredMixin):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
         if not (
-            request.user.has_perm('transactions.add_transaction')
-            or request.user.has_perm('transactions.verify_transaction')
+            request.user.has_perm('transactions.view_incomingtransaction')
         ):
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)

@@ -228,6 +228,18 @@ class TransactionForm(forms.ModelForm):
         return cleaned_data
 
 
+from django import forms
+from django.db.models import Q
+from directory.models import Item
+from .models import IncomingTransaction
+
+
+from django import forms
+from django.db.models import Q
+from directory.models import Item
+from .models import IncomingTransaction
+
+
 class IncomingTransactionReviewForm(forms.ModelForm):
     class Meta:
         model = IncomingTransaction
@@ -248,3 +260,30 @@ class IncomingTransactionReviewForm(forms.ModelForm):
                 'min': '1',
             }),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if 'item' in self.fields:
+            qs = Item.objects.filter(is_active=True).select_related('item_type')
+
+            document = getattr(self.instance, 'document', None)
+            doc_type = getattr(document, 'document_type', None)
+
+            if doc_type == 'candle_report':
+                qs = qs.filter(item_type__handle='candle')
+            elif doc_type == 'product_report':
+                qs = qs.filter(item_type__is_product_group=True)
+
+            if self.instance and self.instance.item_id:
+                qs = Item.objects.filter(
+                    Q(pk__in=qs.values('pk')) | Q(pk=self.instance.item_id)
+                ).select_related('item_type')
+
+            self.fields['item'].queryset = qs.order_by(
+                'item_type__order_number',
+                'order_number',
+                'name',
+            )
+
+

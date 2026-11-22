@@ -1529,6 +1529,29 @@ class TransactionViewsTests(TestCase):
         )
         self.assertIsNone(pending_row.transaction_id)
 
+    def test_incoming_documents_list_uses_archive_style_and_conflict_badge(self):
+        document = self.create_incoming_document()
+        self.create_incoming_transaction(
+            document,
+            raw_counts=[1],
+            quantity=2,
+        )
+
+        response = self.client.get(reverse('transactions:incoming_documents'))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("transactions:incoming_document", args=[document.pk])}" class="report-title-link"',
+        )
+        self.assertContains(
+            response,
+            '<span class="badge bg-warning-subtle text-warning-emphasis">',
+        )
+        self.assertContains(response, 'bi-box-seam text-success')
+        self.assertContains(response, '.text-secondary-soft')
+        self.assertNotContains(response, 'class="card')
+        self.assertNotContains(response, 'Открыть')
+
     def test_incoming_document_bulk_add_creates_only_matched_rows_and_links_them(self):
         self.grant_permission(self.user, 'verify_transaction')
         document = self.create_incoming_document()

@@ -66,7 +66,7 @@
                             </a>
                         </li>
                     {% endif %}
-                    {% if perms.transactions.view_transaction or perms.transactions.add_transaction or perms.transactions.verify_transaction %}
+                    {% if perms.transactions.view_transaction or perms.transactions.view_incomingtransaction or perms.transactions.add_transaction or perms.transactions.verify_transaction %}
                         <li class="nav-item">
                             <a class="nav-link" href="{% url 'transactions:home' %}">
                                 {{ transactions_app_verbose_name|default:"Транзакции" }}

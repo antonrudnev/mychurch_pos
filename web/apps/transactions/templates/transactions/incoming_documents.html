@@ -1,36 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}Входящие документы — Церковная лавка{% endblock %}
+{% block title %}Входящие — Церковная лавка{% endblock %}
+
+{% block extra_css %}
+    .report-title-link {
+        color: inherit;
+        text-decoration: none;
+    }
+    .report-title-link:hover {
+        text-decoration: underline;
+    }
+    .text-secondary-soft {
+        color: var(--bs-secondary-color) !important;
+    }
+{% endblock %}
 
 {% block content %}
-<div class="mx-auto" style="max-width: 1000px;">
-    <h1 class="fw-normal h3 text-center mb-4 text-body">Входящие документы</h1>
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 600px;">
+        <div class="text-center border-bottom border-subtle pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0 text-body">Входящие документы</h1>
+        </div>
 
-    {% for document in documents %}
-        <a href="{% url 'transactions:incoming_document' document.pk %}" class="card text-decoration-none text-body shadow-sm mb-3">
-            <div class="card-body">
-                <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
-                    <div>
-                        <h2 class="h5 mb-1">{{ document.original_name }}</h2>
-                        <span class="text-secondary">{{ document.get_document_type_display }}</span>
+        <div class="my-4">
+            {% for document in documents %}
+                <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if document.document_type == 'product_report' %}border-success{% elif document.document_type == 'candle_report' %}border-warning{% else %}border-secondary{% endif %} ps-3">
+                    <div class="w-100">
+                        <h4 class="fw-normal h5 mb-1 text-body">
+                            <a href="{% url 'transactions:incoming_document' document.pk %}" class="report-title-link">
+                                {{ document.original_name }}                                
+                            </a>
+                        </h4>
+                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                            Строки: {{ document.incoming_total_count }} /
+                            {% if document.incoming_manual_review_count > 0 %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis">
+                                    Конфликты: {{ document.incoming_manual_review_count }}
+                                </span>
+                            {% else %}
+                                Конфликты: {{ document.incoming_manual_review_count }}
+                            {% endif %}
+                        </p>
+                        <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                            <span class="fw-normal small text-uppercase me-2">
+                                [{{ document.get_document_type_display }}]
+                            </span>
+                        </p>
                     </div>
-                    <div class="text-md-end">
-                        <div class="fw-semibold">{{ document.incoming_total|floatformat:2 }} ₽</div>
-                        <div class="small text-secondary">
-                            Всего строк: {{ document.incoming_total_count }} /
-                            необработано: {{ document.incoming_pending_count }} /
-                            ручная проверка: {{ document.incoming_manual_review_count }}
-                        </div>
+                    <div class="d-flex flex-row align-items-center justify-content-end text-nowrap gap-1 pt-1 flex-shrink-0">
+                        <a href="{% url 'transactions:incoming_document' document.pk %}" class="report-title-link fw-bold">{{ document.incoming_total|floatformat:2 }}&nbsp;</a>
+                        {% if document.document_type == 'product_report' %}
+                            <i class="bi bi-box-seam text-success" aria-hidden="true"></i>
+                        {% elif document.document_type == 'candle_report' %}
+                            <i class="bi bi-fire text-warning-emphasis" aria-hidden="true"></i>
+                        {% else %}
+                            <span class="fw-bold">₽</span>
+                        {% endif %}
                     </div>
                 </div>
-            </div>
-        </a>
-    {% empty %}
-        <p class="text-center text-secondary">Нет документов с необработанными строками.</p>
-    {% endfor %}
+                {% if not forloop.last %}
+                    <div class="border-top border-subtle my-2"></div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center py-5">
+                    <h5 class="fw-light text-uppercase small text-muted mb-2">
+                        Нет документов с необработанными строками
+                    </h5>
+                </div>
+            {% endfor %}
+        </div>
 
-    <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-        <i class="bi bi-arrow-left me-1"></i> Вернуться
-    </a>
+        <div class="border-top border-subtle my-4"></div>
+        <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
+            <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1"></i> Вернуться
+            </a>
+        </div>
+    </div>
 </div>
 {% endblock %}
