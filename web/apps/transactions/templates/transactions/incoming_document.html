@@ -8,7 +8,7 @@
     <p class="text-secondary text-center">{{ document.get_document_type_display }}</p>
     <p class="text-center fw-semibold">{{ document_total|floatformat:2 }} ₽</p>
 
-    <form method="post" class="mb-3">
+    <form method="post" class="mb-3" onsubmit="if (!confirm('Вы действительно хотите добавить все проверенные транзакции ({{ matched_rows_count }} шт.) в основной журнал?')) return false; this.querySelector('button[type=submit]').disabled = true;">
         {% csrf_token %}
         <input type="hidden" name="action" value="add_matched">
         <button type="submit" class="btn btn-success w-100 py-2" {% if not matched_rows_count %}disabled{% endif %}>
@@ -77,7 +77,7 @@
     {% endif %}
 
     <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-        <i class="bi bi-arrow-left me-1"></i> К входящим документам
+        <i class="bi bi-arrow-left me-1"></i> Вернуться
     </a>
 </div>
 {% endblock %}

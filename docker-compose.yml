@@ -90,7 +90,7 @@ services:
              exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 2 --threads 4 --max-requests 500 --max-requests-jitter 50"
 
   docscanner:
-    build: ./services/docscanner
+    image: ghcr.io/antonrudnev/mychurch-docscanner:latest
     restart: always
     mem_limit: 64m
     volumes:
