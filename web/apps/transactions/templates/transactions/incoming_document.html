@@ -74,7 +74,7 @@
                                 {% elif not row.is_matched %}
                                     <i class="bi bi-exclamation-circle-fill text-warning-emphasis fs-6 ms-2" title="Требуется сверка" aria-label="Требуется сверка"></i>
                                 {% else %}
-                                    <i class="bi bi-question-circle text-success fs-6 ms-2" title="Сверено" aria-label="Сверено"></i>
+                                    <i class="bi bi-check-circle text-success fs-6 ms-2" title="Сверено" aria-label="Сверено"></i>
                                 {% endif %}
                             </h2>
                             <p class="mb-0 fs-6 fw-light text-uppercase {% if not row.is_processed %}text-body-secondary{% endif %}">
@@ -82,7 +82,7 @@
                                 {% if row.report_date %}
                                     {{ row.report_date|date:"d.m.Y" }}
                                 {% else %}
-                                    <i class="bi bi-calendar-x opacity-75" title="Дата не указана" aria-label="Дата не указана"></i>
+                                    <i class="bi bi-calendar-x text-warning-emphasis opacity-75" title="Дата не указана" aria-label="Дата не указана"></i>
                                 {% endif %}
                             </p>
                             {% if row.review_reasons %}

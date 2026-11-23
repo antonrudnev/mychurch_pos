@@ -17,14 +17,20 @@
                             <h2 class="fw-normal h5 mb-1">
                                 {{ document.original_name }}
                             </h2>
-                            <p class="text-body-secondary mb-1 fs-6 fw-light">
-                                Записей: {{ document.incoming_total_count }} /
+                            <p class="text-body-secondary mb-1 fs-6 fw-light d-flex align-items-center flex-wrap gap-2">
+                                <span>
+                                    Записей:
+                                    {% if document.incoming_pending_count == document.incoming_total_count %}
+                                        {{ document.incoming_total_count }}
+                                    {% else %}
+                                        {{ document.incoming_pending_count }} / {{ document.incoming_total_count }}
+                                    {% endif %}
+                                </span>
+
                                 {% if document.incoming_manual_review_count > 0 %}
-                                    <span class="badge bg-warning-subtle text-warning-emphasis">
+                                    <span class="badge bg-warning-subtle text-warning-emphasis fw-medium">
                                         Конфликтов: {{ document.incoming_manual_review_count }}
                                     </span>
-                                {% else %}
-                                    Конфликтов: {{ document.incoming_manual_review_count }}
                                 {% endif %}
                             </p>
                             <p class="text-body-secondary mb-0 small text-uppercase">

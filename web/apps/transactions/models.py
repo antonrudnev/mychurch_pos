@@ -197,10 +197,11 @@ class IncomingTransaction(models.Model):
     @admin.display(boolean=True, description="Автопроверка")
     def is_matched(self) -> bool:
         """
-        Проверяет корректность строки по 3 условиям:
+        Проверяет корректность строки по 4 условиям:
         1. Позиция найдена в справочнике (item_id is not None).
         2. Сумма элементов в raw_counts равна quantity.
         3. Цена в строке (price) совпадает с актуальной ценой в справочнике (item.price).
+        4. Дата документа указана (report_date is not None).
         """
         if self.item_id is None or self.item is None:
             return False
@@ -215,6 +216,9 @@ class IncomingTransaction(models.Model):
             return False
 
         if self.item.price is None or self.price != self.item.price:
+            return False
+
+        if self.report_date is None:
             return False
 
         return True

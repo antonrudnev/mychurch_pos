@@ -48,7 +48,7 @@
                         {% if incoming_transaction.is_matched %}
                             <span class="text-success">Все условия выполнены</span>
                         {% else %}
-                            <span class="text-warning-emphasis">Требуется ручная проверка</span>
+                            <span class="text-warning-emphasis">Требуется проверка</span>
                         {% endif %}
                     </dd>
                 </div>
@@ -59,19 +59,19 @@
                     <i class="bi {% if incoming_transaction.match_checks.item %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
                         {% if incoming_transaction.match_checks.item %}
-                            Товар выбран в справочнике
+                            Товар выбран
                         {% else %}
-                            Товар не выбран в справочнике
+                            Товар не найден
                         {% endif %}
                     </span>
                 </li>
-                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
-                    <i class="bi {% if incoming_transaction.match_checks.counts %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.date %}text-success{% else %}text-warning-emphasis{% endif %}">
+                    <i class="bi {% if incoming_transaction.match_checks.date %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
-                        {% if incoming_transaction.match_checks.counts %}
-                            Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum }}) совпадает с количеством ({{ incoming_transaction.quantity }})
+                        {% if incoming_transaction.match_checks.date %}
+                            Дата корректна
                         {% else %}
-                            Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) не совпадает с количеством ({{ incoming_transaction.quantity }})
+                            Дата не указана
                         {% endif %}
                     </span>
                 </li>
@@ -79,9 +79,19 @@
                     <i class="bi {% if incoming_transaction.match_checks.price %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
                         {% if incoming_transaction.match_checks.price %}
-                            Цена совпадает с ценой в справочнике
+                            Цена совпадает
                         {% else %}
-                            Цена не совпадает с ценой в справочнике
+                            Цена не совпадает
+                        {% endif %}
+                    </span>
+                </li>
+                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
+                    <i class="bi {% if incoming_transaction.match_checks.counts %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+                    <span>
+                        {% if incoming_transaction.match_checks.counts %}
+                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum }}) и итог ({{ incoming_transaction.quantity }}) равны
+                        {% else %}
+                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) и итог ({{ incoming_transaction.quantity }}) не равны
                         {% endif %}
                     </span>
                 </li>

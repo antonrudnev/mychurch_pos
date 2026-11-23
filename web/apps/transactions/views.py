@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
+from integrations.models import IncomingDocument
 
 from .forms import (
     IncomingDocumentReportDateForm,
@@ -22,7 +23,6 @@ from .forms import (
     TransactionManageForm,
 )
 from .models import IncomingTransaction, Transaction
-from integrations.models import IncomingDocument
 from .services.incoming_review import (
     create_transaction_for_incoming,
     create_transactions_for_matched_incoming,
@@ -455,7 +455,9 @@ def get_incoming_review_reasons(incoming_transaction):
     reasons = []
     checks = get_incoming_match_checks(incoming_transaction)
     if not checks['item']:
-        reasons.append('Товар не найден в справочнике.')
+        reasons.append('Товар не найден.')
+    if not checks['date']:
+        reasons.append('Дата не указана.')
     raw_counts = incoming_transaction.raw_counts
     if not isinstance(raw_counts, list) or not raw_counts:
         total = (
@@ -466,19 +468,20 @@ def get_incoming_review_reasons(incoming_transaction):
         reasons.append(f'Ряд количеств не распознан (сумма: {total}).')
     elif not checks['counts']:
         if checks['raw_counts_sum'] is None:
-            reasons.append('Распознанный ряд количеств некорректен; сумму вычислить нельзя.')
+            reasons.append('Распознанный ряд количеств некорректен.')
         else:
             reasons.append(
-                f"Сумма распознанных количеств ({checks['raw_counts_sum']}) "
-                f"не совпадает с количеством ({incoming_transaction.quantity})."
+                f"Сумма ({checks['raw_counts_sum']}) "
+                f"не совпадает с итогом ({incoming_transaction.quantity})."
             )
     if checks['item'] and not checks['price']:
-        reasons.append('Цена не совпадает с ценой в справочнике.')
+        reasons.append('Цена не совпадает.')
     return reasons
 
 
 def get_incoming_match_checks(incoming_transaction):
     item_matches = incoming_transaction.item_id is not None
+    date_match = incoming_transaction.report_date is not None
     raw_counts_sum = None
     raw_counts = incoming_transaction.raw_counts
     if isinstance(raw_counts, list):
@@ -493,6 +496,7 @@ def get_incoming_match_checks(incoming_transaction):
     )
     return {
         'item': item_matches,
+        'date': date_match,
         'counts': counts_match,
         'raw_counts_sum': raw_counts_sum,
         'price': (
