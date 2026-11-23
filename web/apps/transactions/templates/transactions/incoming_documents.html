@@ -18,13 +18,13 @@
                                 {{ document.original_name }}
                             </h2>
                             <p class="text-body-secondary mb-1 fs-6 fw-light">
-                                Строки: {{ document.incoming_total_count }} /
+                                Записей: {{ document.incoming_total_count }} /
                                 {% if document.incoming_manual_review_count > 0 %}
                                     <span class="badge bg-warning-subtle text-warning-emphasis">
-                                        Конфликты: {{ document.incoming_manual_review_count }}
+                                        Конфликтов: {{ document.incoming_manual_review_count }}
                                     </span>
                                 {% else %}
-                                    Конфликты: {{ document.incoming_manual_review_count }}
+                                    Конфликтов: {{ document.incoming_manual_review_count }}
                                 {% endif %}
                             </p>
                             <p class="text-body-secondary mb-0 small text-uppercase">
@@ -48,7 +48,7 @@
             {% empty %}
                 <div class="text-center py-5">
                     <p class="fw-light text-uppercase small text-body-secondary mb-0">
-                        Нет документов с необработанными строками
+                        Нет документов с необработанными записями
                     </p>
                 </div>
             {% endfor %}
