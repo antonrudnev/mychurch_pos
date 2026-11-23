@@ -46,52 +46,43 @@
                     <dt class="small fw-normal text-body-secondary mb-1">Автоматическая сверка</dt>
                     <dd class="mb-0">
                         {% if incoming_transaction.is_matched %}
-                            <span class="text-success">Все условия выполнены</span>
+                            <span class="badge rounded-pill bg-success-subtle text-success-emphasis fw-medium">
+                                Все условия выполнены
+                            </span>
                         {% else %}
-                            <span class="text-warning-emphasis">Требуется проверка</span>
+                            <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis fw-medium">
+                                Требуется проверка
+                            </span>
                         {% endif %}
                     </dd>
                 </div>
             </dl>
-
-            <ul class="list-unstyled d-grid gap-2 small mb-0">
-                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.item %}text-success{% else %}text-warning-emphasis{% endif %}">
+            <ul class="list-unstyled row g-2 small mb-0">
+                <li class="col-12 col-sm-6 d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.item %}text-success{% else %}text-warning-emphasis{% endif %}">
                     <i class="bi {% if incoming_transaction.match_checks.item %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
-                        {% if incoming_transaction.match_checks.item %}
-                            Товар выбран
-                        {% else %}
-                            Товар не найден
-                        {% endif %}
+                        {% if incoming_transaction.match_checks.item %}Товар выбран{% else %}Товар не найден{% endif %}
                     </span>
                 </li>
-                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.date %}text-success{% else %}text-warning-emphasis{% endif %}">
+                <li class="col-12 col-sm-6 d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.date %}text-success{% else %}text-warning-emphasis{% endif %}">
                     <i class="bi {% if incoming_transaction.match_checks.date %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
-                        {% if incoming_transaction.match_checks.date %}
-                            Дата корректна
-                        {% else %}
-                            Дата не указана
-                        {% endif %}
+                        {% if incoming_transaction.match_checks.date %}Дата корректна{% else %}Дата не указана{% endif %}
                     </span>
                 </li>
-                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.price %}text-success{% else %}text-warning-emphasis{% endif %}">
+                <li class="col-12 col-sm-6 d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.price %}text-success{% else %}text-warning-emphasis{% endif %}">
                     <i class="bi {% if incoming_transaction.match_checks.price %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
-                        {% if incoming_transaction.match_checks.price %}
-                            Цена совпадает
-                        {% else %}
-                            Цена не совпадает
-                        {% endif %}
+                        {% if incoming_transaction.match_checks.price %}Цена совпадает{% else %}Цена не совпадает{% endif %}
                     </span>
                 </li>
-                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
+                <li class="col-12 col-sm-6 d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
                     <i class="bi {% if incoming_transaction.match_checks.counts %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
                     <span>
                         {% if incoming_transaction.match_checks.counts %}
-                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum }}) и итог ({{ incoming_transaction.quantity }}) равны
+                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum }}) = итог ({{ incoming_transaction.quantity }})
                         {% else %}
-                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) и итог ({{ incoming_transaction.quantity }}) не равны
+                            Сумма ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) ≠ итог ({{ incoming_transaction.quantity }})
                         {% endif %}
                     </span>
                 </li>
