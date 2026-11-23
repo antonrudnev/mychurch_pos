@@ -20,12 +20,12 @@
                 {% if incoming_transactions_count %}
                     <a href="{% url 'transactions:incoming_documents' %}" class="btn btn-outline-warning w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center">
                         <span class="fs-5 fw-normal mb-1">Входящие документы</span>
-                        <span class="fw-light text-uppercase small opacity-75">Документов: {{ incoming_documents_count }} / строк: {{ incoming_transactions_count }}</span>
+                        <span class="fw-light text-uppercase small opacity-75">Документов: {{ incoming_documents_count }} / записей: {{ incoming_transactions_count }}</span>
                     </a>
                 {% else %}
                     <button type="button" class="btn btn-outline-secondary w-100 py-3 shadow-sm d-flex flex-column align-items-center justify-content-center" disabled>
                         <span class="fs-5 fw-normal mb-1">Входящие документы</span>
-                        <span class="fw-light text-uppercase small opacity-75">Нет необработанных строк</span>
+                        <span class="fw-light text-uppercase small opacity-75">Нет необработанных записей</span>
                     </button>
                 {% endif %}
             {% endif %}
