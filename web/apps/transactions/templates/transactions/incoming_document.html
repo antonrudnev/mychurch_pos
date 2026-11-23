@@ -61,6 +61,7 @@
         </div>
         <hr class="my-4">
         <div class="d-grid gap-3">
+            {% if pending_rows_count and perms.transactions.add_transaction %}
             <form method="post" onsubmit="return confirm('Вы действительно хотите добавить все проверенные транзакции ({{ matched_rows_count }} шт.) в основной журнал?');">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="add_matched">
@@ -68,7 +69,8 @@
                     Добавить проверенные ({{ matched_rows_count }})
                 </button>
             </form>
-            {% if pending_rows_count %}
+            {% endif %}
+            {% if pending_rows_count and perms.transactions.delete_incomingtransaction %}
                 <form method="post" onsubmit="return confirm('Вы действительно хотите удалить все необработанные строки этого документа? Это действие нельзя отменить.');">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="delete_all">
