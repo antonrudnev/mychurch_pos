@@ -8,13 +8,17 @@
         <h1 class="fw-normal h3 text-center mb-4 text-body">{{ transaction.item.name }}</h1>
         <p class="text-center">
             <span class="text-secondary text-uppercase">{{ transaction.item.item_type.name }} /</span>
-            {% if transaction.is_verified %}
-                <span class="text-success text-uppercase">Транзакция подтверждена</span>
-                {% if perms.transactions.verify_transaction and transaction.verified_by != user %}
-                    <span class="text-primary">({{ transaction.verified_by.get_full_name|default:transaction.verified_by.username }})</span>
-                {% endif %}
+            {% if transaction.is_deleted %}
+                <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Удалена</span>
             {% else %}
-                <span class="text-warning text-uppercase">Транзакция не подтверждена</span>
+                {% if transaction.is_verified %}
+                    <span class="text-success text-uppercase">Транзакция подтверждена</span>
+                    {% if perms.transactions.verify_transaction and transaction.verified_by != user %}
+                        <span class="text-primary">({{ transaction.verified_by.get_full_name|default:transaction.verified_by.username }})</span>
+                    {% endif %}
+                {% else %}
+                    <span class="text-warning text-uppercase">Транзакция не подтверждена</span>
+                {% endif %}
             {% endif %}
         </p>        
         {% if can_change_transaction %}
@@ -104,7 +108,7 @@
             <div class="border-top border-subtle mb-4"></div>
         {% endif %}
 
-        {% if perms.transactions.verify_transaction and not can_change_transaction %}
+        {% if can_verify_transaction and not can_change_transaction %}
             <form method="post" class="mb-4">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="toggle_verification">

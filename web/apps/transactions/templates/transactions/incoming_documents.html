@@ -2,35 +2,22 @@
 
 {% block title %}Входящие — Церковная лавка{% endblock %}
 
-{% block extra_css %}
-    .report-title-link {
-        color: inherit;
-        text-decoration: none;
-    }
-    .report-title-link:hover {
-        text-decoration: underline;
-    }
-    .text-secondary-soft {
-        color: var(--bs-secondary-color) !important;
-    }
-{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center px-3 mt-4">
-    <div class="col-12" style="max-width: 600px;">
-        <div class="text-center border-bottom border-subtle pb-4 mb-4">
-            <h1 class="fw-normal h3 m-0 text-body">Входящие документы</h1>
+    <div class="col-12" style="max-width: 800px;">
+        <div class="text-center border-bottom pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0">Входящие документы</h1>
         </div>
 
         <div class="my-4">
             {% for document in documents %}
-                <a href="{% url 'transactions:incoming_document' document.pk %}" class="d-block text-body text-decoration-none">
+                <a href="{% url 'transactions:incoming_document' document.pk %}" class="link-body-emphasis text-decoration-none">
                     <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if document.document_type == 'product_report' %}border-success{% elif document.document_type == 'candle_report' %}border-warning{% else %}border-secondary{% endif %} ps-3">
-                        <div class="w-100">
-                            <h4 class="fw-normal h5 mb-1 text-body">
-                                {{ document.original_name }}                                
-                            </h4>
-                            <p class="text-secondary-soft mb-0 fs-6 fw-light">
+                        <div>
+                            <h2 class="fw-normal h5 mb-1">
+                                {{ document.original_name }}
+                            </h2>
+                            <p class="text-body-secondary mb-1 fs-6 fw-light">
                                 Строки: {{ document.incoming_total_count }} /
                                 {% if document.incoming_manual_review_count > 0 %}
                                     <span class="badge bg-warning-subtle text-warning-emphasis">
@@ -40,40 +27,37 @@
                                     Конфликты: {{ document.incoming_manual_review_count }}
                                 {% endif %}
                             </p>
-                            <p class="text-secondary-soft mb-0 fs-6 fw-light">
-                                <span class="fw-normal small text-uppercase me-2">
-                                    [{{ document.get_document_type_display }}]
-                                </span>
+                            <p class="text-body-secondary mb-0 small text-uppercase">
+                                [{{ document.get_document_type_display }}]
                             </p>
                         </div>
-                        <div class="d-flex flex-row align-items-center justify-content-end fw-bold text-nowrap gap-1 pt-1 flex-shrink-0">
-                            {{ document.incoming_total|floatformat:2 }}&nbsp;
+
+                        <div class="text-md-end text-nowrap flex-shrink-0">
+                            {{ document.incoming_total|floatformat:2 }} ₽
                             {% if document.document_type == 'product_report' %}
-                                <i class="bi bi-box-seam text-success" aria-hidden="true"></i>
+                                <i class="bi bi-box-seam text-success ms-1" title="{{ document.get_document_type_display }}" aria-hidden="true"></i>
                             {% elif document.document_type == 'candle_report' %}
-                                <i class="bi bi-fire text-warning-emphasis" aria-hidden="true"></i>
-                            {% else %}
-                                <span class="fw-bold">₽</span>
+                                <i class="bi bi-fire text-warning-emphasis ms-1" title="{{ document.get_document_type_display }}" aria-hidden="true"></i>
                             {% endif %}
                         </div>
                     </div>
                 </a>
                 {% if not forloop.last %}
-                    <div class="border-top border-subtle my-2"></div>
+                    <hr class="my-2">
                 {% endif %}
             {% empty %}
                 <div class="text-center py-5">
-                    <h5 class="fw-light text-uppercase small text-muted mb-2">
+                    <p class="fw-light text-uppercase small text-body-secondary mb-0">
                         Нет документов с необработанными строками
-                    </h5>
+                    </p>
                 </div>
             {% endfor %}
         </div>
 
-        <div class="border-top border-subtle my-4"></div>
-        <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
-            <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
-                <i class="bi bi-arrow-left me-1"></i> Вернуться
+        <hr class="my-4">
+        <div class="d-grid">
+            <a href="{% url 'transactions:home' %}" class="btn btn-outline-secondary py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Вернуться
             </a>
         </div>
     </div>

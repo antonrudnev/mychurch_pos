@@ -2,158 +2,114 @@
 
 {% block title %}Документы — Церковная лавка{% endblock %}
 
-{% block extra_css %}
-    /* Сохраняем мягкие шрифтовые пропорции */
-    .report-title-link {
-        color: inherit;
-        text-decoration: none;
-    }
-    .report-title-link:hover {
-        text-decoration: underline;
-    }
-    .text-secondary-soft {
-        color: var(--bs-secondary-color) !important;
-    }
-{% endblock %}
-
 {% block content %}
 <div class="row justify-content-center px-3 mt-4">
-    <div class="col-12" style="max-width: 600px;"> <!-- Сузили контейнер до 600px для точного соответствия главной странице -->
-        
-        <!-- Верхняя панель: Минималистичный заголовок -->
-        <div class="text-center border-bottom border-subtle pb-4 mb-4">
-            <h1 class="fw-normal h3 m-0 text-body">
-                Архив документов
-            </h1>
+    <div class="col-12" style="max-width: 600px;">
+        <div class="text-center border-bottom pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0">Архив документов</h1>
         </div>
 
-        <!-- Контейнер списка в стиле лаконичных разделителей главной страницы -->
         <div class="my-4">
             {% for report in reports %}
-                {% if report.report_type %}
-                    {% with handle=report.report_type.handle %}
-                        <!-- Сохраняем вашу структуру, добавляя левую цветную границу и отступ слева (ps-3) -->
-                        <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if handle == 'cash-report' %}border-info{% elif handle == 'candle-report' %}border-warning{% elif handle == 'product-report' %}border-success{% else %}border-secondary{% endif %} ps-3">
-                    {% endwith %}
-                {% else %}
-                    <!-- Резервный вариант с серой границей, если тип отчета не задан -->
-                    <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 border-secondary ps-3">
+                <div class="py-3 d-flex flex-column flex-md-row justify-content-between align-items-md-start gap-2 border-start border-4 {% if report.report_type.handle == 'cash-report' %}border-info{% elif report.report_type.handle == 'candle-report' %}border-warning{% elif report.report_type.handle == 'product-report' %}border-success{% else %}border-secondary{% endif %} ps-3">
+                    <div>
+                        <h2 class="fw-normal h5 mb-1">
+                            {% if perms.reports.change_report or perms.reports.delete_report %}
+                                <a href="{% url 'reports:manage_report' report.id %}" class="link-body-emphasis text-decoration-none">
+                                    {{ report.name }}
+                                </a>
+                            {% else %}
+                                {{ report.name }}
+                            {% endif %}
+                        </h2>
+                        <p class="text-body-secondary mb-0 fs-6 fw-light">
+                            {% if report.report_type %}
+                                <span class="fw-normal small text-uppercase me-2">[{{ report.report_type.name }}]</span>
+                            {% endif %}
+                            от {{ report.created_at|date:"d.m.Y H:i" }}
+                        </p>
+                    </div>
+
+                    <div class="d-flex flex-row flex-md-column justify-content-end align-items-center align-items-md-end gap-3 gap-md-1 pt-1 flex-shrink-0">
+                        <a href="{% url 'reports:print_report' report.id %}"
+                           target="_blank"
+                           rel="noopener"
+                           class="text-decoration-none fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
+                            Открыть <i class="bi bi-box-arrow-up-right small" aria-hidden="true"></i>
+                        </a>
+                        <a href="{% url 'reports:print_report' report.id %}?format=pdf"
+                           target="_blank"
+                           rel="noopener"
+                           class="text-decoration-none fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-danger">
+                            Скачать <i class="bi bi-file-earmark-pdf small" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </div>
+                {% if not forloop.last %}
+                    <hr class="my-2">
                 {% endif %}
-                            
-                            <!-- Основная информация об отчете -->
-                            <div>
-                                <!-- Название отчета  -->
-                                <h4 class="fw-normal h5 mb-1 text-body">
-                                    {% if perms.reports.change_report or perms.reports.delete_report %}
-                                        <a href="{% url 'reports:manage_report' report.id %}" class="report-title-link">
-                                            {{ report.name }}
-                                        </a>
-                                    {% else %}
-                                        {{ report.name }}
-                                    {% endif %}
-                                </h4>
-                                <p class="text-secondary-soft mb-0 fs-6 fw-light">
-                                    {% if report.report_type %}
-                                        <span class="fw-normal text-muted small text-uppercase me-2">[{{ report.report_type.name }}]</span>
-                                    {% endif %}
-                                    от {{ report.created_at|date:"d.m.Y  H:i" }} 
-                                </p>
-                            </div>
-
-                            <!-- Действие -->
-                            <div class="d-flex flex-row flex-md-column justify-content-end align-items-sm-center align-items-md-end gap-3 gap-md-1 pt-1">
-                                <a href="{% url 'reports:print_report' report.id %}" 
-                                target="_blank" 
-                                class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-primary">
-                                    Открыть <i class="bi bi-box-arrow-up-right small"></i>
-                                </a>
-                                
-                                <a href="{% url 'reports:print_report' report.id %}?format=pdf"
-                                target="_blank"
-                                rel="noopener"
-                                class="btn btn-link nav-link p-0 fw-light text-uppercase small d-inline-flex align-items-center gap-1 text-danger">
-                                    Скачать <i class="bi bi-file-earmark-pdf small"></i>
-                                </a>
-                            </div>
-                            
-                        </div>
-                        
-                        <!-- Адаптивный разделитель между строками отчетов (Полностью сохранен) -->
-                        {% if not forloop.last %}
-                            <div class="border-top border-subtle my-2"></div>
-                        {% endif %}
-
-                    {% empty %}
-                        <!-- Состояние, когда архив пуст  -->
-                        <div class="text-center py-5">
-                            <h5 class="fw-light text-uppercase small text-muted mb-2">Здесь хранятся кассовые отчеты и ведомости</h5>
-                            <p class="text-secondary fs-5 italic mb-0">
-                                Создайте новый отчет, чтобы он появился здесь.
-                            </p>
-                        </div>
-                    {% endfor %}
+            {% empty %}
+                <div class="text-center py-5">
+                    <p class="fw-light text-uppercase small text-body-secondary mb-2">
+                        Здесь хранятся кассовые отчеты и ведомости
+                    </p>
+                    <p class="text-body-secondary fs-5 fst-italic mb-0">
+                        Создайте новый отчет, чтобы он появился здесь.
+                    </p>
+                </div>
+            {% endfor %}
         </div>
 
-        <!-- БЛОК ПАГИНАЦИИ (Показывается только если страниц больше одной) -->
         {% if is_paginated %}
             <nav aria-label="Навигация по архиву отчетов" class="my-4">
                 <ul class="pagination pagination-sm justify-content-center m-0 gap-1">
-                    
-                    <!-- Стрелка Назад -->
                     {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
-                                <i class="bi bi-chevron-left"></i>
+                            <a class="page-link text-body-secondary" href="?page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
+                                <i class="bi bi-chevron-left" aria-hidden="true"></i>
                             </a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
-                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-left"></i></span>
+                            <span class="page-link text-body-tertiary"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
                         </li>
                     {% endif %}
 
-                    <!-- Номера страниц в стиле fw-light -->
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
                             <li class="page-item active" aria-current="page">
-                                <span class="page-link btn-primary border-primary fw-normal">{{ num }}</span>
+                                <span class="page-link fw-normal">{{ num }}</span>
                             </li>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                             <li class="page-item">
-                                <a class="page-link border-subtle text-secondary fw-light" href="?page={{ num }}">{{ num }}</a>
+                                <a class="page-link text-body-secondary fw-light" href="?page={{ num }}">{{ num }}</a>
                             </li>
                         {% endif %}
                     {% endfor %}
 
-                    <!-- Стрелка Вперед -->
                     {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link border-subtle text-secondary" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
-                                <i class="bi bi-chevron-right"></i>
+                            <a class="page-link text-body-secondary" href="?page={{ page_obj.next_page_number }}" aria-label="Следующая">
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
                             </a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
-                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-right"></i></span>
+                            <span class="page-link text-body-tertiary"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
                         </li>
                     {% endif %}
-                    
                 </ul>
             </nav>
         {% endif %}
 
-        <!-- Тонкий нижний разделитель перед кнопкой действия -->
-        <div class="border-top border-subtle my-4"></div>
-        
-        <!-- Кнопка создания нового отчета-->
         {% if perms.reports.add_report %}
-            <div class="d-flex flex-column justify-content-center gap-3 mt-4 w-100">
-                <a href="{% url 'reports:report_type_select' %}" class="btn btn-primary w-100 py-2 text-uppercase">
+            <hr class="my-4">
+            <div class="d-grid">
+                <a href="{% url 'reports:report_type_select' %}" class="btn btn-primary py-2 text-uppercase">
                     Создать документ
                 </a>
             </div>
-         {% endif %}
-        
+        {% endif %}
     </div>
 </div>
 {% endblock %}

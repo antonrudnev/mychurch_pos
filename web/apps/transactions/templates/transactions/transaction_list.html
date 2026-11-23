@@ -5,50 +5,61 @@
 {% block content %}
 <div class="row justify-content-center px-3 mt-4">
     <div class="col-12" style="max-width: 800px;">
-        <div class="text-center border-bottom border-subtle pb-4 mb-4">
-            <h1 class="fw-normal h3 m-0 text-body">
-                {% if is_verification_review %}Проверьте эти транзакции{% elif perms.transactions.view_all_transactions %}Все транзакции{% else %}Мои транзакции{% endif %}
+        <div class="text-center border-bottom pb-4 mb-4">
+            <h1 class="fw-normal h3 m-0">
+                {% if is_verification_review %}
+                    Проверьте эти транзакции
+                {% elif perms.transactions.view_all_transactions %}
+                    Все транзакции
+                {% else %}
+                    Мои транзакции
+                {% endif %}
             </h1>
         </div>
 
         <div class="my-4">
             {% for transaction in transactions %}
-                <div class="py-3">
-                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                <a href="{% url 'transactions:transaction_manage' transaction.id %}{% if is_verification_review %}?unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;page={{ page_obj.number }}{% else %}?page={{ page_obj.number }}{% endif %}"
+                   class="link-body-emphasis text-decoration-none">
+                    <div class="d-flex flex-column flex-md-row justify-content-between gap-2 py-3">
                         <div>
-                            <h2 class="fw-normal h5 mb-1 text-body">
-                                <a href="{% url 'transactions:transaction_manage' transaction.id %}{% if is_verification_review %}?unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;page={{ page_obj.number }}{% else %}?page={{ page_obj.number }}{% endif %}" class="link-body-emphasis text-decoration-none">{{ transaction.item.name }}</a>
+                            <h2 class="fw-normal h5 mb-1">
+                                {{ transaction.item.name }}
                             </h2>
-                            <p class="text-secondary mb-0 fs-6 fw-light">
-                                <span class="fw-normal text-muted small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
+                            <p class="text-body-secondary mb-0 fs-6 fw-light">
+                                <span class="fw-normal small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
                                 {{ transaction.created_at|date:"d.m.Y H:i" }}
                                 {% if transaction.is_verified %}
-                                    <i class="bi bi-check-circle-fill text-success small"></i>
+                                    <i class="bi bi-check-circle-fill text-success small align-middle ms-1" title="Подтверждена" aria-label="Подтверждена"></i>
                                 {% endif %}
                             </p>
                         </div>
-                        <div class="text-md-end">
-                            <div>
+                        <div class="text-md-end flex-shrink-0">
+                            <div class="text-nowrap">
                                 {% if transaction.item.price is None %}
                                     {{ transaction.quantity }} шт.
                                 {% elif transaction.item.price == 0 %}
-                                    {{ transaction.price }} &#8381
+                                    {{ transaction.price }} ₽
                                 {% else %}
-                                    {{ transaction.quantity }} × {{ transaction.price }} &#8381 = {{ transaction.total_cost }} &#8381
+                                    {{ transaction.quantity }} × {{ transaction.price }} ₽ = {{ transaction.total_cost }} ₽
                                 {% endif %}
                             </div>
                             {% if perms.transactions.view_all_transactions or perms.transactions.verify_transaction %}
-                                <div class="{% if transaction.cashier == user %}text-secondary{% else %}text-primary{% endif %} small">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
+                                <div class="{% if transaction.cashier == user %}text-body-secondary{% else %}text-primary{% endif %} small">
+                                    {{ transaction.cashier.get_full_name|default:transaction.cashier.username }}
+                                </div>
                             {% endif %}
                         </div>
                     </div>
-                </div>
+                </a>
                 {% if not forloop.last %}
-                    <div class="border-top border-subtle my-2"></div>
+                    <hr class="my-2">
                 {% endif %}
-            {% empty %}            
+            {% empty %}
                 <div class="text-center py-5">
-                    <h2 class="fw-light text-uppercase small text-muted mb-2">{% if is_verification_review %}Неподтверждённые транзакции в системе{% else %}Транзакций пока нет{% endif %}</h2>
+                    <p class="fw-light text-uppercase small text-body-secondary mb-0">
+                        {% if is_verification_review %}Неподтверждённые транзакции в системе{% else %}Транзакций пока нет{% endif %}
+                    </p>
                 </div>
             {% endfor %}
         </div>
@@ -58,58 +69,68 @@
                 <ul class="pagination pagination-sm justify-content-center m-0 gap-1">
                     {% if page_obj.has_previous %}
                         <li class="page-item">
-                            <a class="page-link border-subtle text-secondary" href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Предыдущая">
-                                <i class="bi bi-chevron-left"></i>
+                            <a class="page-link text-body-secondary"
+                               href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ page_obj.previous_page_number }}"
+                               aria-label="Предыдущая">
+                                <i class="bi bi-chevron-left" aria-hidden="true"></i>
                             </a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
-                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-left"></i></span>
+                            <span class="page-link text-body-tertiary"><i class="bi bi-chevron-left" aria-hidden="true"></i></span>
                         </li>
                     {% endif %}
 
                     {% for num in page_obj.paginator.page_range %}
                         {% if page_obj.number == num %}
                             <li class="page-item active" aria-current="page">
-                                <span class="page-link btn-primary border-primary fw-normal">{{ num }}</span>
+                                <span class="page-link fw-normal">{{ num }}</span>
                             </li>
                         {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                             <li class="page-item">
-                                <a class="page-link border-subtle text-secondary fw-light" href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ num }}">{{ num }}</a>
+                                <a class="page-link text-body-secondary fw-light"
+                                   href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ num }}">
+                                    {{ num }}
+                                </a>
                             </li>
                         {% endif %}
                     {% endfor %}
 
                     {% if page_obj.has_next %}
                         <li class="page-item">
-                            <a class="page-link border-subtle text-secondary" href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ page_obj.next_page_number }}" aria-label="Следующая">
-                                <i class="bi bi-chevron-right"></i>
+                            <a class="page-link text-body-secondary"
+                               href="?{% if is_verification_review %}unverified=1&amp;date_from={{ date_from|date:'Y-m-d' }}&amp;date_to={{ date_to|date:'Y-m-d' }}&amp;preset={{ period_preset }}&amp;report_handle={{ report_handle }}&amp;{% endif %}page={{ page_obj.next_page_number }}"
+                               aria-label="Следующая">
+                                <i class="bi bi-chevron-right" aria-hidden="true"></i>
                             </a>
                         </li>
                     {% else %}
                         <li class="page-item disabled">
-                            <span class="page-link border-subtle text-body-tertiary"><i class="bi bi-chevron-right"></i></span>
+                            <span class="page-link text-body-tertiary"><i class="bi bi-chevron-right" aria-hidden="true"></i></span>
                         </li>
                     {% endif %}
                 </ul>
             </nav>
         {% endif %}
 
-        <div class="border-top border-subtle my-4"></div>
-        {% if can_proceed_report %}
-            {% if not transactions and perms.transactions.view_transaction_all %}
-                <a href="{{ proceed_report_url }}" class="btn btn-success w-100 py-2 mb-3 text-uppercase">
-                    Продолжить
-                </a>
-            {% else %}
-                <a href="{{ proceed_report_url }}" class="btn btn-warning w-100 py-2 mb-3 text-uppercase">
-                    Продолжить без проверки
-                </a>
+        <hr class="my-4">
+        <div class="d-grid gap-3">
+            {% if can_proceed_report %}
+                {% if not transactions and perms.transactions.view_all_transactions %}
+                    <a href="{{ proceed_report_url }}" class="btn btn-success py-2 text-uppercase">
+                        Продолжить
+                    </a>
+                {% else %}
+                    <a href="{{ proceed_report_url }}" class="btn btn-warning py-2 text-uppercase">
+                        Продолжить без проверки
+                    </a>
+                {% endif %}
             {% endif %}
-        {% endif %}
-        <a href="{% if is_verification_review %}{{ report_return_url }}{% else %}{% url 'transactions:home' %}{% endif %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
-            <i class="bi bi-arrow-left me-1"></i> Вернуться
-        </a>
+            <a href="{% if is_verification_review %}{{ report_return_url }}{% else %}{% url 'transactions:home' %}{% endif %}"
+               class="btn btn-outline-secondary py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Вернуться
+            </a>
+        </div>
     </div>
 </div>
 {% endblock %}

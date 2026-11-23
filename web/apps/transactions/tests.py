@@ -453,6 +453,96 @@ class TransactionViewsTests(TestCase):
             f'href="{reverse("transactions:transaction_list")}?page=2"',
         )
 
+    def test_manage_return_to_incoming_document_survives_save_and_delete(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'delete_transaction')
+        document = self.create_incoming_document()
+        incoming_document_url = reverse(
+            'transactions:incoming_document',
+            args=[document.pk],
+        )
+        incoming_query = f'?incoming_document={document.pk}'
+
+        saved_transaction = self.create_transaction(self.user)
+        saved_incoming_row = self.create_incoming_transaction(
+            document,
+            row_number=1,
+        )
+        saved_incoming_row.transaction = saved_transaction
+        saved_incoming_row.save(update_fields=['transaction'])
+        saved_manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[saved_transaction.pk],
+        )
+        page = self.client.get(f'{saved_manage_url}{incoming_query}')
+        self.assertEqual(
+            page.context['transaction_list_url'],
+            incoming_document_url,
+        )
+
+        save_response = self.client.post(
+            f'{saved_manage_url}{incoming_query}',
+            {'action': 'save', 'price': '20.75', 'quantity': '2'},
+        )
+        self.assertRedirects(
+            save_response,
+            incoming_document_url,
+            fetch_redirect_response=False,
+        )
+
+        deleted_transaction = self.create_transaction(self.user)
+        deleted_incoming_row = self.create_incoming_transaction(
+            document,
+            row_number=2,
+        )
+        deleted_incoming_row.transaction = deleted_transaction
+        deleted_incoming_row.save(update_fields=['transaction'])
+        delete_response = self.client.post(
+            f'{reverse("transactions:transaction_manage", args=[deleted_transaction.pk])}'
+            f'{incoming_query}',
+            {'action': 'delete'},
+        )
+        self.assertRedirects(
+            delete_response,
+            incoming_document_url,
+            fetch_redirect_response=False,
+        )
+
+    def test_toggle_verification_preserves_incoming_document_return_target(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        document = self.create_incoming_document()
+        transaction = self.create_transaction(self.user)
+        transaction.is_verified = True
+        transaction.verified_by = self.user
+        transaction.save(update_fields=['is_verified', 'verified_by'])
+        incoming_row = self.create_incoming_transaction(document)
+        incoming_row.transaction = transaction
+        incoming_row.save(update_fields=['transaction'])
+        manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[transaction.pk],
+        )
+        query = f'?incoming_document={document.pk}'
+
+        response = self.client.post(
+            f'{manage_url}{query}',
+            {'action': 'toggle_verification'},
+        )
+
+        expected_manage_url = f'{manage_url}{query}'
+        self.assertRedirects(
+            response,
+            expected_manage_url,
+            fetch_redirect_response=False,
+        )
+        page = self.client.get(expected_manage_url)
+        self.assertEqual(page.context['transaction_list_url'], reverse(
+            'transactions:incoming_document',
+            args=[document.pk],
+        ))
+
     def test_edit_form_preserves_list_page_in_its_post_url(self):
         self.grant_permission(self.user, 'change_transaction')
         transaction = self.create_transaction(self.user)
@@ -1631,16 +1721,100 @@ class TransactionViewsTests(TestCase):
         )
         self.assertContains(
             response,
-            f'href="{reverse("transactions:transaction_manage", args=[transaction.pk])}"',
+            f'href="{reverse("transactions:transaction_manage", args=[transaction.pk])}'
+            f'?incoming_document={document.pk}"',
         )
-        self.assertContains(
-            response,
-            '<i class="bi bi-check-circle-fill text-primary" title="Транзакция создана"',
+        self.assertRegex(
+            response.content.decode(),
+            r'<i class="bi bi-check-circle-fill text-primary[^"]*" title="Транзакция создана"',
         )
-        self.assertContains(response, 'text-body-secondary')
+        self.assertRegex(
+            response.content.decode(),
+            r'text-body-(?:secondary|tertiary)',
+        )
         self.assertEqual(len(response.context['incoming_rows']), 2)
         self.assertEqual(response.context['pending_rows_count'], 1)
         self.assertEqual(response.context['matched_rows_count'], 1)
+
+    def test_incoming_document_marks_soft_deleted_related_transaction(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        transaction = self.create_transaction(self.user)
+        incoming.transaction = transaction
+        incoming.save(update_fields=['transaction'])
+        transaction.delete_soft()
+
+        response = self.client.get(
+            reverse('transactions:incoming_document', args=[document.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<i class="bi bi-check-circle-fill text-danger fs-6 ms-1" '
+            'title="Связанная транзакция удалена"',
+        )
+        self.assertTrue(response.context['incoming_rows'][0].is_transaction_deleted)
+
+    def test_deleted_transaction_requires_incoming_document_context_to_view(self):
+        transaction = self.create_transaction(self.user)
+        transaction.delete_soft()
+
+        response = self.client.get(
+            reverse('transactions:transaction_manage', args=[transaction.pk])
+        )
+
+        self.assertEqual(response.status_code, 404, response.get('Location'))
+
+    def test_deleted_transaction_context_requires_incoming_review_permission(self):
+        document = self.create_incoming_document()
+        transaction = self.create_transaction(self.user)
+        transaction.delete_soft()
+
+        response = self.client.get(
+            f'{reverse("transactions:transaction_manage", args=[transaction.pk])}'
+            f'?incoming_document={document.pk}'
+        )
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_deleted_transaction_is_read_only_when_opened_from_incoming_document(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_transaction')
+        self.grant_permission(self.user, 'delete_transaction')
+        self.grant_permission(self.user, 'verify_transaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        transaction = self.create_transaction(self.user)
+        incoming.transaction = transaction
+        incoming.save(update_fields=['transaction'])
+        transaction.delete_soft()
+        incoming_document_url = reverse(
+            'transactions:incoming_document',
+            args=[document.pk],
+        )
+        manage_url = (
+            f'{reverse("transactions:transaction_manage", args=[transaction.pk])}'
+            f'?incoming_document={document.pk}'
+        )
+
+        response = self.client.get(manage_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Удалена')
+        self.assertContains(response, f'href="{incoming_document_url}"')
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="save_and_verify"')
+        self.assertNotContains(response, 'name="action" value="toggle_verification"')
+        self.assertNotContains(response, 'name="action" value="delete"')
+        self.assertEqual(response.context['transaction_list_url'], incoming_document_url)
+
+        post_response = self.client.post(
+            manage_url,
+            {'action': 'delete'},
+        )
+        self.assertEqual(post_response.status_code, 403)
 
     def test_incoming_document_delete_all_soft_deletes_only_unprocessed_rows(self):
         self.grant_permission(self.user, 'view_incomingtransaction')

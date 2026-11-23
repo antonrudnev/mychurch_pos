@@ -6,7 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMix
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction as db_transaction
 from django.db.models import Exists, Max, OuterRef, Prefetch
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.dateparse import parse_date
@@ -162,6 +162,9 @@ class IncomingDocumentView(IncomingReviewPermissionMixin, TemplateView):
             .order_by('row_number')
         )
         for row in rows:
+            row.is_transaction_deleted = (
+                row.transaction.is_deleted if row.transaction_id else False
+            )
             row.review_reasons = (
                 get_incoming_review_reasons(row) if not row.is_processed else []
             )
@@ -449,7 +452,32 @@ class TransactionListView(PermissionRequiredMixin, ListView):
 class TransactionManageView(TemplateView):
     template_name = 'transactions/transaction_manage.html'
 
+    def get_incoming_document_id(self, request):
+        value = request.GET.get('incoming_document', '')
+        if (
+            not value.isdecimal()
+            or not request.user.has_perm(
+                'transactions.view_incomingtransaction'
+            )
+        ):
+            return None
+        normalized_value = value.lstrip('0')
+        if not normalized_value or len(normalized_value) > 19:
+            return None
+        document_id = int(normalized_value)
+        if document_id <= 0 or document_id > 9223372036854775807:
+            return None
+        if not IncomingDocument.objects.filter(pk=document_id).exists():
+            return None
+        return document_id
+
     def get_transaction_list_url(self, request):
+        incoming_document_id = self.get_incoming_document_id(request)
+        if incoming_document_id is not None:
+            return reverse(
+                'transactions:incoming_document',
+                kwargs={'document_id': incoming_document_id},
+            )
         query = self.get_review_query(request)
         if query:
             return f"{reverse('transactions:transaction_list')}?{query}"
@@ -484,10 +512,21 @@ class TransactionManageView(TemplateView):
         )
 
     def dispatch(self, request, *args, **kwargs):
-        self.transaction = get_object_or_404(
-            Transaction.objects.select_related('item', 'item__item_type', 'cashier', 'verified_by'),
-            pk=kwargs['transaction_id'],
+        incoming_document_id = self.get_incoming_document_id(request)
+        transaction_manager = (
+            Transaction.objects.all_with_deleted()
+            if incoming_document_id is not None
+            else Transaction.objects
         )
+        try:
+            self.transaction = transaction_manager.select_related(
+                'item',
+                'item__item_type',
+                'cashier',
+                'verified_by',
+            ).get(pk=kwargs['transaction_id'])
+        except Transaction.DoesNotExist:
+            return HttpResponseNotFound()
 
         is_report_review = (
             request.GET.get('unverified') == '1'
@@ -522,6 +561,9 @@ class TransactionManageView(TemplateView):
         return self.render_page(request, TransactionManageForm(instance=self.transaction))
 
     def post(self, request, *args, **kwargs):
+        if self.transaction.is_deleted:
+            raise PermissionDenied
+
         action = request.POST.get('action')
         if action == 'save':
             if (
@@ -602,6 +644,16 @@ class TransactionManageView(TemplateView):
                 page = request.GET.get('page')
                 if page and page.isdecimal() and len(page) <= 9:
                     review_query = urlencode({'page': page})
+            incoming_document_id = self.get_incoming_document_id(request)
+            if incoming_document_id is not None:
+                incoming_query = urlencode({
+                    'incoming_document': incoming_document_id,
+                })
+                review_query = (
+                    f'{review_query}&{incoming_query}'
+                    if review_query
+                    else incoming_query
+                )
             if review_query:
                 manage_url = f'{manage_url}?{review_query}'
             return redirect(manage_url)
@@ -610,8 +662,13 @@ class TransactionManageView(TemplateView):
 
     def render_page(self, request, form, status=200):
         can_change_transaction = (
-            request.user.has_perm('transactions.change_transaction')
+            not self.transaction.is_deleted
+            and request.user.has_perm('transactions.change_transaction')
             and not self.transaction.is_verified
+        )
+        can_verify_transaction = (
+            not self.transaction.is_deleted
+            and request.user.has_perm('transactions.verify_transaction')
         )
         return render(
             request,
@@ -621,6 +678,7 @@ class TransactionManageView(TemplateView):
                 'form': form,
                 'transaction_list_url': self.get_transaction_list_url(request),
                 'can_change_transaction': can_change_transaction,
+                'can_verify_transaction': can_verify_transaction,
                 'can_edit_transaction_datetime': (
                     can_change_transaction
                     and self.transaction.item.handle in DATE_FIELD_ITEM_HANDLES
@@ -629,7 +687,8 @@ class TransactionManageView(TemplateView):
                     'transactions.view_all_transactions'
                 ),
                 'can_delete_transaction': (
-                    request.user.has_perm('transactions.delete_transaction')
+                    not self.transaction.is_deleted
+                    and request.user.has_perm('transactions.delete_transaction')
                     and self.can_manage_transaction(request.user)
                 ),
             },
