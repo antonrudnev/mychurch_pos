@@ -33,12 +33,12 @@
                         </div>
 
                         <div class="text-md-end text-nowrap flex-shrink-0">
-                            {{ document.incoming_total|floatformat:2 }} ₽
                             {% if document.document_type == 'product_report' %}
                                 <i class="bi bi-box-seam text-success ms-1" title="{{ document.get_document_type_display }}" aria-hidden="true"></i>
                             {% elif document.document_type == 'candle_report' %}
                                 <i class="bi bi-fire text-warning-emphasis ms-1" title="{{ document.get_document_type_display }}" aria-hidden="true"></i>
                             {% endif %}
+                            {{ document.incoming_total|floatformat:2 }} ₽
                         </div>
                     </div>
                 </a>

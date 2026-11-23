@@ -1850,6 +1850,126 @@ class TransactionViewsTests(TestCase):
             )
         )
 
+    def test_report_date_form_and_update_require_change_permission(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        page = self.client.get(url)
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, 'name="action" value="update_report_date"')
+
+        response = self.client.post(
+            url,
+            {
+                'action': 'update_report_date',
+                'report_date': '2025-03-04',
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        incoming.refresh_from_db()
+        self.assertIsNone(incoming.report_date)
+
+    def test_report_date_form_is_hidden_when_document_has_no_pending_rows(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        document = self.create_incoming_document()
+        processed = self.create_incoming_transaction(document)
+        processed.transaction = self.create_transaction(self.user)
+        processed.save(update_fields=['transaction'])
+
+        response = self.client.get(
+            reverse('transactions:incoming_document', args=[document.pk])
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['pending_rows_count'], 0)
+        self.assertNotContains(response, 'name="action" value="update_report_date"')
+
+    def test_bulk_report_date_update_only_changes_pending_rows_in_document(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        document = self.create_incoming_document()
+        pending = self.create_incoming_transaction(
+            document,
+            report_date=date(2024, 1, 1),
+            row_number=1,
+        )
+        processed = self.create_incoming_transaction(
+            document,
+            report_date=date(2024, 1, 2),
+            row_number=2,
+        )
+        processed.transaction = self.create_transaction(self.user)
+        processed.save(update_fields=['transaction'])
+        other_document = IncomingDocument.objects.create(
+            document_type=DocumentType.PRODUCT_REPORT,
+            dropbox_file_id='other-incoming-test-file',
+            original_name='Другая ведомость.xlsx',
+            dropbox_path='/reports/Другая ведомость.xlsx',
+            local_file='dropbox/Другая ведомость.xlsx',
+        )
+        other_pending = self.create_incoming_transaction(
+            other_document,
+            report_date=date(2024, 1, 3),
+        )
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        response = self.client.post(
+            url,
+            {
+                'action': 'update_report_date',
+                'report_date': '2025-03-04',
+            },
+        )
+
+        self.assertRedirects(response, url)
+        pending.refresh_from_db()
+        processed.refresh_from_db()
+        other_pending.refresh_from_db()
+        self.assertEqual(pending.report_date, date(2025, 3, 4))
+        self.assertEqual(processed.report_date, date(2024, 1, 2))
+        self.assertEqual(other_pending.report_date, date(2024, 1, 3))
+        self.assertTrue(
+            any(
+                'Дата документа обновлена у строк: 1.' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
+
+    def test_bulk_report_date_rejects_empty_and_invalid_values(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(
+            document,
+            report_date=date(2024, 1, 1),
+        )
+        url = reverse('transactions:incoming_document', args=[document.pk])
+
+        for report_date in ('', 'not-a-date'):
+            with self.subTest(report_date=report_date):
+                response = self.client.post(
+                    url,
+                    {
+                        'action': 'update_report_date',
+                        'report_date': report_date,
+                    },
+                )
+
+                self.assertRedirects(response, url)
+                self.assertTrue(
+                    any(
+                        'Укажите корректную дату документа.' in str(message)
+                        for message in response.wsgi_request._messages
+                    )
+                )
+
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.report_date, date(2024, 1, 1))
+
     def test_individual_incoming_creation_uses_transaction_form_values_and_report_date(self):
         document = self.create_incoming_document()
         incoming = self.create_incoming_transaction(

@@ -287,3 +287,12 @@ class IncomingTransactionReviewForm(forms.ModelForm):
             )
 
 
+class IncomingDocumentReportDateForm(forms.Form):
+    report_date = forms.DateField(
+        input_formats=('%Y-%m-%d',),
+        widget=forms.DateInput(
+            attrs={'class': 'form-control', 'type': 'date'},
+            format='%Y-%m-%d',
+        ),
+    )
+

@@ -89,3 +89,12 @@ def delete_pending_incoming_for_document(document):
         )
     )
     return incoming_transactions.update(is_deleted=True)
+
+
+@transaction.atomic
+def update_pending_incoming_report_date(document, report_date):
+    return IncomingTransaction.objects.filter(
+        document=document,
+        is_deleted=False,
+        transaction__isnull=True,
+    ).update(report_date=report_date)

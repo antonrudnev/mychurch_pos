@@ -68,6 +68,7 @@ urlpatterns = [
     ),
     path('register/', register_view, name='register'),
     path('directory/', include('directory.urls')),
+    path('integrations/', include('integrations.urls')),
     path('transactions/', include('transactions.urls')),
     path('reports/', include('reports.urls')),
     re_path(r"^media/(?P<path>.*)$", protected_media),

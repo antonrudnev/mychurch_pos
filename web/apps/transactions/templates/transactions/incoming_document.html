@@ -6,10 +6,56 @@
 <div class="row justify-content-center px-3 mt-4">
     <div class="col-12" style="max-width: 800px;">
         <div class="text-center border-bottom pb-4 mb-4">
-            <h1 class="fw-normal h3 mb-1">{{ document.original_name }}</h1>
+            <h1 class="fw-normal h3 mb-1">
+                {% if perms.integrations.view_incomingdocument and document.local_file %}
+                    <a href="{% url 'integrations:incoming_document_file' document.pk %}" target="_blank" rel="noopener" class="link-body-emphasis text-decoration-none">
+                        {{ document.original_name }}
+                        <i class="bi bi-box-arrow-up-right small ms-1" aria-hidden="true"></i>
+                    </a>
+                {% else %}
+                    {{ document.original_name }}
+                {% endif %}
+            </h1>
             <p class="text-body-secondary text-uppercase small fw-light mb-1">{{ document.get_document_type_display }}</p>
             <p class="fw-semibold mb-0 text-nowrap">Итог: {{ document_total|floatformat:2 }} ₽</p>
         </div>
+
+        {% if pending_rows_count and perms.transactions.change_incomingtransaction %}
+            <div class="mb-4">
+                <div class="d-grid">
+                    <button class="btn btn-outline-secondary btn-sm fw-light text-uppercase"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#collapseUpdateReportDate"
+                            aria-expanded="false"
+                            aria-controls="collapseUpdateReportDate">
+                        <i class="bi bi-calendar-event me-1" aria-hidden="true"></i> Изменить дату строк
+                    </button>
+                </div>
+
+                <div class="collapse" id="collapseUpdateReportDate">
+                    <form method="post"
+                        class="row g-2 align-items-end border-bottom pt-3 pb-4"
+                        onsubmit="return confirm('Обновить дату у всех необработанных строк этого документа?');">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_report_date">
+                        <div class="col-12 col-sm">
+                            <label for="document-report-date" class="form-label small text-body-secondary mb-1">
+                                Новая дата для необработанных строк
+                            </label>
+                            <input id="document-report-date" type="date" name="report_date" class="form-control" required>
+                        </div>
+                        <div class="col-12 col-sm-auto d-grid">
+                            <button type="submit" class="btn btn-outline-primary fw-light text-uppercase">
+                                Применить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
+
+
         <div class="my-4">
             {% for row in incoming_rows %}
                 <a href="{% if row.is_processed %}{% url 'transactions:transaction_manage' row.transaction_id %}?incoming_document={{ document.pk }}{% else %}{% url 'transactions:incoming_transaction_detail' row.pk %}{% endif %}"

@@ -15,6 +15,7 @@ from django.views.generic import ListView, TemplateView
 
 from .forms import (
     DATE_FIELD_ITEM_HANDLES,
+    IncomingDocumentReportDateForm,
     IncomingTransactionReviewForm,
     NewOpenListItemForm,
     NewProductTransactionForm,
@@ -27,6 +28,7 @@ from .services.incoming_review import (
     create_transaction_for_incoming,
     create_transactions_for_matched_incoming,
     delete_pending_incoming_for_document,
+    update_pending_incoming_report_date,
 )
 
 
@@ -185,6 +187,41 @@ class IncomingDocumentView(IncomingReviewPermissionMixin, TemplateView):
     def post(self, request, *args, **kwargs):
         document = self.get_document()
         action = request.POST.get('action')
+        if action == 'update_report_date':
+            if not request.user.has_perm(
+                'transactions.change_incomingtransaction'
+            ):
+                raise PermissionDenied
+
+            form = IncomingDocumentReportDateForm(request.POST)
+            if not form.is_valid():
+                messages.error(
+                    request,
+                    'Укажите корректную дату документа.',
+                )
+                return redirect(
+                    'transactions:incoming_document',
+                    document_id=document.pk,
+                )
+
+            updated_count = update_pending_incoming_report_date(
+                document,
+                form.cleaned_data['report_date'],
+            )
+            if updated_count:
+                messages.success(
+                    request,
+                    f'Дата документа обновлена у строк: {updated_count}.',
+                )
+            else:
+                messages.warning(
+                    request,
+                    'В документе нет необработанных строк для обновления даты.',
+                )
+            return redirect(
+                'transactions:incoming_document',
+                document_id=document.pk,
+            )
         if action == 'delete_all':
             deleted_count = delete_pending_incoming_for_document(document)
             messages.success(
