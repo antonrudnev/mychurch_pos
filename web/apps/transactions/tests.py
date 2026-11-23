@@ -358,11 +358,12 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(transaction.price, Decimal('20.75'))
         self.assertEqual(transaction.quantity, 4)
 
-    def test_manage_page_edits_bank_receipt_datetime_with_change_permission(self):
+    def test_manage_page_edits_date_for_any_transaction_type_and_preserves_time(self):
         self.grant_permission(self.user, 'change_transaction')
-        bank_receipt = Item.objects.get(handle='bank-receipt')
-        transaction = self.create_transaction(self.user, item=bank_receipt)
-        transaction.created_at = timezone.make_aware(datetime(2025, 1, 2, 12, 30))
+        transaction = self.create_transaction(self.user)
+        transaction.created_at = timezone.make_aware(
+            datetime(2025, 1, 2, 12, 30, 45)
+        )
         transaction.save(update_fields=['created_at'])
         manage_url = reverse(
             'transactions:transaction_manage',
@@ -374,10 +375,11 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="created-at-display"')
         self.assertContains(response, 'id="created-at-editor" class="text-end" hidden')
-        self.assertContains(response, 'type="datetime-local"')
+        self.assertContains(response, 'type="date"')
         self.assertContains(response, 'lang="ru"')
+        self.assertContains(response, 'data-date=""')
         self.assertContains(response, 'name="created_at"')
-        self.assertContains(response, 'value="2025-01-02T12:30"')
+        self.assertContains(response, 'value="2025-01-02"')
         self.assertContains(response, 'name="action" value="save"')
         self.assertNotContains(response, 'name="action" value="save_created_at"')
 
@@ -385,7 +387,7 @@ class TransactionViewsTests(TestCase):
             manage_url,
             {
                 'action': 'save',
-                'created_at': '2025-02-03T14:45',
+                'created_at': '2025-02-03',
                 'price': '12.50',
                 'quantity': '1',
             },
@@ -395,10 +397,10 @@ class TransactionViewsTests(TestCase):
         transaction.refresh_from_db()
         self.assertEqual(
             timezone.localtime(transaction.created_at),
-            timezone.make_aware(datetime(2025, 2, 3, 14, 45)),
+            timezone.make_aware(datetime(2025, 2, 3, 12, 30, 45)),
         )
 
-    def test_bank_receipt_datetime_edit_requires_change_permission(self):
+    def test_transaction_date_edit_requires_change_permission(self):
         bank_receipt = Item.objects.get(handle='bank-receipt')
         transaction = self.create_transaction(self.user, item=bank_receipt)
         manage_url = reverse(
@@ -416,13 +418,49 @@ class TransactionViewsTests(TestCase):
             manage_url,
             {
                 'action': 'save',
-                'created_at': '2025-02-03T14:45',
+                'created_at': '2025-02-03',
                 'price': '12.50',
                 'quantity': '1',
             },
         )
 
         self.assertEqual(response.status_code, 403)
+
+    def test_verified_transaction_date_cannot_be_changed_in_ui_or_post(self):
+        self.grant_permission(self.user, 'change_transaction')
+        transaction = self.create_transaction(self.user)
+        transaction.created_at = timezone.make_aware(
+            datetime(2025, 1, 2, 12, 30, 45)
+        )
+        transaction.is_verified = True
+        transaction.save(update_fields=['created_at', 'is_verified'])
+        manage_url = reverse(
+            'transactions:transaction_manage',
+            args=[transaction.pk],
+        )
+
+        response = self.client.get(manage_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'id="created-at-display"')
+        self.assertNotContains(response, 'name="created_at"')
+
+        response = self.client.post(
+            manage_url,
+            {
+                'action': 'save',
+                'created_at': '2025-02-03',
+                'price': '12.50',
+                'quantity': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 403)
+        transaction.refresh_from_db()
+        self.assertEqual(
+            timezone.localtime(transaction.created_at),
+            timezone.make_aware(datetime(2025, 1, 2, 12, 30, 45)),
+        )
 
     def test_list_links_keep_the_current_page_when_opening_a_transaction(self):
         transaction = self.create_transaction(self.user)
@@ -933,6 +971,8 @@ class TransactionViewsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'>{self.item.name}</p>')
         self.assertContains(response, f'type="hidden" name="item" value="{self.item.id}"')
+        self.assertNotContains(response, 'name="incoming_transaction"')
+        self.assertNotContains(response, 'создаётся на основе входящего документа')
         self.assertNotContains(response, '<select name="item"')
         self.assertNotContains(response, reverse('transactions:product_search'))
 
@@ -1970,36 +2010,40 @@ class TransactionViewsTests(TestCase):
         incoming.refresh_from_db()
         self.assertEqual(incoming.report_date, date(2024, 1, 1))
 
-    def test_individual_incoming_creation_uses_transaction_form_values_and_report_date(self):
+    def test_incoming_detail_creates_transaction_and_rejects_duplicate_post(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
         document = self.create_incoming_document()
         incoming = self.create_incoming_transaction(
             document,
-            price=Decimal('9.75'),
+            raw_counts=[3],
+            price=Decimal('12.50'),
             quantity=2,
             report_date=date(2025, 3, 4),
         )
-        create_url = reverse(
-            'transactions:transaction_create',
-            args=[self.item_type.pk],
+        self.assertFalse(incoming.is_matched)
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
         )
-        query = {'incoming_transaction': incoming.pk}
 
-        form_response = self.client.get(create_url, query)
-
-        self.assertEqual(form_response.status_code, 200)
-        self.assertContains(form_response, document.original_name)
-        self.assertContains(form_response, 'value="9.75"')
-        self.assertContains(form_response, 'value="2"')
-        self.assertContains(form_response, 'value="2025-03-04T12:00"')
-        self.assertContains(form_response, 'name="incoming_transaction"')
+        detail_response = self.client.get(detail_url)
+        self.assertContains(
+            detail_response,
+            'value="create_transaction"',
+        )
+        self.assertContains(
+            detail_response,
+            'onclick="return confirm(\'Вы действительно хотите сохранить данные и создать транзакцию в основном журнале?\');"',
+        )
 
         response = self.client.post(
-            f'{create_url}?incoming_transaction={incoming.pk}',
+            detail_url,
             {
-                'item': self.item.pk,
-                'price': '9.75',
-                'quantity': '2',
-                'created_at': '2025-03-04T12:00',
+                'action': 'create_transaction',
+                'item': '',
+                'report_date': 'not-a-date',
+                'price': '0.01',
+                'quantity': '-5',
             },
         )
 
@@ -2009,14 +2053,172 @@ class TransactionViewsTests(TestCase):
         )
         incoming.refresh_from_db()
         self.assertIsNotNone(incoming.transaction_id)
+        self.assertFalse(incoming.is_matched)
         self.assertEqual(incoming.processed_by, self.user)
-        self.assertEqual(incoming.transaction.price, Decimal('9.75'))
+        self.assertEqual(incoming.transaction.price, Decimal('12.50'))
         self.assertEqual(incoming.transaction.quantity, 2)
         self.assertEqual(
             timezone.localtime(incoming.transaction.created_at).date(),
             date(2025, 3, 4),
         )
         self.assertFalse(incoming.transaction.is_verified)
+        created_transaction_id = incoming.transaction_id
+        self.assertEqual(Transaction.objects.count(), 1)
+
+        response = self.client.post(
+            detail_url,
+            {'action': 'create_transaction'},
+        )
+
+        self.assertRedirects(response, detail_url)
+        self.assertTrue(
+            any(
+                'Эта строка уже проведена в журнал.' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.transaction_id, created_transaction_id)
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_incoming_detail_creation_saves_edited_fields_before_creating_transaction(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        self.item_type.is_product_group = True
+        self.item_type.save(update_fields=['is_product_group'])
+        updated_item = Item.objects.create(
+            item_type=self.item_type,
+            name='Обновленная позиция',
+            handle='updated-incoming-item',
+            price=Decimal('15.75'),
+            order_number=2,
+        )
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(
+            document,
+            raw_counts=[3],
+            quantity=2,
+        )
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'create_transaction',
+                'item': updated_item.pk,
+                'report_date': '2025-03-05',
+                'price': '15.00',
+                'quantity': '3',
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse('transactions:incoming_document', args=[document.pk]),
+        )
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.item_id, updated_item.pk)
+        self.assertEqual(incoming.report_date, date(2025, 3, 5))
+        self.assertEqual(incoming.price, Decimal('15.00'))
+        self.assertEqual(incoming.quantity, 3)
+        self.assertFalse(incoming.is_matched)
+        self.assertEqual(incoming.transaction.item_id, updated_item.pk)
+        self.assertEqual(incoming.transaction.price, Decimal('15.00'))
+        self.assertEqual(incoming.transaction.quantity, 3)
+        self.assertEqual(Transaction.objects.count(), 1)
+
+    def test_incoming_detail_creation_with_invalid_edits_renders_errors_without_creating(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'create_transaction',
+                'item': self.item.pk,
+                'report_date': '2025-03-05',
+                'price': '12.50',
+                'quantity': 'not-a-number',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('quantity', response.context['form'].errors)
+        self.assertEqual(Transaction.objects.count(), 0)
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.report_date, None)
+        self.assertEqual(incoming.quantity, 1)
+
+    def test_incoming_detail_creation_requires_a_selected_item(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(
+            document,
+            use_default_item=False,
+        )
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.post(
+            detail_url,
+            {'action': 'create_transaction'},
+        )
+
+        self.assertRedirects(response, detail_url)
+        self.assertTrue(
+            any(
+                'Выберите товар из справочника' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
+        incoming.refresh_from_db()
+        self.assertIsNone(incoming.transaction_id)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+    def test_incoming_detail_creation_requires_a_report_date(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'create_transaction',
+                'item': self.item.pk,
+                'report_date': '',
+                'price': '12.50',
+                'quantity': '1',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('report_date', response.context['form'].errors)
+        self.assertTrue(
+            any(
+                'обязательные поля' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
+        incoming.refresh_from_db()
+        self.assertIsNone(incoming.report_date)
+        self.assertIsNone(incoming.transaction_id)
+        self.assertEqual(Transaction.objects.count(), 0)
 
     def test_incoming_routes_require_login_and_review_permission(self):
         document = self.create_incoming_document()
@@ -2031,6 +2233,7 @@ class TransactionViewsTests(TestCase):
         response = self.client.get(reverse('transactions:incoming_documents'))
         self.assertEqual(response.status_code, 403)
 
+        self.grant_permission(self.other_user, 'view_incomingtransaction')
         self.grant_permission(self.other_user, 'verify_transaction')
         response = self.client.get(reverse('transactions:incoming_documents'))
         self.assertEqual(response.status_code, 200)
@@ -2039,28 +2242,27 @@ class TransactionViewsTests(TestCase):
             200,
         )
 
-        create_url = reverse(
-            'transactions:transaction_create',
-            args=[self.item_type.pk],
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
         )
+        detail_response = self.client.get(detail_url)
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertNotContains(detail_response, 'Создать транзакцию')
+
         response = self.client.post(
-            f'{create_url}?incoming_transaction={incoming.pk}',
-            {
-                'item': self.item.pk,
-                'price': '12.50',
-                'quantity': '1',
-            },
+            detail_url,
+            {'action': 'create_transaction'},
         )
 
-        self.assertRedirects(
-            response,
-            reverse('transactions:incoming_document', args=[document.pk]),
-        )
+        self.assertEqual(response.status_code, 403)
         incoming.refresh_from_db()
-        self.assertTrue(incoming.transaction.is_verified)
-        self.assertEqual(incoming.transaction.verified_by, self.other_user)
+        self.assertIsNone(incoming.transaction_id)
 
     def test_incoming_row_can_be_corrected_and_soft_deleted(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        self.grant_permission(self.user, 'delete_incomingtransaction')
         document = self.create_incoming_document()
         incoming = self.create_incoming_transaction(
             document,
@@ -2103,6 +2305,132 @@ class TransactionViewsTests(TestCase):
             ).exists()
         )
 
+    def test_incoming_detail_requires_view_permission_and_gates_edit_delete_actions(self):
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        self.assertEqual(self.client.get(detail_url).status_code, 403)
+
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'disabled')
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="delete"')
+        self.assertContains(response, 'Создать транзакцию')
+
+        self.user.user_permissions.remove(
+            Permission.objects.get(
+                content_type__app_label='transactions',
+                codename='add_transaction',
+            )
+        )
+        response = self.client.get(detail_url)
+        self.assertNotContains(response, 'Создать транзакцию')
+        response = self.client.post(
+            detail_url,
+            {'action': 'create_transaction'},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Transaction.objects.count(), 0)
+
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'save',
+                'item': self.item.pk,
+                'report_date': '2025-03-04',
+                'price': '99.00',
+                'quantity': '2',
+            },
+        )
+        self.assertEqual(response.status_code, 403)
+        response = self.client.post(detail_url, {'action': 'delete'})
+        self.assertEqual(response.status_code, 403)
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.price, Decimal('12.50'))
+        self.assertEqual(incoming.quantity, 1)
+
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        response = self.client.post(
+            detail_url,
+            {
+                'action': 'save',
+                'item': self.item.pk,
+                'report_date': '2025-03-04',
+                'price': '99.00',
+                'quantity': '2',
+            },
+        )
+        self.assertRedirects(response, detail_url)
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.price, Decimal('99.00'))
+        self.assertEqual(incoming.quantity, 2)
+
+        response = self.client.post(detail_url, {'action': 'delete'})
+        self.assertEqual(response.status_code, 403)
+
+        self.grant_permission(self.user, 'delete_incomingtransaction')
+        response = self.client.post(detail_url, {'action': 'delete'})
+        self.assertRedirects(
+            response,
+            reverse('transactions:incoming_document', args=[document.pk]),
+        )
+        self.assertTrue(
+            IncomingTransaction.objects.all_with_deleted().filter(
+                pk=incoming.pk,
+                is_deleted=True,
+            ).exists()
+        )
+
+    def test_processed_incoming_detail_is_read_only_even_with_action_permissions(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
+        self.grant_permission(self.user, 'change_incomingtransaction')
+        self.grant_permission(self.user, 'delete_incomingtransaction')
+        document = self.create_incoming_document()
+        incoming = self.create_incoming_transaction(document)
+        transaction = self.create_transaction(self.user)
+        incoming.transaction = transaction
+        incoming.save(update_fields=['transaction'])
+        detail_url = reverse(
+            'transactions:incoming_transaction_detail',
+            args=[incoming.pk],
+        )
+
+        response = self.client.get(detail_url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Строка уже проведена в журнал')
+        self.assertContains(response, 'disabled')
+        self.assertNotContains(response, 'name="action" value="save"')
+        self.assertNotContains(response, 'name="action" value="delete"')
+        self.assertNotContains(response, 'Создать транзакцию')
+
+        for action in ('save', 'delete'):
+            with self.subTest(action=action):
+                response = self.client.post(detail_url, {'action': action})
+                self.assertEqual(response.status_code, 403)
+
+        response = self.client.post(
+            detail_url,
+            {'action': 'create_transaction'},
+        )
+        self.assertRedirects(response, detail_url)
+        self.assertTrue(
+            any(
+                'Эта строка уже проведена в журнал.' in str(message)
+                for message in response.wsgi_request._messages
+            )
+        )
+
+        incoming.refresh_from_db()
+        self.assertEqual(incoming.transaction_id, transaction.pk)
+
     def test_home_incoming_documents_button_is_active_only_when_pending_rows_exist(self):
         response = self.client.get(reverse('transactions:home'))
         self.assertContains(response, 'Входящие документы')
@@ -2119,6 +2447,7 @@ class TransactionViewsTests(TestCase):
         self.assertContains(response, 'Документов: 1 / строк: 1')
 
     def test_incoming_detail_displays_actual_raw_counts_sum_and_handles_invalid_values(self):
+        self.grant_permission(self.user, 'view_incomingtransaction')
         document = self.create_incoming_document()
         mismatched = self.create_incoming_transaction(
             document,

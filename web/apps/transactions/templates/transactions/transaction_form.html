@@ -3,128 +3,126 @@
 {% block title %}Новая транзакция — Церковная лавка{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3" style="min-height: calc(100vh - 140px);">
+<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3 my-4" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
-        <h1 class="fw-normal h3 text-center mb-4 text-body">Новая транзакция</h1>
-        <p class="text-secondary text-center text-uppercase">{% if form.single_item %}{{ form.single_item.name }}{% else %}{{ item_type.name }}{% endif %}</p>
+        <header class="text-center mb-4">
+            <h1 class="fw-normal h3 mb-2 text-body">Новая транзакция</h1>
+            <p class="text-secondary text-uppercase small fw-light mb-0">
+                {% if form.single_item %}{{ form.single_item.name }}{% else %}{{ item_type.name }}{% endif %}
+            </p>
+        </header>
 
-        {% if incoming_transaction %}
-            <div class="alert alert-info" role="status">
-                Транзакция создаётся на основе входящего документа
-                <strong>{{ incoming_transaction.document.original_name }}</strong>,
-                строка №{{ incoming_transaction.row_number }}:
-                «{{ incoming_transaction.raw_name }}».
-            </div>
-        {% endif %}
-
-        <form method="post">
-            {% csrf_token %}
-            {% if incoming_transaction %}
-                <input type="hidden" name="incoming_transaction" value="{{ incoming_transaction.pk }}">
-            {% endif %}
-            {% for field in form %}
-                {% if field.name == 'item' and form.single_item %}
-                    {{ field.as_hidden }}
-                {% else %}
-                <div class="mb-3" {% if field.name == 'price' %}id="price-field-container" hidden{% elif field.name == 'quantity' %}id="quantity-field-container" hidden{% elif field.name == 'created_at' %}id="created-at-field-container" hidden{% endif %}>
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                    {% if field.name == 'created_at' %}
-                        {{ field }}
+        <div class="d-grid gap-3">
+            <form method="post">
+                {% csrf_token %}
+                {% for field in form %}
+                    {% if field.name == 'item' and form.single_item %}
+                        {{ field.as_hidden }}
                     {% else %}
-                        {{ field }}
+                        <div class="mb-3"
+                             {% if field.name == 'price' %}id="price-field-container" hidden
+                             {% elif field.name == 'quantity' %}id="quantity-field-container" hidden
+                             {% elif field.name == 'created_at' %}id="created-at-field-container" hidden{% endif %}>
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.name == 'price' %}
+                                <span id="price-display" class="form-control-plaintext" aria-labelledby="{{ field.id_for_label }}" hidden></span>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                     {% endif %}
-                    {% if field.name == 'price' %}
-                        <span id="price-display" class="form-control-plaintext" aria-labelledby="{{ field.id_for_label }}" hidden></span>
-                    {% endif %}
-                    {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">{{ error }}</div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                <div class="alert alert-danger">{{ error }}</div>
-            {% endfor %}
-            <div class="border-top border-subtle my-4"></div>
-            <button type="submit" id="create-transaction-button" class="btn btn-primary w-100 py-2 text-uppercase" hidden>Создать транзакцию</button>
-        </form>
+                {% endfor %}
 
-        <a href="{{ return_url }}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
-            <i class="bi bi-arrow-left me-1"></i> Вернуться
-        </a>
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
+                {% endfor %}
+
+                <div class="border-top border-subtle my-4"></div>
+                <button type="submit" id="create-transaction-button" class="btn btn-primary w-100 py-2 text-uppercase" hidden>
+                    Создать транзакцию
+                </button>
+            </form>
+
+            <a href="{{ return_url }}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Вернуться
+            </a>
+        </div>
     </div>
 </div>
+
 {{ form.item_prices|json_script:"item-prices" }}
 {{ form.item_handles|json_script:"item-handles" }}
 {{ form.date_field_item_handles|json_script:"date-field-item-handles" }}
+
 <script>
-    const itemSelect = document.getElementById('id_item');
-    const createTransactionButton = document.getElementById('create-transaction-button');
-    const priceInput = document.getElementById('id_price');
-    const priceDisplay = document.getElementById('price-display');
-    const priceContainer = document.getElementById('price-field-container');
-    const quantityContainer = document.getElementById('quantity-field-container');
-    const itemPrices = JSON.parse(document.getElementById('item-prices').textContent);
-    const itemHandles = JSON.parse(document.getElementById('item-handles').textContent);
-    const dateFieldItemHandles = JSON.parse(document.getElementById('date-field-item-handles').textContent);
-    const createdAtContainer = document.getElementById('created-at-field-container');
-    const createdAtInput = document.getElementById('id_created_at');
-    const allowManualPrice = {{ form.allow_manual_price|yesno:"true,false" }};
+    (() => {
+        const itemSelect = document.getElementById('id_item');
+        if (!itemSelect) return;
 
-    function updatePriceField(resetManualPrice = true) {
-        const itemPrice = itemPrices[itemSelect.value];
-        const showCreatedAt = allowManualPrice || dateFieldItemHandles.includes(itemHandles[itemSelect.value]);
-        const hasSelectedItem = itemSelect.value !== '';
-        const hasItemPrice = itemPrice !== null && itemPrice !== undefined;
-        createTransactionButton.hidden = !hasSelectedItem;
-        priceContainer.hidden = !allowManualPrice && (itemPrice === null || itemPrice === undefined);
-        if (allowManualPrice) {
-            quantityContainer.hidden = !hasSelectedItem;
-        } else {
-            quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);
-        }
-        createdAtContainer.hidden = !showCreatedAt;
-        if (resetManualPrice && !showCreatedAt && !allowManualPrice) {
-            createdAtInput.value = '';
-        }
+        const createTransactionButton = document.getElementById('create-transaction-button');
+        const priceInput = document.getElementById('id_price');
+        const priceDisplay = document.getElementById('price-display');
+        const priceContainer = document.getElementById('price-field-container');
+        const quantityContainer = document.getElementById('quantity-field-container');
+        const createdAtContainer = document.getElementById('created-at-field-container');
+        const createdAtInput = document.getElementById('id_created_at');
 
-        if (allowManualPrice) {
+        const itemPrices = JSON.parse(document.getElementById('item-prices')?.textContent || '{}');
+        const itemHandles = JSON.parse(document.getElementById('item-handles')?.textContent || '{}');
+        const dateFieldItemHandles = JSON.parse(document.getElementById('date-field-item-handles')?.textContent || '[]');
+
+        function updatePriceField(resetManualPrice = true) {
+            const selectedValue = itemSelect.value;
+            const hasSelectedItem = selectedValue !== '';
+            const itemPrice = itemPrices[selectedValue];
+            const hasItemPrice = itemPrice !== null && itemPrice !== undefined;
+            const showCreatedAt = dateFieldItemHandles.includes(itemHandles[selectedValue]);
+
+            if (createTransactionButton) createTransactionButton.hidden = !hasSelectedItem;
+            if (priceContainer) priceContainer.hidden = !hasItemPrice;
+            if (quantityContainer) {
+                quantityContainer.hidden = !hasSelectedItem || (hasItemPrice && Number(itemPrice) === 0);
+            }
+            if (createdAtContainer) createdAtContainer.hidden = !showCreatedAt;
+
+            if (createdAtInput && resetManualPrice && !showCreatedAt) {
+                createdAtInput.value = '';
+            }
+
+            if (!priceInput || !priceDisplay) return;
+
+            if (!hasItemPrice) {
+                priceInput.value = '';
+                priceInput.hidden = false;
+                priceDisplay.hidden = true;
+                priceInput.readOnly = false;
+                priceInput.required = false;
+                return;
+            }
+
+            if (Number(itemPrice) > 0) {
+                priceInput.value = itemPrice;
+                priceInput.hidden = true;
+                priceDisplay.textContent = `${itemPrice} ₽`;
+                priceDisplay.hidden = false;
+                priceInput.readOnly = true;
+                priceInput.required = false;
+                return;
+            }
+
+            if (resetManualPrice) {
+                priceInput.value = '';
+            }
             priceInput.hidden = false;
             priceDisplay.hidden = true;
             priceInput.readOnly = false;
-            priceInput.required = false;
-            return;
+            priceInput.required = true;
         }
 
-        if (!hasItemPrice) {
-            priceInput.value = '';
-            priceInput.hidden = false;
-            priceDisplay.hidden = true;
-            priceInput.readOnly = false;
-            priceInput.required = false;
-            return;
-        }
-
-        if (Number(itemPrice) > 0) {
-            priceInput.value = itemPrice;
-            priceInput.hidden = true;
-            priceDisplay.textContent = `${itemPrice} \u20bd`;
-            priceDisplay.hidden = false;
-            priceInput.readOnly = true;
-            priceInput.required = false;
-            return;
-        }
-
-        if (resetManualPrice) {
-            priceInput.value = '';
-        }
-        priceInput.hidden = false;
-        priceDisplay.hidden = true;
-        priceInput.readOnly = false;
-        priceInput.required = true;
-    }
-
-    itemSelect.addEventListener('change', updatePriceField);
-    updatePriceField(false);
+        itemSelect.addEventListener('change', () => updatePriceField(true));
+        updatePriceField(false);
+    })();
 </script>
 {% endblock %}

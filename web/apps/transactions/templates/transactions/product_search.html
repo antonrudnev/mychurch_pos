@@ -12,7 +12,7 @@
         <div id="item-search-hint" class="form-text mb-2">Выберите товар из подсказок.</div>
         <div id="item-suggestions" class="list-group mb-3" role="listbox" aria-label="Подходящие товары" hidden>
             {% for item in items %}
-                <a href="?item={{ item.pk }}{% if incoming_transaction_id %}&amp;incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="list-group-item list-group-item-action" data-name="{{ item.name }}" role="option" hidden>
+                <a href="?item={{ item.pk }}" class="list-group-item list-group-item-action" data-name="{{ item.name }}" role="option" hidden>
                     {{ item.name }} <span class="text-secondary">— {{ item.item_type.name }}</span>
                 </a>
             {% endfor %}
@@ -33,12 +33,12 @@
                     </dl>
                 </div>
             </div>
-            <a href="{% url 'transactions:transaction_create' selected_item.item_type_id %}?item={{ selected_item.pk }}{% if incoming_transaction_id %}&amp;incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="btn btn-outline-primary w-100 py-2 mt-3 text-uppercase">
+            <a href="{% url 'transactions:transaction_create' selected_item.item_type_id %}?item={{ selected_item.pk }}" class="btn btn-outline-primary w-100 py-2 mt-3 text-uppercase">
                 Создать транзакцию
             </a>
         {% endif %}
 
-        <a href="{% url 'transactions:item_type_select' %}{% if incoming_transaction_id %}?incoming_transaction={{ incoming_transaction_id }}{% endif %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
+        <a href="{% url 'transactions:item_type_select' %}" class="btn btn-outline-secondary w-100 py-2 mt-3 fw-light text-uppercase">
             <i class="bi bi-arrow-left me-1"></i> Вернуться
         </a>
     </div>

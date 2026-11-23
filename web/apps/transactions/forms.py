@@ -1,4 +1,3 @@
-from datetime import datetime, time
 from decimal import Decimal
 
 from directory.models import Item, ItemType
@@ -83,16 +82,19 @@ class NewOpenListItemForm(forms.Form):
 
 
 class TransactionManageForm(forms.ModelForm):
-    created_at = forms.DateTimeField(
-        label='Дата и время',
-        input_formats=[TRANSACTION_DATETIME_FORMAT],
-        widget=forms.DateTimeInput(
+    created_at = forms.DateField(
+        label='Дата',
+        required=False,
+        input_formats=('%Y-%m-%d',),
+        widget=forms.DateInput(
             attrs={
                 'class': 'form-control text-end',
-                'type': 'datetime-local',
+                'type': 'date',
                 'lang': 'ru',
+                'data-date': '',
+                'required': True,
             },
-            format=TRANSACTION_DATETIME_FORMAT,
+            format='%Y-%m-%d',
         ),
     )
 
@@ -118,8 +120,25 @@ class TransactionManageForm(forms.ModelForm):
             self.fields.pop('price')
         elif item_price == 0:
             self.fields.pop('quantity')
-        if self.instance.item.handle not in DATE_FIELD_ITEM_HANDLES:
-            self.fields.pop('created_at')
+        created_at = self.instance.created_at
+        if timezone.is_aware(created_at):
+            created_at = timezone.localtime(created_at)
+        self.initial['created_at'] = created_at.date()
+
+    def clean_created_at(self):
+        selected_date = self.cleaned_data['created_at']
+        if selected_date is None:
+            if self.add_prefix('created_at') in self.data:
+                raise forms.ValidationError('Укажите дату.')
+            return self.instance.created_at
+        created_at = self.instance.created_at
+        if timezone.is_aware(created_at):
+            created_at = timezone.localtime(created_at)
+        return created_at.replace(
+            year=selected_date.year,
+            month=selected_date.month,
+            day=selected_date.day,
+        )
 
 
 class TransactionForm(forms.ModelForm):
@@ -155,7 +174,6 @@ class TransactionForm(forms.ModelForm):
         *args,
         item_type: ItemType,
         selected_item=None,
-        incoming_transaction: IncomingTransaction = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -181,19 +199,6 @@ class TransactionForm(forms.ModelForm):
             for item in items
         }
         self.date_field_item_handles = DATE_FIELD_ITEM_HANDLES
-        self.incoming_transaction = incoming_transaction
-        if incoming_transaction is not None:
-            if incoming_transaction.item_id:
-                self.fields['item'].initial = incoming_transaction.item_id
-            self.initial['price'] = incoming_transaction.price
-            self.initial['quantity'] = incoming_transaction.quantity
-            if incoming_transaction.report_date:
-                local_datetime = datetime.combine(
-                    incoming_transaction.report_date,
-                    time(hour=12),
-                )
-                self.initial['created_at'] = timezone.make_aware(local_datetime)
-        self.allow_manual_price = incoming_transaction is not None
 
     def clean(self):
         cleaned_data = super().clean()
@@ -201,23 +206,12 @@ class TransactionForm(forms.ModelForm):
         if item is None:
             return cleaned_data
 
-        if self.incoming_transaction is not None:
-            if cleaned_data.get('created_at') is None:
-                report_date = self.incoming_transaction.report_date
-                if report_date is not None:
-                    cleaned_data['created_at'] = timezone.make_aware(
-                        datetime.combine(report_date, time(hour=12))
-                    )
-                else:
-                    cleaned_data['created_at'] = timezone.now()
-        elif item.handle in DATE_FIELD_ITEM_HANDLES:
+        if item.handle in DATE_FIELD_ITEM_HANDLES:
             if cleaned_data.get('created_at') is None:
                 cleaned_data['created_at'] = timezone.now()
         else:
             cleaned_data.pop('created_at', None)
 
-        if self.incoming_transaction is not None:
-            return cleaned_data
         if item.price is None:
             cleaned_data['price'] = Decimal('0.00')
         elif item.price > 0:

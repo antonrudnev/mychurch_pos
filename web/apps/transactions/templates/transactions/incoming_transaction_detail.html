@@ -1,100 +1,150 @@
 {% extends "base.html" %}
 
-{% block title %}Входящая строка №{{ incoming_transaction.row_number }} — Церковная лавка{% endblock %}
+{% block title %}Входящая запись №{{ incoming_transaction.row_number }} — Церковная лавка{% endblock %}
 
 {% block content %}
-<div class="mx-auto" style="max-width: 720px;">
-    <h1 class="fw-normal h3 text-center mb-2 text-body">Входящая строка №{{ incoming_transaction.row_number }}</h1>
-    <p class="text-center text-secondary mb-4">
-        {{ incoming_transaction.document.original_name }} ·
-        {{ incoming_transaction.document.get_document_type_display }}
-    </p>
+<div class="row justify-content-center px-3 mt-4">
+    <div class="col-12" style="max-width: 600px;">
+        <header class="text-center border-bottom pb-4 mb-4">
+            <h1 class="fw-normal h3 mb-2">Входящая запись №{{ incoming_transaction.row_number }}</h1>
+            <p class="text-body-secondary text-uppercase small fw-light mb-0 text-break">
+                {{ incoming_transaction.document.original_name }} ·
+                {{ incoming_transaction.document.get_document_type_display }}
+            </p>
+        </header>
 
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <dl class="row mb-0">
-                <dt class="col-sm-5">Распознанное название</dt>
-                <dd class="col-sm-7">{{ incoming_transaction.raw_name|default:"—" }}</dd>
-                <dt class="col-sm-5">Распознанный ряд количеств</dt>
-                <dd class="col-sm-7">{{ incoming_transaction.raw_counts|default_if_none:"—" }} (сумма: {{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }})</dd>
-                <dt class="col-sm-5">Цена в справочнике</dt>
-                <dd class="col-sm-7">
-                    {% if incoming_transaction.item %}
-                        {{ incoming_transaction.item.price|default:"Не указана" }} ₽
-                    {% else %}
-                        Не выбрана позиция
-                    {% endif %}
-                </dd>
-                <dt class="col-sm-5">Статус автоматической сверки</dt>
-                <dd class="col-sm-7">
-                    {% if incoming_transaction.is_matched %}
-                        <span class="text-success">Все условия выполнены</span>
-                    {% else %}
-                        <span class="text-warning-emphasis">Требуется ручная проверка</span>
-                    {% endif %}
-                </dd>
+        <section class="border-bottom pb-4 mb-4" aria-label="Информация о входящей записи">
+            <dl class="row g-3 mb-3">
+                <div class="col-12">
+                    <dt class="small fw-normal text-body-secondary mb-1">Распознанное название</dt>
+                    <dd class="mb-0 text-break">{{ incoming_transaction.raw_name|default:"—" }}</dd>
+                </div>
+                <div class="col-12">
+                    <dt class="small fw-normal text-body-secondary mb-1">Распознанный ряд количеств</dt>
+                    <dd class="mb-0 text-break">
+                        {{ incoming_transaction.raw_counts|default_if_none:"—" }}
+                        <span class="text-body-secondary">
+                            (сумма: {{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }})
+                        </span>
+                    </dd>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <dt class="small fw-normal text-body-secondary mb-1">Цена в справочнике</dt>
+                    <dd class="mb-0">
+                        {% if incoming_transaction.item %}
+                            {% if incoming_transaction.item.price is not None %}
+                                {{ incoming_transaction.item.price|floatformat:2 }} ₽
+                            {% else %}
+                                Не указана
+                            {% endif %}
+                        {% else %}
+                            Не выбрана позиция
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="col-12 col-sm-6">
+                    <dt class="small fw-normal text-body-secondary mb-1">Автоматическая сверка</dt>
+                    <dd class="mb-0">
+                        {% if incoming_transaction.is_matched %}
+                            <span class="text-success">Все условия выполнены</span>
+                        {% else %}
+                            <span class="text-warning-emphasis">Требуется ручная проверка</span>
+                        {% endif %}
+                    </dd>
+                </div>
             </dl>
-            <ul class="list-unstyled small mb-0">
-                <li class="{% if incoming_transaction.match_checks.item %}text-success{% else %}text-warning-emphasis{% endif %}">
-                    {% if incoming_transaction.match_checks.item %}✓{% else %}•{% endif %}
-                    Товар выбран в справочнике
+
+            <ul class="list-unstyled d-grid gap-2 small mb-0">
+                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.item %}text-success{% else %}text-warning-emphasis{% endif %}">
+                    <i class="bi {% if incoming_transaction.match_checks.item %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+                    <span>
+                        {% if incoming_transaction.match_checks.item %}
+                            Товар выбран в справочнике
+                        {% else %}
+                            Товар не выбран в справочнике
+                        {% endif %}
+                    </span>
                 </li>
-                <li class="{% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
-                    {% if incoming_transaction.match_checks.counts %}
-                        ✓ Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum }}) совпадает с количеством ({{ incoming_transaction.quantity }})
-                    {% else %}
-                        • Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) не совпадает с количеством ({{ incoming_transaction.quantity }})
-                    {% endif %}
+                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.counts %}text-success{% else %}text-warning-emphasis{% endif %}">
+                    <i class="bi {% if incoming_transaction.match_checks.counts %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+                    <span>
+                        {% if incoming_transaction.match_checks.counts %}
+                            Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum }}) совпадает с количеством ({{ incoming_transaction.quantity }})
+                        {% else %}
+                            Сумма распознанных количеств ({{ incoming_transaction.match_checks.raw_counts_sum|default_if_none:"не вычислена" }}) не совпадает с количеством ({{ incoming_transaction.quantity }})
+                        {% endif %}
+                    </span>
                 </li>
-                <li class="{% if incoming_transaction.match_checks.price %}text-success{% else %}text-warning-emphasis{% endif %}">
-                    {% if incoming_transaction.match_checks.price %}✓{% else %}•{% endif %}
-                    Цена совпадает с ценой в справочнике
+                <li class="d-flex align-items-start gap-2 {% if incoming_transaction.match_checks.price %}text-success{% else %}text-warning-emphasis{% endif %}">
+                    <i class="bi {% if incoming_transaction.match_checks.price %}bi-check-circle-fill{% else %}bi-exclamation-circle-fill{% endif %} flex-shrink-0 mt-1" aria-hidden="true"></i>
+                    <span>
+                        {% if incoming_transaction.match_checks.price %}
+                            Цена совпадает с ценой в справочнике
+                        {% else %}
+                            Цена не совпадает с ценой в справочнике
+                        {% endif %}
+                    </span>
                 </li>
             </ul>
+        </section>
+
+        {% if incoming_transaction.is_processed %}
+            <div class="alert alert-success mb-4" role="status">
+                Запись уже проведена в журнал. Транзакция №{{ incoming_transaction.transaction_id }}.
+            </div>
+        {% endif %}
+
+        <div class="d-grid gap-3">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="mb-3">
+                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                        {{ field }}
+                        {% for error in field.errors %}
+                            <div class="invalid-feedback d-block">{{ error }}</div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                {% for error in form.non_field_errors %}
+                    <div class="alert alert-danger mb-3" role="alert">{{ error }}</div>
+                {% endfor %}
+
+                {% if can_edit_incoming_transaction or not incoming_transaction.is_processed and perms.transactions.add_transaction %}
+                    <hr class="my-4">
+                    <div class="d-grid gap-3">
+                        {% if can_edit_incoming_transaction %}
+                            <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">
+                                Сохранить изменения
+                            </button>
+                        {% endif %}
+                        {% if not incoming_transaction.is_processed and perms.transactions.add_transaction %}
+                            <button type="submit"
+                                    name="action"
+                                    value="create_transaction"
+                                    onclick="return confirm('Вы действительно хотите сохранить данные и создать транзакцию в основном журнале?');"
+                                    class="btn btn-success w-100 py-2 text-uppercase">
+                                Создать транзакцию
+                            </button>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </form>
+
+            {% if can_delete_incoming_transaction %}
+                <form method="post" onsubmit="return confirm('Удалить входящую запись?');">
+                    {% csrf_token %}
+                    <button type="submit" name="action" value="delete" class="btn btn-outline-danger w-100 py-2 fw-light text-uppercase">
+                        Удалить
+                    </button>
+                </form>
+            {% endif %}
+
+            <a href="{% url 'transactions:incoming_document' incoming_transaction.document_id %}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Вернуться
+            </a>
         </div>
     </div>
-
-    {% if incoming_transaction.is_processed %}
-        <div class="alert alert-success">
-            Строка уже проведена в журнал. Транзакция №{{ incoming_transaction.transaction_id }}.
-        </div>
-    {% else %}
-        <form method="post">
-            {% csrf_token %}
-            {% for field in form %}
-                <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                    {{ field }}
-                    {% for error in field.errors %}
-                        <div class="invalid-feedback d-block">{{ error }}</div>
-                    {% endfor %}
-                </div>
-            {% endfor %}
-            {% for error in form.non_field_errors %}
-                <div class="alert alert-danger">{{ error }}</div>
-            {% endfor %}
-            <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">
-                Сохранить изменения
-            </button>
-        </form>
-
-        {% if can_create_transaction %}
-            <a href="{{ transaction_create_url }}" class="btn btn-success w-100 py-2 mt-3 text-uppercase">
-                Создать транзакцию
-            </a>
-        {% endif %}
-        {% if perms.transactions.delete_incomingtransaction %}
-            <form method="post" class="mt-3" onsubmit="return confirm('Удалить входящую строку?');">
-                {% csrf_token %}
-                <button type="submit" name="action" value="delete" class="btn btn-outline-danger w-100 py-2 text-uppercase">
-                    Удалить
-                </button>
-            </form>
-        {% endif %}
-    {% endif %}
-
-    <a href="{% url 'transactions:incoming_document' incoming_transaction.document_id %}" class="btn btn-outline-secondary w-100 py-2 mt-3 text-uppercase">
-        <i class="bi bi-arrow-left me-1"></i> Вернуться
-    </a>
 </div>
 {% endblock %}

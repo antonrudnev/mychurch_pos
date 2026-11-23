@@ -7,27 +7,24 @@ from django.utils import timezone
 from ..models import IncomingTransaction, Transaction
 
 
-def _create_transaction(incoming_transaction, user, transaction_record=None):
+def _create_transaction(incoming_transaction, user):
     if incoming_transaction.is_deleted or incoming_transaction.transaction_id:
         raise ValidationError('Эта входящая строка уже обработана или удалена.')
 
-    if transaction_record is None:
-        if not incoming_transaction.is_matched:
-            raise ValidationError('Строка не прошла автоматическую сверку.')
-        created_at = (
-            timezone.make_aware(
-                datetime.combine(incoming_transaction.report_date, time(hour=12))
-            )
-            if incoming_transaction.report_date
-            else timezone.now()
+    created_at = (
+        timezone.make_aware(
+            datetime.combine(incoming_transaction.report_date, time(hour=12))
         )
-        transaction_record = Transaction(
-            item=incoming_transaction.item,
-            price=incoming_transaction.price,
-            quantity=incoming_transaction.quantity,
-            cashier=user,
-            created_at=created_at,
-        )
+        if incoming_transaction.report_date
+        else timezone.now()
+    )
+    transaction_record = Transaction(
+        item=incoming_transaction.item,
+        price=incoming_transaction.price,
+        quantity=incoming_transaction.quantity,
+        cashier=user,
+        created_at=created_at,
+    )
 
     transaction_record.cashier = user
     transaction_record.is_verified = user.has_perm('transactions.verify_transaction')
@@ -43,17 +40,13 @@ def _create_transaction(incoming_transaction, user, transaction_record=None):
 
 
 @transaction.atomic
-def create_transaction_for_incoming(
-    incoming_transaction,
-    user,
-    transaction_record=None,
-):
+def create_transaction_for_incoming(incoming_transaction, user):
     locked_incoming = (
         IncomingTransaction.objects.select_for_update()
         .select_related('item')
         .get(pk=incoming_transaction.pk)
     )
-    return _create_transaction(locked_incoming, user, transaction_record)
+    return _create_transaction(locked_incoming, user)
 
 
 @transaction.atomic

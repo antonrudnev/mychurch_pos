@@ -14,7 +14,6 @@ from django.utils.text import slugify
 from django.views.generic import ListView, TemplateView
 
 from .forms import (
-    DATE_FIELD_ITEM_HANDLES,
     IncomingDocumentReportDateForm,
     IncomingTransactionReviewForm,
     NewOpenListItemForm,
@@ -278,48 +277,150 @@ class IncomingTransactionDetailView(IncomingReviewPermissionMixin, TemplateView)
         incoming_transaction.match_checks = get_incoming_match_checks(
             incoming_transaction
         )
-        can_create_transaction = (
+        can_edit_incoming_transaction = (
             not incoming_transaction.is_processed
-            and (
-                self.request.user.has_perm('transactions.add_transaction')
-                or self.request.user.has_perm('transactions.verify_transaction')
+            and self.request.user.has_perm(
+                'transactions.change_incomingtransaction'
             )
         )
+        can_delete_incoming_transaction = (
+            not incoming_transaction.is_processed
+            and self.request.user.has_perm(
+                'transactions.delete_incomingtransaction'
+            )
+        )
+        form = kwargs.get('form')
+        if form is None:
+            form = IncomingTransactionReviewForm(instance=incoming_transaction)
+        if not can_edit_incoming_transaction:
+            for field in form.fields.values():
+                field.disabled = True
+
         context.update({
             'incoming_transaction': incoming_transaction,
-            'form': kwargs.get(
-                'form',
-                IncomingTransactionReviewForm(instance=incoming_transaction),
-            ),
-            'can_create_transaction': can_create_transaction,
-            'transaction_create_url': (
-                reverse(
-                    'transactions:transaction_create',
-                    args=[incoming_transaction.item.item_type_id],
-                )
-                + f'?incoming_transaction={incoming_transaction.pk}'
-                if (
-                    can_create_transaction
-                    and incoming_transaction.item_id
-                    and incoming_transaction.item.is_active
-                )
-                else (
-                    f"{reverse('transactions:item_type_select')}"
-                    f"?incoming_transaction={incoming_transaction.pk}"
-                    if can_create_transaction
-                    else ''
-                )
-            ),
+            'form': form,
+            'can_edit_incoming_transaction': can_edit_incoming_transaction,
+            'can_delete_incoming_transaction': can_delete_incoming_transaction,
         })
         return context
 
     def post(self, request, *args, **kwargs):
         incoming_transaction = self.get_incoming_transaction()
+        action = request.POST.get('action')
+        if action == 'create_transaction':
+            has_add_permission = request.user.has_perm(
+                'transactions.add_transaction'
+            )
+            if not has_add_permission:
+                raise PermissionDenied
+            if incoming_transaction.is_processed:
+                messages.error(
+                    request,
+                    'Эта строка уже проведена в журнал.',
+                )
+                return redirect(
+                    'transactions:incoming_transaction_detail',
+                    pk=incoming_transaction.pk,
+                )
+
+            can_create_transaction = (
+                not incoming_transaction.is_processed and has_add_permission
+            )
+            if not can_create_transaction:
+                raise PermissionDenied
+            form = None
+            if request.user.has_perm(
+                'transactions.change_incomingtransaction'
+            ):
+                form = IncomingTransactionReviewForm(
+                    request.POST,
+                    instance=incoming_transaction,
+                )
+                if not form.is_valid():
+                    return self.render_to_response(
+                        self.get_context_data(form=form),
+                        status=400,
+                    )
+                transaction_values = form.cleaned_data
+            else:
+                transaction_values = {
+                    'item': incoming_transaction.item,
+                    'report_date': incoming_transaction.report_date,
+                    'price': incoming_transaction.price,
+                    'quantity': incoming_transaction.quantity,
+                }
+
+            missing_fields = []
+            if transaction_values.get('item') is None:
+                missing_fields.append(
+                    ('item', 'Выберите товар из справочника.')
+                )
+            if transaction_values.get('report_date') is None:
+                missing_fields.append(
+                    ('report_date', 'Укажите дату документа.')
+                )
+            if transaction_values.get('price') is None:
+                missing_fields.append(('price', 'Укажите цену.'))
+            if transaction_values.get('quantity') is None:
+                missing_fields.append(('quantity', 'Укажите количество.'))
+            if (
+                transaction_values.get('price') is not None
+                and transaction_values['price'] < 0
+            ):
+                missing_fields.append(('price', 'Цена не может быть отрицательной.'))
+            if (
+                transaction_values.get('quantity') is not None
+                and transaction_values['quantity'] < 1
+            ):
+                missing_fields.append(
+                    ('quantity', 'Количество должно быть больше нуля.')
+                )
+            if missing_fields:
+                if form is not None:
+                    for field_name, error in missing_fields:
+                        form.add_error(field_name, error)
+                    messages.error(
+                        request,
+                        'Заполните обязательные поля для создания транзакции.',
+                    )
+                    return self.render_to_response(
+                        self.get_context_data(form=form),
+                        status=400,
+                    )
+                messages.error(
+                    request,
+                    'Заполните обязательные поля для создания транзакции: '
+                    + ' '.join(error for _, error in missing_fields),
+                )
+                return redirect(
+                    'transactions:incoming_transaction_detail',
+                    pk=incoming_transaction.pk,
+                )
+            try:
+                with db_transaction.atomic():
+                    if form is not None:
+                        incoming_transaction = form.save()
+                    create_transaction_for_incoming(incoming_transaction, request.user)
+            except ValidationError as error:
+                messages.error(request, ' '.join(error.messages))
+                return redirect(
+                    'transactions:incoming_transaction_detail',
+                    pk=incoming_transaction.pk,
+                )
+            messages.success(request, 'Транзакция создана из входящей строки.')
+            return redirect(
+                'transactions:incoming_document',
+                document_id=incoming_transaction.document_id,
+            )
+
         if incoming_transaction.is_processed:
             raise PermissionDenied
 
-        action = request.POST.get('action')
         if action == 'delete':
+            if not request.user.has_perm(
+                'transactions.delete_incomingtransaction'
+            ):
+                raise PermissionDenied
             incoming_transaction.delete_soft()
             messages.success(request, 'Входящая строка удалена.')
             return redirect(
@@ -327,6 +428,10 @@ class IncomingTransactionDetailView(IncomingReviewPermissionMixin, TemplateView)
                 document_id=incoming_transaction.document_id,
             )
         if action != 'save':
+            raise PermissionDenied
+        if not request.user.has_perm(
+            'transactions.change_incomingtransaction'
+        ):
             raise PermissionDenied
 
         form = IncomingTransactionReviewForm(
@@ -716,10 +821,7 @@ class TransactionManageView(TemplateView):
                 'transaction_list_url': self.get_transaction_list_url(request),
                 'can_change_transaction': can_change_transaction,
                 'can_verify_transaction': can_verify_transaction,
-                'can_edit_transaction_datetime': (
-                    can_change_transaction
-                    and self.transaction.item.handle in DATE_FIELD_ITEM_HANDLES
-                ),
+                'can_edit_transaction_datetime': can_change_transaction,
                 'can_view_all_transactions': request.user.has_perm(
                     'transactions.view_all_transactions'
                 ),
@@ -740,24 +842,12 @@ class ItemTypeSelectView(LoginRequiredMixin, PermissionRequiredMixin, ListView):
     permission_required = 'transactions.add_transaction'
     raise_exception = True
 
-    def has_permission(self):
-        if self.request.GET.get('incoming_transaction'):
-            return (
-                self.request.user.has_perm('transactions.add_transaction')
-                or self.request.user.has_perm('transactions.verify_transaction')
-            )
-        return super().has_permission()
-
     def get_queryset(self):
         return self.get_item_types(is_product_group=False)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['is_product_group_page'] = False
-        context['incoming_transaction_id'] = self.request.GET.get(
-            'incoming_transaction',
-            '',
-        )
         return context
 
     def get_item_types(self, *, is_product_group):
@@ -787,14 +877,6 @@ class ProductSearchView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
     permission_required = 'transactions.add_transaction'
     raise_exception = True
 
-    def has_permission(self):
-        if self.request.GET.get('incoming_transaction'):
-            return (
-                self.request.user.has_perm('transactions.add_transaction')
-                or self.request.user.has_perm('transactions.verify_transaction')
-            )
-        return super().has_permission()
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         items = Item.objects.filter(
@@ -803,10 +885,6 @@ class ProductSearchView(LoginRequiredMixin, PermissionRequiredMixin, TemplateVie
         ).select_related('item_type').order_by('name', 'item_type__name')
         selected_item_id = self.request.GET.get('item')
         context['items'] = items
-        incoming_id = self.request.GET.get('incoming_transaction', '')
-        context['incoming_transaction_id'] = (
-            incoming_id if incoming_id.isdecimal() else ''
-        )
         context['selected_item'] = (
             get_object_or_404(items, pk=selected_item_id)
             if selected_item_id is not None
@@ -978,95 +1056,35 @@ class TransactionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templat
     permission_required = 'transactions.add_transaction'
     raise_exception = True
 
-    def has_permission(self):
-        if self.request.GET.get('incoming_transaction') or self.request.POST.get(
-            'incoming_transaction'
-        ):
-            return (
-                self.request.user.has_perm('transactions.add_transaction')
-                or self.request.user.has_perm('transactions.verify_transaction')
-            )
-        return self.request.user.has_perm('transactions.add_transaction')
-
-    def get_incoming_transaction(self):
-        incoming_id = self.request.GET.get('incoming_transaction')
-        if incoming_id is None:
-            incoming_id = self.request.POST.get('incoming_transaction')
-        if incoming_id is None:
-            return None
-        incoming_transaction = get_object_or_404(
-            IncomingTransaction.objects.select_related('item'),
-            pk=incoming_id,
-            transaction__isnull=True,
-        )
-        if (
-            incoming_transaction.item_id
-            and incoming_transaction.item.item_type_id != self.item_type.pk
-        ):
-            raise PermissionDenied
-        return incoming_transaction
-
     def get(self, request, *args, **kwargs):
         self.item_type = get_object_or_404(ItemType, pk=kwargs['item_type_id'])
-        incoming_transaction = self.get_incoming_transaction()
-        selected_item = None
         selected_item_id = request.GET.get('item')
-        if (
-            incoming_transaction
-            and incoming_transaction.item_id
-            and incoming_transaction.item.is_active
-        ):
-            selected_item = incoming_transaction.item
-        elif selected_item_id is not None:
-            selected_item = get_object_or_404(
+        selected_item = (
+            get_object_or_404(
                 Item,
                 pk=selected_item_id,
                 item_type=self.item_type,
                 is_active=True,
             )
+            if selected_item_id is not None
+            else None
+        )
         form = TransactionForm(
             item_type=self.item_type,
             selected_item=selected_item,
-            incoming_transaction=incoming_transaction,
         )
-        return self.render_form(request, form, incoming_transaction=incoming_transaction)
+        return self.render_form(request, form)
 
     def post(self, request, *args, **kwargs):
         self.item_type = get_object_or_404(ItemType, pk=kwargs['item_type_id'])
-        incoming_transaction = self.get_incoming_transaction()
         form = TransactionForm(
             request.POST,
             item_type=self.item_type,
-            incoming_transaction=incoming_transaction,
         )
         if not form.is_valid():
-            return self.render_form(
-                request,
-                form,
-                incoming_transaction=incoming_transaction,
-                status=400,
-            )
+            return self.render_form(request, form, status=400)
 
         transaction = form.save(commit=False)
-        if incoming_transaction is not None:
-            try:
-                create_transaction_for_incoming(
-                    incoming_transaction,
-                    request.user,
-                    transaction_record=transaction,
-                )
-            except ValidationError as error:
-                messages.error(request, ' '.join(error.messages))
-                return redirect(
-                    'transactions:incoming_transaction_detail',
-                    pk=incoming_transaction.pk,
-                )
-            messages.success(request, 'Транзакция создана из входящей строки.')
-            return redirect(
-                'transactions:incoming_document',
-                document_id=incoming_transaction.document_id,
-            )
-
         with db_transaction.atomic():
             transaction.cashier = request.user
             transaction.is_verified = request.user.has_perm(
@@ -1083,26 +1101,18 @@ class TransactionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templat
         self,
         request,
         form,
-        incoming_transaction=None,
         status=200,
     ):
         return_url = (
-            reverse(
-                'transactions:incoming_transaction_detail',
-                args=[incoming_transaction.pk],
+            (
+                f"{reverse('transactions:product_search')}?"
+                f"{urlencode({'item': request.GET['item']})}"
             )
-            if incoming_transaction
+            if request.GET.get('item')
             else (
-                (
-                    f"{reverse('transactions:product_search')}?"
-                    f"{urlencode({'item': request.GET['item']})}"
-                )
-                if request.GET.get('item')
-                else (
-                    reverse('transactions:product_group_select')
-                    if self.item_type.is_product_group
-                    else reverse('transactions:item_type_select')
-                )
+                reverse('transactions:product_group_select')
+                if self.item_type.is_product_group
+                else reverse('transactions:item_type_select')
             )
         )
         return render(
@@ -1111,7 +1121,6 @@ class TransactionCreateView(LoginRequiredMixin, PermissionRequiredMixin, Templat
             {
                 'form': form,
                 'item_type': self.item_type,
-                'incoming_transaction': incoming_transaction,
                 'return_url': return_url,
             },
             status=status,

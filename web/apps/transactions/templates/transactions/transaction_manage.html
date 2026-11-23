@@ -3,147 +3,184 @@
 {% block title %}Управление транзакцией — Церковная лавка{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3" style="min-height: calc(100vh - 140px);">
+<div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3 my-4" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
-        <h1 class="fw-normal h3 text-center mb-4 text-body">{{ transaction.item.name }}</h1>
-        <p class="text-center">
-            <span class="text-secondary text-uppercase">{{ transaction.item.item_type.name }} /</span>
-            {% if transaction.is_deleted %}
-                <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Удалена</span>
-            {% else %}
-                {% if transaction.is_verified %}
+        <header class="text-center mb-4">
+            <h1 class="fw-normal h3 mb-2 text-body">{{ transaction.item.name }}</h1>
+            <p class="small mb-0">
+                <span class="text-secondary text-uppercase fw-light">{{ transaction.item.item_type.name }} /</span>
+                {% if transaction.is_deleted %}
+                    <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle">Удалена</span>
+                {% elif transaction.is_verified %}
                     <span class="text-success text-uppercase">Транзакция подтверждена</span>
                     {% if perms.transactions.verify_transaction and transaction.verified_by != user %}
                         <span class="text-primary">({{ transaction.verified_by.get_full_name|default:transaction.verified_by.username }})</span>
                     {% endif %}
                 {% else %}
-                    <span class="text-warning text-uppercase">Транзакция не подтверждена</span>
+                    <span class="text-warning-emphasis text-uppercase">Транзакция не подтверждена</span>
                 {% endif %}
-            {% endif %}
-        </p>        
-        {% if can_change_transaction %}
-            <form method="post" action="{{ request.get_full_path }}" class="mb-4">
-                {% csrf_token %}
-        {% endif %}
-        <table class="table w-100 table-borderless m-0">
-            <tbody>
-                <tr>
-                    <td>
-                        <div>
-                            <div>Кассир:</div>
-                            <div class="form-control-plaintext fw-bold">{{ transaction.cashier.get_full_name|default:transaction.cashier.username }}</div>
-                        </div>
-                    </td>
-                    <td class="text-end">
-                        <div>
-                            <div class="text-end">Дата и время:</div>
-                            {% if can_edit_transaction_datetime %}
-                                <button type="button" id="created-at-display" class="form-control-plaintext fw-bold text-end w-100 border-0 bg-transparent" aria-label="Изменить дату и время">
-                                        {{ transaction.created_at|date:"d.m.Y H:i" }}
-                                </button>
-                                <div id="created-at-editor" class="text-end" hidden>
-                                    <label for="{{ form.created_at.id_for_label }}" class="visually-hidden">{{ form.created_at.label }}</label>
-                                    {{ form.created_at }}
-                                    {% for error in form.created_at.errors %}
-                                            <div class="invalid-feedback d-block">{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <div class="form-control-plaintext fw-bold text-end">{{ transaction.created_at|date:"d.m.Y H:i" }}</div>
-                            {% endif %}
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+            </p>
+        </header>
 
-        {% if can_change_transaction %}
+        <div class="d-grid gap-3">
+            {% if can_change_transaction %}
+                <form method="post" action="{{ request.get_full_path }}">
+                    {% csrf_token %}
+            {% endif %}
+
+            <dl class="row g-2 mb-3">
+                <div class="col-6">
+                    <dt class="small fw-normal text-body-secondary mb-1">Кассир</dt>
+                    <dd class="fw-bold mb-0 text-break">
+                        {{ transaction.cashier.get_full_name|default:transaction.cashier.username }}
+                    </dd>
+                </div>
+
+                <div class="col-6 text-end">
+                    <dt class="small fw-normal text-body-secondary mb-1">Дата и время</dt>
+                    <dd class="mb-0">
+                        {% if can_edit_transaction_datetime %}
+                            <button type="button"
+                                    id="created-at-display"
+                                    class="btn btn-link link-body-emphasis text-decoration-none fw-bold p-0 border-0 text-end"
+                                    aria-label="Изменить дату и время"
+                                    {% if form.created_at.errors %}hidden{% endif %}>
+                                {{ transaction.created_at|date:"d.m.Y H:i" }}
+                                <i class="bi bi-pencil small text-body-secondary ms-1" aria-hidden="true"></i>
+                            </button>
+                            <div id="created-at-editor" class="text-end" {% if not form.created_at.errors %}hidden{% endif %}>
+                                <label for="{{ form.created_at.id_for_label }}" class="visually-hidden">{{ form.created_at.label }}</label>
+                                {{ form.created_at }}
+                                {% for error in form.created_at.errors %}
+                                    <div class="invalid-feedback d-block">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <span class="fw-bold">{{ transaction.created_at|date:"d.m.Y H:i" }}</span>
+                        {% endif %}
+                    </dd>
+                </div>
+            </dl>
+
+            {% if can_change_transaction %}
                 {% for field in form %}
                     {% if field.name != 'created_at' %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% for error in field.errors %}
-                            <div class="invalid-feedback d-block">{{ error }}</div>
-                        {% endfor %}
-                    </div>
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div>
+                            {% endfor %}
+                        </div>
                     {% endif %}
                 {% endfor %}
+
                 {% for error in form.non_field_errors %}
-                    <div class="alert alert-danger">{{ error }}</div>
+                    <div class="alert alert-danger" role="alert">{{ error }}</div>
                 {% endfor %}
+
                 <div class="border-top border-subtle my-4"></div>
+
                 {% if perms.transactions.verify_transaction %}
-                    <button type="submit" name="action" value="save_and_verify" class="btn btn-success w-100 py-2 mt-2 text-uppercase">Принять и сохранить</button>
+                    <button type="submit" name="action" value="save_and_verify" class="btn btn-success w-100 py-2 text-uppercase">
+                        Принять и сохранить
+                    </button>
                 {% else %}
-                    <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">Сохранить</button>
+                    <button type="submit" name="action" value="save" class="btn btn-primary w-100 py-2 text-uppercase">
+                        Сохранить
+                    </button>
                 {% endif %}
-            </form>
-        {% else %}
-            <table class="table w-100 table-borderless m-0">
-                <tbody>
-                    <tr>
-                        {% if transaction.item.price != 0 %}
-                        <td >
-                            <div>
-                                <div>Количество:</div>
-                                <div class="form-control-plaintext fw-bold">{{ transaction.quantity }}</div>
-                            </div>
-                        </td>
-                        {% endif %}
-                        {% if transaction.item.price is not None %}
-                        <td class="text-end">
-                            <div>
-                                <div>Сумма:</div>
-                                <div class="form-control-plaintext fw-bold">{{ transaction.price }} &#8381;</div>
-                                {% if transaction.item.price != 0 %}
-                                    <div class="form-control-plaintext small">= {{ transaction.total_cost }} &#8381;</div>
-                                {% endif %}            
-                            </div>
-                        </td>
-                        {% endif %}
-                    </tr>
-                </tbody>
-            </table>
-            <div class="border-top border-subtle mb-4"></div>
-        {% endif %}
+                </form>
+            {% else %}
+                <dl class="row g-2 mb-0">
+                    {% if transaction.item.price != 0 %}
+                        <div class="col-6">
+                            <dt class="small fw-normal text-body-secondary mb-1">Количество</dt>
+                            <dd class="fw-bold mb-0">{{ transaction.quantity }}</dd>
+                        </div>
+                    {% endif %}
+                    {% if transaction.item.price is not None %}
+                        <div class="col-6 {% if transaction.item.price != 0 %}text-end{% endif %}">
+                            <dt class="small fw-normal text-body-secondary mb-1">Сумма</dt>
+                            <dd class="fw-bold mb-0">{{ transaction.price }} ₽</dd>
+                            {% if transaction.item.price != 0 %}
+                                <dd class="small text-body-secondary mb-0">= {{ transaction.total_cost }} ₽</dd>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </dl>
 
-        {% if can_verify_transaction and not can_change_transaction %}
-            <form method="post" class="mb-4">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="toggle_verification">
-                {% if transaction.is_verified %}
-                    <button type="submit" class="btn btn-warning w-100 py-2 text-uppercase">Отклонить</button>
-                {% else %}
-                    <button type="submit" class="btn btn-success w-100 py-2 text-uppercase">Принять</button>
-                {% endif %}
-            </form>
-        {% endif %}
+                <div class="border-top border-subtle mt-2"></div>
+            {% endif %}
 
-        {% if can_delete_transaction %}
-            <form method="post" onsubmit="return confirm('Удалить эту транзакцию?');">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete">
-                <button type="submit" class="btn btn-outline-danger w-100 py-2 mb-3 text-uppercase">Удалить</button>
-            </form>
-        {% endif %}
+            {% if can_verify_transaction and not can_change_transaction %}
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_verification">
+                    {% if transaction.is_verified %}
+                        <button type="submit" class="btn btn-warning w-100 py-2 text-uppercase">
+                            Отклонить
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-success w-100 py-2 text-uppercase">
+                            Принять
+                        </button>
+                    {% endif %}
+                </form>
+            {% endif %}
 
-        <a href="{{ transaction_list_url }}" class="btn btn-outline-secondary w-100 py-2 text-uppercase">
-            <i class="bi bi-arrow-left me-1"></i> Вернуться
-        </a>
+            {% if can_delete_transaction %}
+                <form method="post" onsubmit="return confirm('Удалить эту транзакцию?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="btn btn-outline-danger w-100 py-2 fw-light text-uppercase">
+                        Удалить
+                    </button>
+                </form>
+            {% endif %}
+
+            <a href="{{ transaction_list_url }}" class="btn btn-outline-secondary w-100 py-2 fw-light text-uppercase">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Вернуться
+            </a>
+        </div>
     </div>
 </div>
+
 {% if can_edit_transaction_datetime %}
 <script>
-    const createdAtDisplay = document.getElementById('created-at-display');
-    const createdAtEditor = document.getElementById('created-at-editor');
-    const createdAtInput = document.getElementById('id_created_at');
+    (() => {
+        const createdAtDisplay = document.getElementById('created-at-display');
+        const createdAtEditor = document.getElementById('created-at-editor');
+        if (!createdAtDisplay || !createdAtEditor) return;
 
-    createdAtDisplay.addEventListener('click', () => {
-        createdAtDisplay.hidden = true;
-        createdAtEditor.hidden = false;
-        createdAtEditor.querySelector('[data-date]').focus();
-    });
+        const dateInput = createdAtEditor.querySelector('[data-date], input');
+        const initialTimeMatch = createdAtDisplay.textContent.trim().match(/\b\d{2}:\d{2}\b/);
+        const timePart = initialTimeMatch ? ` ${initialTimeMatch[0]}` : '';
+
+        createdAtDisplay.addEventListener('click', () => {
+            createdAtDisplay.hidden = true;
+            createdAtEditor.hidden = false;
+            if (dateInput) dateInput.focus();
+        });
+
+        if (dateInput) {
+            dateInput.addEventListener('change', () => {
+                if (!dateInput.value) return;
+
+                const parts = dateInput.value.split('-');
+                const formattedDate = parts.length === 3
+                    ? `${parts[2]}.${parts[1]}.${parts[0]}`
+                    : dateInput.value;
+
+                const icon = createdAtDisplay.querySelector('i');
+                createdAtDisplay.textContent = `${formattedDate}${timePart} `;
+                if (icon) createdAtDisplay.appendChild(icon);
+
+                createdAtEditor.hidden = true;
+                createdAtDisplay.hidden = false;
+            });
+        }
+    })();
 </script>
 {% endif %}
 {% endblock %}
