@@ -35,13 +35,15 @@ from django.utils.http import content_disposition_header
 from django.views.generic import ListView, TemplateView, View
 from transactions.models import Transaction
 from weasyprint import CSS, HTML
+from weasyprint.text.fonts import FontConfiguration
 
 from .forms import ReportDateRangeForm, ReportNameForm
 from .models import Report, ReportType
 
+REPORT_FONT_CONFIG = FontConfiguration()
 
-def render_report_document(html, base_url):
-    stylesheet = CSS(string="""
+REPORT_PRINT_CSS = CSS(
+    string="""
         @page { size: A4 portrait; margin: 10mm; }
         html, body { height: auto !important; margin: 0 !important; color: black !important; }
         .report-page { display: block !important; height: auto !important; min-height: 0 !important; }
@@ -49,7 +51,6 @@ def render_report_document(html, base_url):
         h5 { font-size: 7pt !important; }
         table {
             flex: 1 1 0; height: 0; min-height: 0; margin: 0 0 6mm; box-shadow: none;
-           
         }
         tbody { height: auto !important; }
         tr { break-inside: avoid; }
@@ -63,10 +64,15 @@ def render_report_document(html, base_url):
         .name-cell-medium { height: 70px !important; }
         .report-footer { margin: 0 !important; font-size: 7pt !important; }
         .report-actions, .alert-success { display: none !important; }
-    """)
+    """,
+    font_config=REPORT_FONT_CONFIG,
+)
 
+
+def render_report_document(html, base_url):
     return HTML(string=html, base_url=base_url).render(
-        stylesheets=[stylesheet],
+        stylesheets=[REPORT_PRINT_CSS],
+        font_config=REPORT_FONT_CONFIG,
     )
 
 
