@@ -26,11 +26,17 @@
                             <h2 class="fw-normal h5 mb-1">
                                 {{ transaction.item.name }}
                             </h2>
-                            <p class="text-body-secondary mb-0 fs-6 fw-light">
-                                <span class="fw-normal small text-uppercase me-2">[{{ transaction.item.item_type.name }}]</span>
-                                {{ transaction.created_at|date:"d.m.Y H:i" }}
+                            <p class="text-body-secondary mb-0 fs-6 fw-light d-flex align-items-center flex-wrap gap-1">
+                                <span class="fw-normal small text-uppercase me-1">[{{ transaction.item.item_type.name }}]</span>
+                                <span>{{ transaction.created_at|date:"d.m.Y H:i" }}</span>
                                 {% if transaction.is_verified %}
-                                    <i class="bi bi-check-circle-fill text-success small align-middle ms-1" title="Подтверждена" aria-label="Подтверждена"></i>
+                                    <i class="bi bi-check-circle-fill text-success small" title="Подтверждена" aria-label="Подтверждена"></i>
+                                {% endif %}
+                                {% if transaction.incoming_source %}
+                                    <span class="badge rounded-pill bg-info-subtle text-info-emphasis fw-normal ms-1"
+                                        title="Создано на основе документа: {{ transaction.incoming_source.document.original_name }} (строка №{{ transaction.incoming_source.row_number }})">
+                                        <i class="bi bi-camera me-1"></i>Фотоскан
+                                    </span>
                                 {% endif %}
                             </p>
                         </div>

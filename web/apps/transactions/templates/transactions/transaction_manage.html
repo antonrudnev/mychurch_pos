@@ -6,7 +6,19 @@
 <div class="d-flex flex-column align-items-center justify-content-start justify-content-md-center px-3 my-4" style="min-height: calc(100vh - 140px);">
     <div class="w-100" style="max-width: 600px;">
         <header class="text-center mb-4">
-            <h1 class="fw-normal h3 mb-2 text-body">{{ transaction.item.name }}</h1>
+            <h1 class="fw-normal h3 mb-2">
+                {{ transaction.item.name }}
+                {% if transaction.incoming_source and perms.integrations.view_incomingdocument and transaction.incoming_source.document.local_file %}
+                    <a href="{% url 'integrations:incoming_document_file' transaction.incoming_source.document.pk %}"
+                    target="_blank"
+                    rel="noopener"
+                    class="link-secondary text-decoration-none ms-1"
+                    title="Открыть документ: {{ transaction.incoming_source.document.original_name }} (строка №{{ transaction.incoming_source.row_number }})"
+                    aria-label="Открыть исходный документ">
+                        <i class="bi bi-file-earmark-text fs-5 align-middle"></i>
+                    </a>
+                {% endif %}
+            </h1>
             <p class="small mb-0">
                 <span class="text-secondary text-uppercase fw-light">{{ transaction.item.item_type.name }} /</span>
                 {% if transaction.is_deleted %}

@@ -529,6 +529,7 @@ class TransactionListView(PermissionRequiredMixin, ListView):
             'item',
             'item__item_type',
             'cashier',
+            'incoming_source',
         )
         if getattr(self, 'is_verification_review', False):
             queryset = queryset.filter(
