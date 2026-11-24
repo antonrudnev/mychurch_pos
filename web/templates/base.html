@@ -13,20 +13,15 @@
     {% endif %}
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">       
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.2/font/bootstrap-icons.min.css">    
+
     <!-- Скрипт против мерцания: выполняется до отрисовки body -->
     <script>
         (function () {
             const savedTheme = localStorage.getItem('theme') || 'auto';
-            let actualTheme = savedTheme;
-            
-            if (savedTheme === 'auto') {
-                actualTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-            }
-            
-            // Напрямую задаем тему для Bootstrap 5 на корневом элементе
+            const actualTheme = savedTheme === 'auto'
+                ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                : savedTheme;
             document.documentElement.setAttribute('data-bs-theme', actualTheme);
         })();
     </script>
@@ -37,126 +32,119 @@
 </head>
 <body class="d-flex flex-column min-vh-100 {% block body_class %}{% endblock %}">
 
-<!-- Единый адаптивный Navigation Bar с поддержкой динамических стилей тем Bootstrap 5 -->
-<nav class="navbar navbar-expand-lg {% if is_test_environment %}bg-warning-subtle border-warning{% else %}bg-body-tertiary border-subtle{% endif %} border-bottom">
-    <div class="container-fluid px-3">
-        <!-- Логотип / Ссылка на главную -->
-        <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">
-            <img src="{% static 'images/favicon.png' %}" width="25" height="25" class="d-inline-block align-text-center me-2">
-            {% if is_test_environment %}
-                Церковная лавка<span class="badge text-bg-warning ms-2" title="Тестовая среда">ТЕСТ</span>
-            {% else %}
-                Ксения Петербургская
-            {% endif %}
-        </a>
-
-        <!-- Кнопка-гамбургер для mobile -->
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        
-        <!-- Меню навигации -->
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                {% if user.is_authenticated %}
-                    {% if perms.directory.view_itemtype %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'directory:home' %}">
-                                {{ directory_app_verbose_name|default:"Каталог" }}
-                            </a>
-                        </li>
-                    {% endif %}
-                    {% if perms.transactions.view_transaction or perms.transactions.view_incomingtransaction or perms.transactions.add_transaction or perms.transactions.verify_transaction %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'transactions:home' %}">
-                                {{ transactions_app_verbose_name|default:"Транзакции" }}
-                            </a>
-                        </li>
-                    {% endif %}
-                    {% if perms.reports.view_report %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'reports:home' %}">
-                                {{ reports_app_verbose_name|default:"Отчеты" }}
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endif %}
-            </ul>
-            
-            <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
-            <div class="d-flex align-items-center">
-                <!-- Одна интерактивная кнопка циклического переключения тем -->
-                <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
-                    <i class="bi bi-circle-half fs-5" id="theme-icon"></i>
-                </button>
-
-                {% if user.is_authenticated %}
-                    <span class="navbar-text me-3 small">
-                        Вы вошли как: <strong>{{ user.first_name|default:user.username }}</strong>
-                    </span>                    
-                    {% if user.is_staff %}
-                        <a href="/admin/" class="btn btn-sm btn-outline-warning me-3" title="Вход в панель администрирования">
-                            <i class="bi bi-shield-fill-exclamation fs-5 m-1"></i>
-                        </a>
-                    {% endif %}
-                    <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary me-3" title="Сменить пароль">
-                        <i class="bi bi-key fs-5 m-1"></i>
-                    </a>
-                    <form method="post" action="{% url 'logout' %}" class="me-3">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-sm btn-outline-danger " title="Выйти">
-                            <i class="bi bi-box-arrow-right fs-5 m-1"></i>
-                        </button>
-                    </form>
+<header>
+    <nav class="navbar navbar-expand-lg {% if is_test_environment %}bg-warning-subtle border-warning{% else %}bg-body-tertiary border-subtle{% endif %} border-bottom">
+        <div class="container-fluid px-3">
+            <!-- Логотип / Ссылка на главную -->
+            <a class="navbar-brand fw-medium" href="{% url 'welcome_landing' %}">
+                <img src="{% static 'images/favicon.png' %}" alt="Логотип" width="25" height="25" class="d-inline-block align-text-center me-2">
+                {% if is_test_environment %}
+                    Церковная лавка<span class="badge text-bg-warning ms-2" title="Тестовая среда">ТЕСТ</span>
                 {% else %}
-                    <div class="d-flex d-none d-lg-inline-block">
-                        <a href="{% url 'register' %}" class="btn btn-sm btn-light" id="reg-btn" title="Регистрация">
-                            Регистрация
-                        </a>
-                        <a href="{% url 'login' %}" class="btn btn-sm btn-outline-primary" title="Войти">
-                            Войти
-                        </a>
-                    </div>
+                    Ксения Петербургская
                 {% endif %}
+            </a>
+
+            <!-- Кнопка-гамбургер для mobile -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <!-- Меню навигации -->
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {% if user.is_authenticated %}
+                        {% if perms.directory.view_itemtype %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'directory:home' %}">
+                                    {{ directory_app_verbose_name|default:"Каталог" }}
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if perms.transactions.view_transaction or perms.transactions.view_incomingtransaction or perms.transactions.add_transaction or perms.transactions.verify_transaction %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'transactions:home' %}">
+                                    {{ transactions_app_verbose_name|default:"Транзакции" }}
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if perms.reports.view_report %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'reports:home' %}">
+                                    {{ reports_app_verbose_name|default:"Отчеты" }}
+                                </a>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+
+                <!-- Правая часть: Блок пользователя / Вход / Смена темы -->
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-link nav-link mx-2 border-0 p-1" id="bd-theme" type="button" aria-label="Переключить тему">
+                        <i class="bi bi-circle-half fs-5" id="theme-icon"></i>
+                    </button>
+
+                    {% if user.is_authenticated %}
+                        <span class="navbar-text me-3 small">
+                            Вы вошли как: <strong>{{ user.first_name|default:user.username }}</strong>
+                        </span>
+                        {% if user.is_staff %}
+                            <a href="/admin/" class="btn btn-sm btn-outline-warning me-3" title="Вход в панель администрирования">
+                                <i class="bi bi-shield-fill-exclamation fs-5 m-1"></i>
+                            </a>
+                        {% endif %}
+                        <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary me-3" title="Сменить пароль">
+                            <i class="bi bi-key fs-5 m-1"></i>
+                        </a>
+                        <form method="post" action="{% url 'logout' %}" class="me-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Выйти">
+                                <i class="bi bi-box-arrow-right fs-5 m-1"></i>
+                            </button>
+                        </form>
+                    {% else %}
+                        <div class="d-none d-lg-inline-flex gap-1">
+                            <a href="{% url 'register' %}" class="btn btn-sm btn-light" id="reg-btn" title="Регистрация">
+                                Регистрация
+                            </a>
+                            <a href="{% url 'login' %}" class="btn btn-sm btn-outline-primary" title="Войти">
+                                Войти
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
-</nav>
-
+    </nav>
+</header>
 <!-- Основной контент страницы -->
-<div class="container my-4 flex-grow-1">
+<main class="container py-4 flex-grow-1 d-flex flex-column">
     {% if messages %}
         {% for message in messages %}
-            {% if message.tags == 'error' %}
-                {% with alert_tag='danger' %}
-                    <div class="alert alert-{{ alert_tag }} border border-{{ alert_tag }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
+            {% with alert_tag=message.tags|default:'info' %}
+                {% with bs_color=alert_tag|cut:'error'|default:'danger' %}
+                    <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ alert_tag }}{% endif %} border border-{% if message.tags == 'error' %}danger{% else %}{{ alert_tag }}{% endif %}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto w-100" role="alert" style="max-width: 540px;">
                         <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
-                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
+                            {% if message.tags == 'success' %}
+                                <i class="bi bi-check-circle-fill fs-6 text-success"></i>
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
+                            {% elif message.tags == 'warning' %}
+                                <i class="bi bi-exclamation-circle-fill fs-6 text-warning"></i>
+                            {% else %}
+                                <i class="bi bi-info-circle-fill fs-6 text-info"></i>
+                            {% endif %}
                             {{ message }}
                         </span>
                     </div>
                 {% endwith %}
-            {% else %}
-                <div class="alert alert-{{ message.tags|default:'info' }} border border-{{ message.tags|default:'info' }}-subtle shadow-sm rounded-3 py-2 px-3 my-3 text-center mx-auto" role="alert" style="max-width: 540px;">
-                    <span class="fw-normal small text-uppercase d-inline-flex align-items-center gap-2">
-                        {% if message.tags == 'success' %}
-                            <i class="bi bi-check-circle-fill fs-6 text-success"></i>
-                        {% elif message.tags == 'danger' %}
-                            <i class="bi bi-exclamation-triangle-fill fs-6 text-danger"></i>
-                        {% elif message.tags == 'warning' %}
-                            <i class="bi bi-exclamation-circle-fill fs-6 text-warning"></i>
-                        {% else %}
-                            <i class="bi bi-info-circle-fill fs-6 text-info"></i>
-                        {% endif %}
-                        {{ message }}
-                    </span>
-                </div>
-            {% endif %}
+            {% endwith %}
         {% endfor %}
     {% endif %}
+
     {% block content %}
     {% endblock %}
-</div>
+</main>
 
 <footer class="d-none d-lg-flex align-items-center border-top border-subtle text-secondary small px-3 py-2 mt-auto">
     <span class="me-auto">Православный Храм святой блаженной Ксении Петербургской города Новокузнецк</span>
@@ -164,133 +152,109 @@
     <time id="application-clock" data-time-zone="{{ TIME_ZONE }}" datetime="{% now 'c' %}">{% now "d.m.Y H:i:s" %}</time>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+
 <script>
     (() => {
-        const clock = document.getElementById('application-clock')
-        if (!clock) return
+        'use strict';
 
-        const city = clock.dataset.timeZone.split('/').pop().replace(/_/g, ' ')
-        document.getElementById('application-timezone-city').textContent = city
+        // 1. Управление часами в футере
+        const initClock = () => {
+            const clock = document.getElementById('application-clock');
+            const cityEl = document.getElementById('application-timezone-city');
+            if (!clock || !clock.dataset.timeZone) return;
 
-        const formatter = new Intl.DateTimeFormat('ru-RU', {
-            timeZone: clock.dataset.timeZone,
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hourCycle: 'h23'
-        })
-
-        const updateClock = () => {
-            const now = new Date()
-            clock.dateTime = now.toISOString()
-            clock.textContent = formatter.format(now)
-        }
-
-        updateClock()
-        window.setInterval(updateClock, 1000)
-    })()
-</script>
-
-<!-- Скрипт циклического управления темами: Auto -> Light -> Dark -> Auto -->
-<script>
-    (() => {
-        'use strict'
-
-        const getStoredTheme = () => localStorage.getItem('theme')
-        const setStoredTheme = theme => localStorage.setItem('theme', theme)
-
-        // По умолчанию выставляем режим 'auto'
-        const getPreferredTheme = () => {
-            const storedTheme = getStoredTheme()
-            return storedTheme ? storedTheme : 'auto'
-        }
-
-        const setTheme = theme => {
-            // Применяем тему к data-атрибуту Bootstrap 5
-            if (theme === 'auto') {
-                document.documentElement.setAttribute('data-bs-theme', window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-            } else {
-                document.documentElement.setAttribute('data-bs-theme', theme)
+            if (cityEl) {
+                cityEl.textContent = clock.dataset.timeZone.split('/').pop().replace(/_/g, ' ');
             }
 
-            // Обновляем иконку кнопки в зависимости от текущего РЕЖИМА ХРАНИЛИЩА (не фактического цвета)
-            const icon = document.getElementById('theme-icon')
-            if (icon) {
-                if (theme === 'auto') {
-                    icon.className = 'bi bi-circle-half fs-5 text-body' // Иконка авто (разделенный круг)
-                } else if (theme === 'light') {
-                    icon.className = 'bi bi-sun-fill fs-5 text-body'    // Иконка солнца
-                } else if (theme === 'dark') {
-                    icon.className = 'bi bi-moon-stars-fill fs-5 text-body' // Иконка луны
+            const formatter = new Intl.DateTimeFormat('ru-RU', {
+                timeZone: clock.dataset.timeZone,
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hourCycle: 'h23'
+            });
+
+            const updateClock = () => {
+                const now = new Date();
+                clock.dateTime = now.toISOString();
+                clock.textContent = formatter.format(now);
+            };
+
+            updateClock();
+            window.setInterval(updateClock, 1000);
+        };
+
+        // 2. Циклическое управление темами (Auto -> Light -> Dark -> Auto)
+        const initThemeSwitcher = () => {
+            const THEME_CYCLE = { auto: 'light', light: 'dark', dark: 'auto' };
+            const THEME_ICONS = {
+                auto: 'bi-circle-half',
+                light: 'bi-sun-fill',
+                dark: 'bi-moon-stars-fill'
+            };
+
+            const getStoredTheme = () => localStorage.getItem('theme') || 'auto';
+            const setStoredTheme = (theme) => localStorage.setItem('theme', theme);
+
+            const applyTheme = (theme) => {
+                const actualTheme = theme === 'auto'
+                    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+                    : theme;
+
+                document.documentElement.setAttribute('data-bs-theme', actualTheme);
+
+                const icon = document.getElementById('theme-icon');
+                if (icon) {
+                    icon.className = `bi ${THEME_ICONS[theme] || THEME_ICONS.auto} fs-5 text-body`;
                 }
-            }
 
-            // Адаптируем кнопку регистрации под текущую фактическую тему
-            const actualTheme = document.documentElement.getAttribute('data-bs-theme')
-            const regBtn = document.getElementById('reg-btn')
-            if (regBtn) {
-                if (actualTheme === 'dark') {
-                    regBtn.className = 'btn btn-sm btn-outline-light'
-                } else {
-                    regBtn.className = 'btn btn-sm btn-outline-dark'
+                const regBtn = document.getElementById('reg-btn');
+                if (regBtn) {
+                    regBtn.className = `btn btn-sm ${actualTheme === 'dark' ? 'btn-outline-light' : 'btn-outline-dark'}`;
                 }
-            }
-        }
+            };
 
-        // Инициализация темы при первой загрузке страницы
-        setTheme(getPreferredTheme())
+            applyTheme(getStoredTheme());
 
-        // Динамическое отслеживание изменений ОС "на лету" (работает только в режиме auto)
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-            if (getStoredTheme() === 'auto' || !getStoredTheme()) {
-                setTheme('auto')
-            }
-        })
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (getStoredTheme() === 'auto') applyTheme('auto');
+            });
 
-        window.addEventListener('DOMContentLoaded', () => {
-            const themeToggle = document.getElementById('bd-theme')
-            
+            const themeToggle = document.getElementById('bd-theme');
             if (themeToggle) {
                 themeToggle.addEventListener('click', () => {
-                    const currentTheme = getPreferredTheme()
-                    let nextTheme = 'auto'
-
-                    // Массив циклического переключения тем
-                    if (currentTheme === 'auto') {
-                        nextTheme = 'light'
-                    } else if (currentTheme === 'light') {
-                        nextTheme = 'dark'
-                    } else if (currentTheme === 'dark') {
-                        nextTheme = 'auto'
-                    }
-                    
-                    setStoredTheme(nextTheme)
-                    setTheme(nextTheme)
-                })
+                    const nextTheme = THEME_CYCLE[getStoredTheme()] || 'auto';
+                    setStoredTheme(nextTheme);
+                    applyTheme(nextTheme);
+                });
             }
-        })
-    })()
-</script>
-<!-- Автоматическое закрытие мобильного меню при скролле -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const navbarMenu = document.getElementById('navbarNav');
-        
-        if (navbarMenu) {
-            // Инициализируем компонент Bootstrap Collapse (без переключения)
-            const bsCollapse = new bootstrap.Collapse(navbarMenu, { toggle: false });
+        };
 
-            window.addEventListener('scroll', function () {
-                // Если меню открыто (содержит класс 'show'), плавно закрываем его
+        // 3. Автоматическое закрытие мобильного меню при скролле
+        const initNavbarAutoClose = () => {
+            const navbarMenu = document.getElementById('navbarNav');
+            if (!navbarMenu || typeof bootstrap === 'undefined') return;
+
+            const bsCollapse = bootstrap.Collapse.getOrCreateInstance(navbarMenu, { toggle: false });
+
+            window.addEventListener('scroll', () => {
                 if (navbarMenu.classList.contains('show')) {
                     bsCollapse.hide();
                 }
-            }, { passive: true }); // passive ускоряет работу скролла в браузере
-        }
-    });
+            }, { passive: true });
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initClock();
+            initThemeSwitcher();
+            initNavbarAutoClose();
+        });
+    })();
 </script>
 {% block extra_js %}{% endblock %}
 </body>

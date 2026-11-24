@@ -21,9 +21,9 @@
 {% endblock %}
 
 {% block content %}
-<!-- Контейнер автоматически занимает оставшуюся высоту экрана и центрирует контент -->
-<div class="d-flex flex-column align-items-center justify-content-center px-3 text-center" style="min-height: calc(100vh - 120px);">
-    <div class="landing-card py-4">
+<!-- Контейнер центрируется по вертикали внутри flex-контейнера <main> без лишнего скролла -->
+<div class="d-flex flex-column align-items-center justify-content-center my-auto px-3 text-center">
+    <div class="landing-card py-3">
         
         <!-- Заголовок с динамическим именем, использующий системный цвет темы -->
         <h1 class="fw-normal h3 mb-4 text-body">
@@ -54,13 +54,12 @@
                 <!-- Класс text-muted подстраивает цвет заголовка под любую тему -->
                 <h5 class="fw-light text-uppercase small mb-3 text-muted">Молитва перед началом всякого дела</h5>
                 <!-- Класс text-secondary делает текст молитвы мягким и читаемым -->
-                <p class="prayer-text fs-5 text-secondary">
+                <p class="prayer-text fs-5 text-secondary mb-0">
                     Царю Небесный, Утешителю, Душе истины, Иже везде сый и вся исполняяй, Сокровище благих и жизни Подателю, прииди и вселися в ны, и очисти ны от всякия скверны, и спаси, Блаже, души наша.
                 </p>
             {% endif %}
         </div>
 
-        
         <!-- Тонкий адаптивный разделитель Bootstrap -->
         <div class="border-top border-subtle my-4"></div>
         
@@ -87,7 +86,7 @@
         const toggleBtn = document.getElementById('dailyCalendarToggle');
         if (!textEl || !toggleBtn) return;
 
-        // Показываем кнопку только если текст реально выходит за пределы 4 строк
+        // Показываем кнопку только если текст реально выходит за пределы 10 строк
         if (textEl.scrollHeight > textEl.clientHeight + 4) {
             toggleBtn.classList.remove('d-none');
         } else {
