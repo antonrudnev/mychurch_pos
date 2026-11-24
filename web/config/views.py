@@ -1,5 +1,6 @@
 from django.contrib.auth import login
 from django.shortcuts import redirect, render
+from integrations.services.azbyka_calendar import get_today_calendar_widget
 
 from config.forms import CaseInsensitiveUserCreationForm
 
@@ -22,7 +23,8 @@ def register_view(request):
     return render(request, 'registration/register.html', {'form': form})
 
 def welcome_landing_view(request):
-    return render(request, 'welcome/landing.html')
+    return render(request, 'welcome/landing.html', {
+        "calendar_widget": get_today_calendar_widget(),})
 
 # Обработчик ошибки 404
 def custom_page_not_found_view(request, exception):

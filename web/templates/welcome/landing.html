@@ -12,6 +12,12 @@
         line-height: 1.8;
         white-space: pre-line;
     }
+    .daily-text-collapse p.is-collapsed {
+        max-height: calc(1.8em * 10); /* Строк при вашем line-height: 1.8 */
+        overflow: hidden;
+        -webkit-mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+        mask-image: linear-gradient(to bottom, #000 65%, transparent 100%);
+    }
 {% endblock %}
 
 {% block content %}
@@ -31,15 +37,29 @@
         <!-- Тонкий адаптивный разделитель Bootstrap -->
         <div class="border-top border-subtle my-4"></div>
         
-        <!-- Молитва -->
+        <!-- Молитва / Слово дня -->
         <div class="my-4 px-2">
-            <!-- Класс text-muted подстраивает цвет заголовка под любую тему -->
-            <h5 class="fw-light text-uppercase small mb-3 text-muted">Молитва перед началом всякого дела</h5>
-            <!-- Класс text-secondary делает текст молитвы мягким и читаемым -->
-            <p class="prayer-text fs-5 text-secondary">
-                Царю Небесный, Утешителю, Душе истины, Иже везде сый и вся исполняяй, Сокровище благих и жизни Подателю, прииди и вселися в ны, и очисти ны от всякия скверны, и спаси, Блаже, души наша.
-            </p>
+            {% if calendar_widget and calendar_widget.parable %}
+                <h5 class="fw-light text-uppercase small mb-3 text-muted">{{ calendar_widget.parable.title }}</h5>
+                <div class="daily-text-collapse">
+                    <p id="dailyCalendarText" class="prayer-text fs-5 text-secondary is-collapsed mb-0">{{ calendar_widget.parable.text }}</p>
+                    <button type="button"
+                            id="dailyCalendarToggle"
+                            class="btn btn-link btn-sm text-muted text-decoration-none p-0 mt-2 d-none"
+                            aria-expanded="false">
+                        Читать далее <i class="bi bi-chevron-down small ms-1"></i>
+                    </button>
+                </div>
+            {% else %}
+                <!-- Класс text-muted подстраивает цвет заголовка под любую тему -->
+                <h5 class="fw-light text-uppercase small mb-3 text-muted">Молитва перед началом всякого дела</h5>
+                <!-- Класс text-secondary делает текст молитвы мягким и читаемым -->
+                <p class="prayer-text fs-5 text-secondary">
+                    Царю Небесный, Утешителю, Душе истины, Иже везде сый и вся исполняяй, Сокровище благих и жизни Подателю, прииди и вселися в ны, и очисти ны от всякия скверны, и спаси, Блаже, души наша.
+                </p>
+            {% endif %}
         </div>
+
         
         <!-- Тонкий адаптивный разделитель Bootstrap -->
         <div class="border-top border-subtle my-4"></div>
@@ -58,4 +78,30 @@
         
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const textEl = document.getElementById('dailyCalendarText');
+        const toggleBtn = document.getElementById('dailyCalendarToggle');
+        if (!textEl || !toggleBtn) return;
+
+        // Показываем кнопку только если текст реально выходит за пределы 4 строк
+        if (textEl.scrollHeight > textEl.clientHeight + 4) {
+            toggleBtn.classList.remove('d-none');
+        } else {
+            // Если текст короткий — убираем градиентное затухание снизу
+            textEl.classList.remove('is-collapsed');
+        }
+
+        toggleBtn.addEventListener('click', function () {
+            const isCollapsed = textEl.classList.toggle('is-collapsed');
+            toggleBtn.setAttribute('aria-expanded', String(!isCollapsed));
+            toggleBtn.innerHTML = isCollapsed
+                ? 'Читать далее <i class="bi bi-chevron-down small ms-1"></i>'
+                : 'Свернуть <i class="bi bi-chevron-up small ms-1"></i>';
+        });
+    });
+</script>
 {% endblock %}

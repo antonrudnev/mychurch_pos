@@ -62,16 +62,15 @@ services:
     restart: always
     mem_limit: 380m
     memswap_limit: 800m
+    env_file: .env
     volumes:
       - ./db_volume:/app/db_volume
       - ./media:/app/media
     environment:
       PYTHONUNBUFFERED: "1"
       MALLOC_ARENA_MAX: "2"
-      TIME_ZONE: ${TIME_ZONE:-Asia/Novokuznetsk}
-      TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
       DEBUG: "False"
-      TEST_ENVIRONMENT: ${TEST_ENVIRONMENT:-false}
+      TZ: ${TIME_ZONE:-Asia/Novokuznetsk}
       SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env}
       ALLOWED_HOSTS: ${DOMAIN:?Set DOMAIN in .env}
       CSRF_TRUSTED_ORIGINS: https://${DOMAIN:?Set DOMAIN in .env}
@@ -82,7 +81,6 @@ services:
       DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:?Set DJANGO_SUPERUSER_USERNAME in .env}
       DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:?Set DJANGO_SUPERUSER_EMAIL in .env}
       DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:?Set DJANGO_SUPERUSER_PASSWORD in .env}
-    # Накатываем миграции и запускаем Gunicorn
     command: >
       sh -c "python manage.py migrate &&
              python scripts/data_upload.py &&
